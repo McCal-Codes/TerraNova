@@ -1,0 +1,68 @@
+name: Feature Request
+description: Submit a request for a new feature or an enhancement to an existing feature.
+title: "[Feat] "
+labels: ["enhancement"]
+type: feature
+body:
+  - type: textarea
+    attributes:
+      label: Scope
+      description: Provide a short summary of what this feature should encompass.
+      placeholder: |
+        Example:
+          1. X Feature should do Y
+          2. X Feature should interact with Z
+          3. X Feature should have A, B, and C options
+          4. X Feature should be compatible with D
+          5. X Feature should not do E
+          6. X Feature should optionally do F
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Implementation Details
+      description: Provide a moderate level of detail on how you would envision this feature being implemented.
+      placeholder: |
+        Example:
+          1. Suggested UI location: toolbar, context menu, sidebar panel
+          2. Suggested keyboard shortcut: Ctrl+Shift+X
+          3. Suggested behavior when no file is open
+          4. How it should interact with existing features (preview, undo, etc.)
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Risks and Alternatives
+      description: Provide a simple analysis of potential risks, challenges, and alternative approaches to implementing this feature.
+      placeholder: |
+        Example:
+          1. Risk: This feature may conflict with existing Feature X.
+          2. Challenge: Implementing this feature may require significant changes to Module Y.
+          3. Alternative: Instead of implementing this feature, we could enhance Feature Z to cover similar functionality.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: References and Media
+      description: Provide any relevant references, links, images, or other media that support this feature request.
+      placeholder: |
+        Example:
+          1. Link to similar feature in another project: https://example.com/feature
+          2. Screenshot or mockup of the desired feature
+          3. Documentation or articles related to the feature
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Confirmation Checklist
+      options:
+        - label: I have checked the existing [issues](https://github.com/HyperSystemsDev/TerraNova/issues) for duplicates.
+          required: true
+
+        - label: I agree to follow this project's [Code of Conduct](https://github.com/HyperSystemsDev/TerraNova/blob/main/CODE_OF_CONDUCT.md).
+          required: true

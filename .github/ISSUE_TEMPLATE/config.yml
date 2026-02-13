@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Join the HyperSystems Discord
+    url: https://discord.gg/SNPjyfkYPc
+    about: Come and chat with other players and the HyperSystems team!
+  - name: HyperSystems Website
+    url: https://hypersystems.dev
+    about: Visit our website for more information about HyperSystems.
+  - name: "TerraNova Documentation"
+    url: "https://github.com/HyperSystemsDev/TerraNova#readme"
+    about: "Find guides and documentation for TerraNova."

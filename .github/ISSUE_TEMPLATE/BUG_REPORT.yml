@@ -1,0 +1,96 @@
+name: Bug Report
+description: Help us improve TerraNova by filing a detailed bug report.
+title: "[Bug]: "
+labels: ["bug"]
+type: bug
+body:
+  - type: input
+    id: appVersion
+    attributes:
+      label: App Version
+      description: The version of TerraNova you have installed (shown in the title bar or About dialog)
+      placeholder: 0.1.2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Select the operating system where you are experiencing the issue.
+      multiple: false
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (Debian/Ubuntu)
+        - Linux (Fedora/RedHat)
+        - Linux (Arch)
+        - Linux (Other)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Bug Description
+      description: Provide a clear and concise description of the issue or unexpected behavior.
+      placeholder: When opening a biome file I get X error.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: Provide a detailed, step-by-step guide on how to reproduce the issue.
+      placeholder: |
+        Example:
+          1. Open an asset pack
+          2. Click on a biome file
+          3. Error is shown in the editor
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: Provide a detailed explanation of what you expected to happen instead of the observed issue. Be as specific as possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: If available, please provide any error messages or console output from the app.
+      render: shell
+
+  - type: textarea
+    id: assetPack
+    attributes:
+      label: Asset Pack Details
+      description: If the issue involves a specific asset pack or biome file, describe its structure (number of nodes, file size, etc.)
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Media
+      description: If available, please upload screenshots or videos to illustrate the issue.
+
+  - type: textarea
+    id: informationContext
+    attributes:
+      label: Additional information
+      description: If available, please add any additional information such as GPU model, display resolution, or WebView version.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Confirmation Checklist
+      options:
+        - label: I have checked the existing [issues](https://github.com/HyperSystemsDev/TerraNova/issues) for duplicates.
+          required: true
+
+        - label: I agree to follow this project's [Code of Conduct](https://github.com/HyperSystemsDev/TerraNova/blob/main/CODE_OF_CONDUCT.md).
+          required: true

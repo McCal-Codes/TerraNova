@@ -25,25 +25,25 @@ TerraNova is a desktop application for visually designing Hytale World Generatio
 ### Minimum
 *Basic editing: up to ~50 nodes, 2D heatmap preview, 1-2 files open*
 
-| Component | Spec |
-|-----------|------|
-| CPU | Dual-core, 2.0 GHz (Intel i3 8th gen / Ryzen 3 3200G / Apple M1) |
-| RAM | 4 GB |
-| GPU | Integrated with WebGL 2.0 (Intel UHD 620 / AMD Vega 3) |
-| Storage | 200 MB free |
-| Display | 1280x720 |
-| OS | Windows 10 21H2+ / macOS 11+ / Ubuntu 22.04+ |
+| Component | Spec                                                             |
+|-----------|------------------------------------------------------------------|
+| CPU       | Dual-core, 2.0 GHz (Intel i3 8th gen / Ryzen 3 3200G / Apple M1) |
+| RAM       | 4 GB                                                             |
+| GPU       | Integrated with WebGL 2.0 (Intel UHD 620 / AMD Vega 3)           |
+| Storage   | 200 MB free                                                      |
+| Display   | 1280x720                                                         |
+| OS        | Windows 10 21H2+ / macOS 11+ / Ubuntu 22.04+                     |
 
 ### Recommended
 *Full workflow: 100-200 nodes, 3D voxel preview, split view, 5+ biome sections*
 
-| Component | Spec |
-|-----------|------|
-| CPU | Quad-core, 3.0 GHz (Intel i5 10th gen / Ryzen 5 3600 / Apple M1) |
-| RAM | 8 GB |
-| GPU | Dedicated with 2GB VRAM or strong integrated (GTX 1050+ / Iris Xe / Apple M1) |
-| Storage | SSD |
-| Display | 1920x1080 |
+| Component | Spec                                                                          |
+|-----------|-------------------------------------------------------------------------------|
+| CPU       | Quad-core, 3.0 GHz (Intel i5 10th gen / Ryzen 5 3600 / Apple M1)              |
+| RAM       | 8 GB                                                                          |
+| GPU       | Dedicated with 2GB VRAM or strong integrated (GTX 1050+ / Iris Xe / Apple M1) |
+| Storage   | SSD                                                                           |
+| Display   | 1920x1080                                                                     |
 
 > TerraNova uses [Tauri](https://tauri.app/) instead of Electron, so the baseline memory footprint is ~80-120 MB (system WebView) rather than ~300-500 MB (bundled Chromium). This is why 4 GB RAM is viable as a minimum.
 
@@ -114,17 +114,17 @@ TerraNova/
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | [Tauri 2](https://tauri.app/) |
-| Frontend | [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) |
-| Node Editor | [@xyflow/react](https://reactflow.dev/) (React Flow) |
-| 3D Preview | [React Three Fiber](https://r3f.docs.pmnd.rs/) + [Three.js](https://threejs.org/) |
-| State | [Zustand](https://zustand.docs.pmnd.rs/) |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) |
-| Build | [Vite](https://vite.dev/) with code-split chunks (Three.js, ReactFlow, dagre) |
-| Backend | [Rust](https://www.rust-lang.org/) |
-| Noise | [fastnoise-lite](https://github.com/Auburn/FastNoiseLite) |
+| Layer       | Technology                                                                        |
+|-------------|-----------------------------------------------------------------------------------|
+| Framework   | [Tauri 2](https://tauri.app/)                                                     |
+| Frontend    | [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)    |
+| Node Editor | [@xyflow/react](https://reactflow.dev/) (React Flow)                              |
+| 3D Preview  | [React Three Fiber](https://r3f.docs.pmnd.rs/) + [Three.js](https://threejs.org/) |
+| State       | [Zustand](https://zustand.docs.pmnd.rs/)                                          |
+| Styling     | [Tailwind CSS](https://tailwindcss.com/)                                          |
+| Build       | [Vite](https://vite.dev/) with code-split chunks (Three.js, ReactFlow, dagre)     |
+| Backend     | [Rust](https://www.rust-lang.org/)                                                |
+| Noise       | [fastnoise-lite](https://github.com/Auburn/FastNoiseLite)                         |
 
 ## Performance
 
@@ -139,11 +139,18 @@ TerraNova is optimized for large biome files with 100-200+ nodes across multiple
 - **Canvas Optimization** — Contour generation is memoized separately from overlay drawing; SSAO uses 8 samples for better frame budget on integrated GPUs
 - **CSS Performance** — Handle hover effects use `outline` instead of `box-shadow` to avoid paint storms across 600+ handles
 
-## Links
+## Support
 
-- [Discord Server](https://discord.gg/SNPjyfkYPc)
-- [HyperSystemsDev GitHub](https://github.com/HyperSystemsDev)
+- [Discord Server](https://discord.gg/SNPjyfkYPc) - Chat with the community and the HyperSystems team
+- [GitHub Issues](https://github.com/HyperSystemsDev/TerraNova/issues) - Report bugs or request features
+- [HyperSystems Website](https://hypersystems.dev) - Learn more about our projects
+
+## Credits
+
+Built by [HyperSystemsDev](https://github.com/HyperSystemsDev).
+
+TerraNova is part of the [HyperSystems](https://hypersystems.dev) project ecosystem.
 
 ## License
 
-[MIT](LICENSE)
+[LGPL v2.1](LICENSE)

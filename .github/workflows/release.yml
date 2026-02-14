@@ -53,6 +53,27 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
+      - name: Sync version from git tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Updating version to $VERSION"
+          node -e "
+            const fs = require('fs');
+            // tauri.conf.json
+            const tc = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));
+            tc.version = '$VERSION';
+            fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tc, null, 2) + '\n');
+            // package.json
+            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            // Cargo.toml - replace first version line
+            let cargo = fs.readFileSync('src-tauri/Cargo.toml','utf8');
+            cargo = cargo.replace(/^version = \".*\"/m, 'version = \"$VERSION\"');
+            fs.writeFileSync('src-tauri/Cargo.toml', cargo);
+          "
+        shell: bash
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 

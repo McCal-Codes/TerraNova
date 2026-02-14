@@ -189,7 +189,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <span className="text-sm text-tn-text-muted">Checking...</span>
               ) : (
                 <button
-                  onClick={checkForUpdates}
+                  onClick={() => checkForUpdates(true)}
                   className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
                 >
                   Check for updates

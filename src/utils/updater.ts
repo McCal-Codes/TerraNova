@@ -5,7 +5,7 @@ import { useToastStore } from "@/stores/toastStore";
 
 let pendingUpdate: Update | null = null;
 
-export async function checkForUpdates(): Promise<void> {
+export async function checkForUpdates(manual = false): Promise<void> {
   const store = useUpdateStore.getState();
   if (store.status !== "idle") return;
 
@@ -22,10 +22,15 @@ export async function checkForUpdates(): Promise<void> {
       );
     } else {
       store.setStatus("idle");
+      if (manual) {
+        useToastStore.getState().addToast("You're on the latest version", "success");
+      }
     }
   } catch {
-    // Silently fail on network errors — no toast
     store.setStatus("idle");
+    if (manual) {
+      useToastStore.getState().addToast("Could not check for updates", "error");
+    }
   }
 }
 

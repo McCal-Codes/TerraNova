@@ -3,7 +3,7 @@ name = "terranova"
 version = "0.1.0"
 description = "Offline design studio for Hytale World Generation V2"
 authors = ["HyperSystemsDev"]
-license = "MIT"
+license = "LGPL-2.1"
 edition = "2021"
 rust-version = "1.77"
 

@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Date:** 2026-02-06
 **Organization:** HyperSystemsDev
-**License:** MIT
+**License:** LGPL-2.1
 **Based on:** IEEE 830-1998
 
 ---
@@ -873,7 +873,7 @@ No authentication required. All requests are read-only against public repos.
 ## 7. Constraints
 
 ### 7.1 License
-MIT — all code must be compatible with MIT licensing. No GPL dependencies in the application binary.
+LGPL-2.1 — all code must be compatible with LGPL-2.1 licensing.
 
 ### 7.2 Cost
 Zero infrastructure cost. All hosting, CI/CD, and distribution must use free tiers (GitHub-only).
@@ -891,7 +891,7 @@ Core functionality (editing, preview, validation, bundled templates) must work w
 Output JSON must be loadable by Hytale server pre-release `2026.02.05-9ce2783f7` without modification.
 
 ### 7.6 Open Source
-All source code published under MIT license on `HyperSystemsDev/TerraNova` GitHub repository.
+All source code published under LGPL-2.1 license on `HyperSystemsDev/TerraNova` GitHub repository.
 
 ---
 

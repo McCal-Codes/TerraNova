@@ -18,13 +18,15 @@ TerraNova fixes both problems.
 
 **Visual Node Editor** — All 200+ V2 types as drag-and-drop nodes with the same color coding you already know (orange = materials, blue = density, green = positions). Auto-layout untangles your graphs. Minimap, search, undo/redo, collapsible groups — everything the in-game editor is missing.
 
-**Live Preview** — See what your density functions actually produce as you tweak sliders. 2D heatmaps and 3D terrain meshes update in real-time, no server needed.
+**Live Preview** — See what your density functions actually produce as you tweak sliders. 2D heatmaps and 3D voxel terrain meshes update in real-time, no server needed. Side-by-side comparison view lets you iterate on terrain changes with instant before/after feedback.
+
+**Bridge Integration** — Connect TerraNova to a running Hytale server and push exported asset packs directly, no manual file copying. Design offline, deploy in one click.
 
 **Specialized Editors** — Curve editor with draggable control points. Biome range editor showing where each biome sits on the noise axis. Material layer stack editor. The right tool for each job instead of forcing everything into a node graph.
 
-**Validation** — Catches missing fields, wrong types, and broken references before you ever load on a server. No more mysterious crashes from a typo in JSON.
+**Validation** — Catches missing fields, wrong types, and broken references before you ever load on a server. Error badges appear on nodes in real-time with severity indicators so you know exactly what to fix.
 
-**Starter Templates** — Forest, Desert, Mountains, Floating Islands, and more. Pick one, customize it, export. You're never starting from a blank canvas.
+**Starter Templates** — Forest, Desert, Mountains, Floating Islands, Eldritch Spirelands, and more. Pick one, customize it, export. You're never starting from a blank canvas.
 
 **Community Templates** — Browse and download templates other creators have shared. Save your own as templates and share them back. All free, all through GitHub.
 
@@ -32,15 +34,21 @@ TerraNova fixes both problems.
 
 TerraNova is for the **design phase** — architect your worldgen offline, iterate fast, get it right. Then load the exported asset pack on your server. It works alongside the in-game editor (for quick tweaks) and HyPaint (for live production editing). They're complementary tools, not replacements for each other.
 
+## Releases
+
+- **v0.1.0** — Initial release with node editor, live preview, templates, and validation
+- **v0.1.1** — Windows gray screen fix, biome editor crash fix
+- **v0.1.2** — Bridge integration, error boundary improvements, object value rendering fixes
+
 ## The details
 
-- **Free forever** — MIT license, open source, zero cost, no telemetry
+- **Free forever** — LGPL-2.1 license, open source, zero cost, no telemetry
 - **Offline first** — everything works without internet (community templates need a connection to browse)
 - **Tiny install** — under 15MB
 - **Git-friendly** — outputs clean JSON files you can version control and diff
 - **Cross-platform** — macOS, Windows, Linux
 - **Built by** [HyperSystemsDev](https://github.com/HyperSystemsDev) — the same team behind HyperPerms, HyperHomes, and HyperFactions
-- **Community** — [discord.gg/SNPjyfkYPc](https://discord.gg/SNPjyfkYPc)
+- **Community** — [discord.gg/NHPzsjkQeu](https://discord.gg/NHPzsjkQeu)
 
 ---
 

@@ -21,6 +21,7 @@ pub fn run() {
             io_commands::read_asset_file,
             io_commands::write_asset_file,
             io_commands::export_asset_file,
+            io_commands::write_text_file,
             io_commands::copy_file,
             io_commands::list_directory,
             io_commands::create_from_template,

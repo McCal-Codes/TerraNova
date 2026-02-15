@@ -1,5 +1,8 @@
+import { useCallback } from "react";
 import { usePreviewStore } from "@/stores/previewStore";
+import { useEditorStore } from "@/stores/editorStore";
 import { SliderField } from "@/components/properties/SliderField";
+import { runFitToContent } from "@/utils/previewAutoFit";
 
 export function ControlsVoxel() {
   const rangeMin = usePreviewStore((s) => s.rangeMin);
@@ -29,19 +32,75 @@ export function ControlsVoxel() {
   const setShowSSAO = usePreviewStore((s) => s.setShowSSAO);
   const showEdgeOutline = usePreviewStore((s) => s.showEdgeOutline);
   const setShowEdgeOutline = usePreviewStore((s) => s.setShowEdgeOutline);
+  const autoFitYEnabled = usePreviewStore((s) => s.autoFitYEnabled);
+  const setAutoFitYEnabled = usePreviewStore((s) => s.setAutoFitYEnabled);
+  const isFitToContentRunning = usePreviewStore((s) => s.isFitToContentRunning);
+
+  const handleYMinChange = useCallback((v: number) => {
+    usePreviewStore.getState()._setUserManualYAdjust(true);
+    setVoxelYMin(v);
+  }, [setVoxelYMin]);
+
+  const handleYMaxChange = useCallback((v: number) => {
+    usePreviewStore.getState()._setUserManualYAdjust(true);
+    setVoxelYMax(v);
+  }, [setVoxelYMax]);
+
+  const handleFitToContent = useCallback(async () => {
+    const store = usePreviewStore.getState();
+    store.setFitToContentRunning(true);
+
+    const editorState = useEditorStore.getState();
+    const result = await runFitToContent(
+      editorState.nodes,
+      editorState.edges,
+      editorState.contentFields,
+      editorState.outputNodeId ?? undefined,
+      store.selectedPreviewNodeId ?? undefined,
+    );
+
+    if (result?.hasSolids) {
+      // Adjust XZ range — use the larger of X/Z extents, symmetrized
+      const xzExtent = Math.max(
+        Math.abs(result.worldXMin),
+        Math.abs(result.worldXMax),
+        Math.abs(result.worldZMin),
+        Math.abs(result.worldZMax),
+      );
+      store.setRange(-xzExtent, xzExtent);
+      store.setVoxelYMin(result.worldYMin);
+      store.setVoxelYMax(result.worldYMax);
+      store._setUserManualYAdjust(true);
+    }
+
+    store.setFitToContentRunning(false);
+  }, []);
 
   return (
     <>
       <SliderField label="Range Min" value={rangeMin} min={-256} max={0} step={1} onChange={(v) => setRange(v, rangeMax)} />
       <SliderField label="Range Max" value={rangeMax} min={0} max={256} step={1} onChange={(v) => setRange(rangeMin, v)} />
 
+      <button
+        onClick={handleFitToContent}
+        disabled={isFitToContentRunning}
+        className="w-full px-2 py-1 text-[11px] font-medium rounded border border-tn-border bg-tn-bg-secondary text-tn-text-muted hover:bg-tn-bg-tertiary hover:text-tn-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        {isFitToContentRunning ? "Scanning..." : "Fit to Content"}
+      </button>
+
       <div className="flex flex-col gap-2 border-t border-tn-border pt-2">
         <span className="text-[10px] text-tn-text-muted font-medium">Voxel Options</span>
 
         <SliderField label="Resolution" value={voxelResolution} min={8} max={256} step={8} allowInputOverflow onChange={setVoxelResolution} />
-        <SliderField label="Y Min" value={voxelYMin} min={0} max={255} step={1} onChange={setVoxelYMin} />
-        <SliderField label="Y Max" value={voxelYMax} min={1} max={256} step={1} onChange={setVoxelYMax} />
+        <SliderField label="Y Min" value={voxelYMin} min={0} max={319} step={1} onChange={handleYMinChange} />
+        <SliderField label="Y Max" value={voxelYMax} min={1} max={320} step={1} onChange={handleYMaxChange} />
         <SliderField label="Y Slices" value={voxelYSlices} min={8} max={128} step={4} onChange={setVoxelYSlices} />
+
+        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
+          <input type="checkbox" checked={autoFitYEnabled} onChange={(e) => setAutoFitYEnabled(e.target.checked)} className="accent-tn-accent w-3 h-3" />
+          Auto-fit Y range
+        </label>
 
         <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
           <input type="checkbox" checked={showMaterialColors} onChange={(e) => setShowMaterialColors(e.target.checked)} className="accent-tn-accent w-3 h-3" />

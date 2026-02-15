@@ -8,6 +8,7 @@ import { evaluateMaterialGraph } from "@/utils/materialEvaluator";
 import { createEvaluationContext } from "@/utils/densityEvaluator";
 import { buildVoxelMeshes } from "@/utils/voxelMeshBuilder";
 import { DEBOUNCE_MS } from "@/constants";
+import { scanDensityGridYBounds, computeGraphHash, analyzeGraphDefaults } from "@/utils/previewAutoFit";
 
 /** Progressive resolution steps */
 const PROGRESSIVE_STEPS = [16, 32, 64, 96, 128];
@@ -38,6 +39,7 @@ export function useVoxelEvaluation() {
   const viewMode = usePreviewStore((s) => s.viewMode);
   const autoRefresh = usePreviewStore((s) => s.autoRefresh);
   const showMaterialColors = usePreviewStore((s) => s.showMaterialColors);
+  const autoFitYEnabled = usePreviewStore((s) => s.autoFitYEnabled);
   const setVoxelDensities = usePreviewStore((s) => s.setVoxelDensities);
   const setVoxelLoading = usePreviewStore((s) => s.setVoxelLoading);
   const setVoxelError = usePreviewStore((s) => s.setVoxelError);
@@ -48,6 +50,24 @@ export function useVoxelEvaluation() {
   const progressiveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountedRef = useRef(false);
 
+  // ── Feature 3: Graph-aware defaults ──
+  // Pre-set Y bounds from static analysis before evaluation starts
+  useEffect(() => {
+    if (mode !== "voxel" || !autoFitYEnabled) return;
+
+    const currentHash = computeGraphHash(nodes, edges);
+    const store = usePreviewStore.getState();
+    if (currentHash === store._autoFitGraphHash) return;
+
+    const defaults = analyzeGraphDefaults(nodes, edges, contentFields);
+    if (defaults.confidence === "high") {
+      store.setVoxelYMin(defaults.suggestedYMin);
+      store.setVoxelYMax(defaults.suggestedYMax);
+      store.setRange(defaults.suggestedRangeMin, defaults.suggestedRangeMax);
+    }
+  }, [nodes, edges, contentFields, mode, autoFitYEnabled]);
+
+  // ── Main voxel evaluation pipeline ──
   useEffect(() => {
     // Only run in voxel mode when preview is visible
     if (mode !== "voxel" || viewMode === "graph" || !autoRefresh) return;
@@ -97,6 +117,31 @@ export function useVoxelEvaluation() {
           });
 
           if (evalId !== evalIdRef.current || unmountedRef.current) return;
+
+          // ── Feature 1: Auto-fit Y bounds after coarse pass ──
+          if (stepIdx === 0 && autoFitYEnabled) {
+            const store = usePreviewStore.getState();
+            const currentHash = computeGraphHash(nodes, edges);
+            if (currentHash !== store._autoFitGraphHash) {
+              // Graph changed — reset manual flag and run auto-fit
+              store._setUserManualYAdjust(false);
+              const yBounds = scanDensityGridYBounds(
+                result.densities,
+                result.resolution,
+                result.ySlices,
+                voxelYMin,
+                voxelYMax,
+              );
+              if (yBounds.hasSolids) {
+                store._setAutoFitGraphHash(currentHash);
+                store.setVoxelYMin(yBounds.worldYMin);
+                store.setVoxelYMax(yBounds.worldYMax);
+                // The Y bound change will trigger a re-eval, but the hash
+                // will now match, so auto-fit won't loop.
+                return;
+              }
+            }
+          }
 
           setVoxelDensities(result.densities);
 
@@ -248,7 +293,7 @@ export function useVoxelEvaluation() {
   }, [
     nodes, edges, contentFields, outputNodeId, materialConfig, mode, rangeMin, rangeMax, voxelYMin, voxelYMax,
     voxelYSlices, voxelResolution, selectedPreviewNodeId, viewMode,
-    autoRefresh, showMaterialColors,
+    autoRefresh, showMaterialColors, autoFitYEnabled,
     setVoxelDensities, setVoxelLoading, setVoxelError, setVoxelMaterials,
   ]);
 }

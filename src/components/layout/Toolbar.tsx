@@ -15,6 +15,8 @@ import { useToastStore } from "@/stores/toastStore";
 import { saveRef } from "@/utils/saveRef";
 import { matchesKeybinding, resolveKeybinding } from "@/config/keybindings";
 import { exportAssetPack, exportCurrentJson } from "@/utils/exportAssetPack";
+import { ExportSvgDialog } from "@/components/dialogs/ExportSvgDialog";
+import type { SvgExportOptions } from "@/utils/exportSvg";
 
 interface MenuItemProps {
   label: string;
@@ -85,6 +87,7 @@ export function Toolbar({ onCloseProject }: ToolbarProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [showExportSvg, setShowExportSvg] = useState(false);
   const reactFlow = useReactFlow();
   const showInlinePreviews = usePreviewStore((s) => s.showInlinePreviews);
   const showGrid = useUIStore((s) => s.showGrid);
@@ -166,6 +169,17 @@ export function Toolbar({ onCloseProject }: ToolbarProps) {
       padding: 0.2,
       duration: 300,
     });
+  }
+
+  async function handleExportSvg(options: SvgExportOptions) {
+    try {
+      const { generateSvg, writeSvgToFile } = await import("@/utils/exportSvg");
+      const svgString = generateSvg(reactFlow, options);
+      await writeSvgToFile(svgString);
+    } catch (err) {
+      if (import.meta.env.DEV) console.error("SVG export failed:", err);
+      useToastStore.getState().addToast(`SVG export failed: ${err}`, "error");
+    }
   }
 
   // Wire global keyboard shortcuts
@@ -294,6 +308,13 @@ export function Toolbar({ onCloseProject }: ToolbarProps) {
         return;
       }
 
+      // Export SVG
+      if (matchesKeybinding("exportSvg", e)) {
+        e.preventDefault();
+        setShowExportSvg(true);
+        return;
+      }
+
       // Export asset pack (check before exportJson to avoid Ctrl+E matching Ctrl+Shift+E)
       if (matchesKeybinding("exportPack", e)) {
         e.preventDefault();
@@ -413,6 +434,7 @@ export function Toolbar({ onCloseProject }: ToolbarProps) {
           <MenuSeparator />
           <MenuItem label="Export Asset Pack..." onClick={exportAssetPack} shortcut={resolveKeybinding("exportPack")} />
           <MenuItem label="Export Current JSON..." onClick={exportCurrentJson} shortcut={resolveKeybinding("exportJson")} />
+          <MenuItem label="Export SVG..." onClick={() => setShowExportSvg(true)} shortcut={resolveKeybinding("exportSvg")} />
         </MenuDropdown>
 
         <MenuDropdown label="Edit">
@@ -605,6 +627,7 @@ export function Toolbar({ onCloseProject }: ToolbarProps) {
       <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
       <KeyboardShortcutsDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <ConfigurationDialog open={showConfig} onClose={() => setShowConfig(false)} />
+      <ExportSvgDialog open={showExportSvg} onClose={() => setShowExportSvg(false)} onExport={handleExportSvg} />
     </>
   );
 }

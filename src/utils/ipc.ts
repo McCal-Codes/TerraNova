@@ -60,6 +60,10 @@ export async function exportAssetFile(path: string, content: unknown): Promise<v
   return invoke("export_asset_file", { path, content });
 }
 
+export async function writeTextFile(path: string, content: string): Promise<void> {
+  return invoke("write_text_file", { path, content });
+}
+
 export async function copyFile(source: string, destination: string): Promise<void> {
   return invoke("copy_file", { source, destination });
 }

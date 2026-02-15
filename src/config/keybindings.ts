@@ -40,6 +40,7 @@ export const KEYBINDINGS: KeybindingDef[] = [
   { id: "closeProject",       defaultKey: "Ctrl+W",         label: "Close Project",              category: "File" },
   { id: "exportPack",         defaultKey: "Ctrl+Shift+E",   label: "Export Asset Pack",          category: "File" },
   { id: "exportJson",         defaultKey: "Ctrl+E",         label: "Export Current JSON",        category: "File" },
+  { id: "exportSvg",          defaultKey: "Ctrl+Shift+G",   label: "Export SVG",                 category: "File" },
 
   // ── View ────────────────────────────────────────────────────
   { id: "resetZoom",          defaultKey: "Ctrl+0",         label: "Reset Zoom",                 category: "View" },

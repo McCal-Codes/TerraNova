@@ -57,6 +57,19 @@ pub fn export_asset_file(path: String, content: Value) -> Result<(), String> {
     Ok(())
 }
 
+/// Write a raw text file to an arbitrary path, creating parent directories.
+#[tauri::command]
+pub fn write_text_file(path: String, content: String) -> Result<(), String> {
+    let file_path = Path::new(&path);
+    if let Some(parent) = file_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+    }
+    let temp_path = file_path.with_extension("tmp");
+    fs::write(&temp_path, &content).map_err(|e| format!("Failed to write: {}", e))?;
+    fs::rename(&temp_path, file_path).map_err(|e| format!("Failed to rename: {}", e))?;
+    Ok(())
+}
+
 /// Copy a file from source to destination, creating parent directories.
 #[tauri::command]
 pub fn copy_file(source: String, destination: String) -> Result<(), String> {

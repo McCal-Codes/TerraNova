@@ -71,6 +71,11 @@ interface PreviewState {
   showEdgeOutline: boolean;
   showHillShade: boolean;
 
+  autoFitYEnabled: boolean;
+  _autoFitGraphHash: string;
+  _userManualYAdjust: boolean;
+  isFitToContentRunning: boolean;
+
   worldCenterX: number;
   worldCenterZ: number;
   worldRadius: number;
@@ -158,6 +163,11 @@ interface PreviewState {
   setShowEdgeOutline: (show: boolean) => void;
   setShowHillShade: (show: boolean) => void;
 
+  setAutoFitYEnabled: (enabled: boolean) => void;
+  _setAutoFitGraphHash: (hash: string) => void;
+  _setUserManualYAdjust: (manual: boolean) => void;
+  setFitToContentRunning: (running: boolean) => void;
+
   setWorldCenterX: (x: number) => void;
   setWorldCenterZ: (z: number) => void;
   setWorldRadius: (r: number) => void;
@@ -220,6 +230,7 @@ const PERSIST_MAP: Record<string, string> = {
   showSSAO: "tn-showSSAO",
   showEdgeOutline: "tn-showEdgeOutline",
   showHillShade: "tn-showHillShade",
+  autoFitYEnabled: "tn-autoFitYEnabled",
   worldCenterX: "tn-worldCenterX",
   worldCenterZ: "tn-worldCenterZ",
   worldRadius: "tn-worldRadius",
@@ -284,6 +295,7 @@ function hydratePersistedState() {
     showSSAO: getStoredBool("tn-showSSAO", false),
     showEdgeOutline: getStoredBool("tn-showEdgeOutline", false),
     showHillShade: getStoredBool("tn-showHillShade", true),
+    autoFitYEnabled: getStoredBool("tn-autoFitYEnabled", true),
     worldCenterX: getStoredFloat("tn-worldCenterX", 0),
     worldCenterZ: getStoredFloat("tn-worldCenterZ", 0),
     worldRadius: getStoredFloat("tn-worldRadius", 2),
@@ -362,6 +374,9 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     compareLoadingA: false,
     compareLoadingB: false,
     fidelityScore: 100,
+    _autoFitGraphHash: "",
+    _userManualYAdjust: false,
+    isFitToContentRunning: false,
 
     // Hydrated persisted values
     ...hydrated,
@@ -395,6 +410,9 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setCompareLoadingA: (compareLoadingA) => originalSet({ compareLoadingA }),
     setCompareLoadingB: (compareLoadingB) => originalSet({ compareLoadingB }),
     setFidelityScore: (fidelityScore) => originalSet({ fidelityScore }),
+    _setAutoFitGraphHash: (_autoFitGraphHash) => originalSet({ _autoFitGraphHash }),
+    _setUserManualYAdjust: (_userManualYAdjust) => originalSet({ _userManualYAdjust }),
+    setFitToContentRunning: (isFitToContentRunning) => originalSet({ isFitToContentRunning }),
 
     // Persisted setters — use persistedSet for auto-localStorage sync
     setViewMode: (viewMode) => persistedSet({ viewMode }),
@@ -422,6 +440,7 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setShowSSAO: (showSSAO) => persistedSet({ showSSAO }),
     setShowEdgeOutline: (showEdgeOutline) => persistedSet({ showEdgeOutline }),
     setShowHillShade: (showHillShade) => persistedSet({ showHillShade }),
+    setAutoFitYEnabled: (autoFitYEnabled) => persistedSet({ autoFitYEnabled }),
     setWorldCenterX: (worldCenterX) => persistedSet({ worldCenterX }),
     setWorldCenterZ: (worldCenterZ) => persistedSet({ worldCenterZ }),
     setWorldRadius: (worldRadius) => persistedSet({ worldRadius }),

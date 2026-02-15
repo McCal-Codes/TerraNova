@@ -43,7 +43,7 @@ export function SliderField({ label, value, min = -100, max = 100, step = 0.01, 
             onChange(allowInputOverflow ? Math.max(min, raw) : Math.max(min, Math.min(max, raw)));
           }}
           onBlur={onBlur}
-          className="w-20 px-1.5 py-0.5 text-xs bg-tn-bg border border-tn-border rounded text-right"
+          className="w-16 shrink-0 px-1.5 py-0.5 text-xs bg-tn-bg border border-tn-border rounded text-right"
         />
       </div>
     </div>

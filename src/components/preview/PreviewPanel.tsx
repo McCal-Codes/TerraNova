@@ -70,7 +70,7 @@ export function PreviewPanel() {
       {/* Controls sidebar — collapsible */}
       <div
         className={`shrink-0 border-r border-tn-border transition-all duration-150 ${
-          controlsCollapsed ? "w-8" : "w-48"
+          controlsCollapsed ? "w-8" : "w-64"
         }`}
       >
         {controlsCollapsed ? (

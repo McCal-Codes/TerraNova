@@ -14,7 +14,7 @@ export const HASH_PRIME_D = 1274126177;
 export const HASH_PRIME_E = 1013904223;
 
 // World dimensions
-export const DEFAULT_WORLD_HEIGHT = 256;
+export const DEFAULT_WORLD_HEIGHT = 320;
 
 // Zoom bounds
 export const MIN_ZOOM = 0.01;

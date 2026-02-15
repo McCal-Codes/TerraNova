@@ -102,3 +102,18 @@ body,
   stroke-width: 3 !important;
   filter: drop-shadow(0 0 4px rgba(255, 68, 68, 0.6));
 }
+
+/* Node interjection wire highlight (ant-march animation) */
+.react-flow__edge.interjection-edge .react-flow__edge-path {
+  stroke: #00CED1 !important;
+  stroke-width: 3 !important;
+  stroke-dasharray: 8 4 !important;
+  animation: interjection-march 0.5s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(0, 206, 209, 0.5));
+}
+
+@keyframes interjection-march {
+  to {
+    stroke-dashoffset: -12;
+  }
+}

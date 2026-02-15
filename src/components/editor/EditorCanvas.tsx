@@ -33,11 +33,11 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { MIN_ZOOM, MAX_ZOOM } from "@/constants";
 import { useConnectionValidation } from "@/hooks/useConnectionValidation";
 import { useKnifeTool } from "@/hooks/useKnifeTool";
+import { useNodeInterjection } from "@/hooks/useNodeInterjection";
 import { KnifeOverlay } from "./KnifeOverlay";
 import {
   getUpstreamEdgeIds,
   getBidirectionalEdgeIds,
-  findNearestEdge,
 } from "@/utils/graphGeometry";
 import { findHandleDef } from "@/nodes/handleRegistry";
 
@@ -235,6 +235,16 @@ export function EditorCanvas() {
     handlePointerUpCapture: knifePointerUpCapture,
   } = useKnifeTool({ containerRef: canvasContainerRef });
 
+  // ── Node interjection (drag node over wire to insert) ────────────────
+  const {
+    interjectEdgeId,
+    onNodeDrag: interjectOnNodeDrag,
+    onNodeDragStop: interjectOnNodeDragStop,
+    checkPaletteDrag,
+    getInterjectResult,
+    clearInterject,
+  } = useNodeInterjection();
+
   // Register keyboard shortcuts
   useKeyboardShortcuts({
     onSearchOpen: () => setSearchOpen(true),
@@ -297,12 +307,22 @@ export function EditorCanvas() {
   }, [selectedHandle, selectedNodeId, edges, hoverTrigger]);
 
   const styledEdges = useMemo(() => {
-    const needsHighlight = hasHighlight || (knifeActive && cutEdgeIds.size > 0);
+    const hasInterject = interjectEdgeId !== null;
+    const needsHighlight = hasHighlight || (knifeActive && cutEdgeIds.size > 0) || hasInterject;
     if (!needsHighlight) return edges;
     return edges.map((edge) => {
       // Knife cut highlight takes priority
       if (knifeActive && cutEdgeIds.has(edge.id)) {
         return { ...edge, className: "knife-cut-edge", style: { stroke: "#ff4444", strokeWidth: 3 } };
+      }
+
+      // Interjection highlight (second priority)
+      if (hasInterject && edge.id === interjectEdgeId) {
+        return {
+          ...edge,
+          className: "interjection-edge",
+          style: { stroke: "#00CED1", strokeWidth: 3, strokeDasharray: "8 4" },
+        };
       }
 
       const isUpstream = upstreamEdgeIds.has(edge.id);
@@ -323,7 +343,7 @@ export function EditorCanvas() {
       }
       return edge;
     });
-  }, [edges, hasHighlight, upstreamEdgeIds, downstreamEdgeIds, knifeActive, cutEdgeIds]);
+  }, [edges, hasHighlight, upstreamEdgeIds, downstreamEdgeIds, knifeActive, cutEdgeIds, interjectEdgeId]);
 
   // ── Pointer-based drop handler (replaces HTML5 drag-and-drop) ───────
   const handleMouseUp = useCallback(
@@ -344,17 +364,22 @@ export function EditorCanvas() {
         data: { type: dragData.displayType, fields: { ...dragData.defaults } },
       });
 
-      // Check if dropped on an existing edge → insert node on wire
-      const store = useEditorStore.getState();
-      const nearbyEdge = findNearestEdge(position, store.nodes, store.edges);
-      if (nearbyEdge) {
-        store.splitEdge(nearbyEdge.id, nodeId);
+      // Check if interjection hook resolved a target edge during palette drag
+      const interjectResult = getInterjectResult();
+      if (interjectResult) {
+        useEditorStore.getState().splitEdge(
+          interjectResult.edgeId,
+          nodeId,
+          interjectResult.inputHandleId,
+          interjectResult.outputHandleId,
+        );
       }
 
+      clearInterject();
       useProjectStore.getState().setDirty(true);
       endDrag();
     },
-    [reactFlowInstance],
+    [reactFlowInstance, getInterjectResult, clearInterject],
   );
 
   // ── Edge hover handlers (30ms debounce) ─────────────────────────────
@@ -519,7 +544,15 @@ export function EditorCanvas() {
       className="w-full h-full"
       style={knifeActive ? { cursor: "crosshair" } : undefined}
       onMouseUp={handleMouseUp}
-      onMouseMove={(e) => { mousePosRef.current = { x: e.clientX, y: e.clientY }; }}
+      onMouseMove={(e) => {
+        mousePosRef.current = { x: e.clientX, y: e.clientY };
+        // Palette drag → check for interjection target
+        const { isDragging, dragData } = useDragStore.getState();
+        if (isDragging && dragData) {
+          const flowPos = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
+          checkPaletteDrag(flowPos, dragData.nodeType);
+        }
+      }}
       onPointerDownCapture={knifePointerDownCapture}
       onPointerMoveCapture={knifePointerMoveCapture}
       onPointerUpCapture={knifePointerUpCapture}
@@ -535,6 +568,8 @@ export function EditorCanvas() {
         onEdgeClick={handleEdgeClick}
         onEdgeMouseEnter={handleEdgeMouseEnter}
         onEdgeMouseLeave={handleEdgeMouseLeave}
+        onNodeDrag={interjectOnNodeDrag}
+        onNodeDragStop={interjectOnNodeDragStop}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         onPaneContextMenu={handlePaneContextMenu}

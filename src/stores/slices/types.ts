@@ -98,7 +98,7 @@ export interface GraphSliceState {
   removeNode: (id: string) => void;
   removeNodes: (ids: string[]) => void;
   updateNodeField: (nodeId: string, fieldName: string, value: unknown) => void;
-  splitEdge: (edgeId: string, newNodeId: string) => void;
+  splitEdge: (edgeId: string, newNodeId: string, inputHandle?: string, outputHandle?: string) => void;
   setOutputNode: (nodeId: string | null) => void;
   alignNodes: (direction: AlignDirection) => void;
   distributeNodes: (axis: "horizontal" | "vertical") => void;

@@ -17,6 +17,10 @@ import {
   directionalityOutput,
 } from "./shared/handles";
 import { getSchemaHandles } from "@/schema/schemaLoader";
+import type { AssetCategory } from "@/schema/types";
+import connectionsData from "@/data/connections.json";
+
+const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;
 
 /**
  * Static mapping from node type key (as registered in nodeTypes) to HandleDef[].
@@ -423,4 +427,43 @@ export function findHandleDef(
   }
 
   return undefined;
+}
+
+/**
+ * Find compatible input and output handles on a node type for wire interjection.
+ * Given the categories flowing through the edge being split, returns the best
+ * unconnected input handle (matching the source's output category) and
+ * unconnected output handle (matching the target's input category).
+ *
+ * Returns null if the node can't be interjected (incompatible or fully occupied).
+ */
+export function findCompatibleInterjectHandles(
+  nodeType: string,
+  sourceOutputCategory: AssetCategory,
+  targetInputCategory: AssetCategory,
+  connectedHandleIds: Set<string>,
+): { inputHandleId: string; outputHandleId: string } | null {
+  const handles = getHandles(nodeType);
+
+  // Find a compatible, unconnected target (input) handle
+  const inputHandle = handles.find((h) => {
+    if (h.type !== "target") return false;
+    if (connectedHandleIds.has(h.id)) return false;
+    if (h.category === sourceOutputCategory) return true;
+    // Cross-category: check connection matrix
+    return (connectionMatrix[sourceOutputCategory]?.[h.category] ?? 0) > 0;
+  });
+
+  // Find a compatible, unconnected source (output) handle
+  const outputHandle = handles.find((h) => {
+    if (h.type !== "source") return false;
+    if (connectedHandleIds.has(h.id)) return false;
+    if (h.category === targetInputCategory) return true;
+    // Cross-category: check connection matrix
+    return (connectionMatrix[h.category]?.[targetInputCategory] ?? 0) > 0;
+  });
+
+  if (!inputHandle || !outputHandle) return null;
+
+  return { inputHandleId: inputHandle.id, outputHandleId: outputHandle.id };
 }

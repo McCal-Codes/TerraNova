@@ -367,7 +367,7 @@ export function EditorCanvas() {
       // Check if interjection hook resolved a target edge during palette drag
       const interjectResult = getInterjectResult();
       if (interjectResult) {
-        useEditorStore.getState().splitEdge(
+        useEditorStore.getState().interjectOnEdge(
           interjectResult.edgeId,
           nodeId,
           interjectResult.inputHandleId,

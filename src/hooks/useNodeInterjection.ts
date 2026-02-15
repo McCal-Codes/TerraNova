@@ -162,7 +162,7 @@ export function useNodeInterjection() {
 
       const result = interjectResultRef.current;
       if (result) {
-        useEditorStore.getState().splitEdge(
+        useEditorStore.getState().interjectOnEdge(
           result.edgeId,
           node.id,
           result.inputHandleId,

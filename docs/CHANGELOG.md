@@ -2,6 +2,30 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystemsDev/TerraNova) are documented in this file.
 
+## [0.1.4] — 2026-02-15
+
+### Added
+
+- **Evaluator Overhaul & Schema-Driven Nodes** — Major evaluator rewrite with fixed Shell/YSampled nodes, new MultiMix node, and ingestion of 210+ node definitions from `terranova-bundle.json`. Cross-category connection validation via a 14×14 compatibility matrix, bridge node dual-color headers, drag-target glow/dim suggestions, port tooltips, and fidelity scoring badge
+- **Adaptive Voxel Preview** — Auto-fit Y bounds that detect the terrain surface band after the coarse evaluation pass, a "Fit to Content" button that probes the full volume at low resolution, and graph-aware default bounds based on static node type analysis
+- **Configuration Dialog** — New Settings > Configuration panel with CPU, GPU, and RAM budget sliders, hardware auto-detection via `sysinfo` crate + WebGL probing, and per-subsystem advanced overrides ([#12])
+- **Compound Inputs & Backward Wire Dragging** — Dynamic handle expansion for multi-input nodes (Sum, Product, Min, Max, etc.), backward wire dragging from input ports to QuickAdd dialog, and smart label hiding for generic port names ([#10])
+- **Knife Tool** — Cut one or many wires by holding Ctrl+Shift (Cmd+Shift on macOS) and dragging through them, matching Blender/Unreal-style node editor UX ([#17])
+- **SVG Export** — Export node graphs as clean, zoomable SVG files via File menu or Ctrl+Shift+G, with scope selection, grid toggle, and presentation/debug modes
+- **Accordion Sidebar** — Optional accordion layout as an alternative to the tab bar (Settings > Sidebar), with collapsible drag-to-reorder sections and badge counts
+
+### Fixed
+
+- **Auto-Updater Relaunch** — Overhauled platform-specific relaunch logic with macOS bundle re-signing, Linux execute permission fix, and update loop prevention via localStorage version check
+- **SVG 1.1 Compliance** — Replaced rgba(), feDropShadow, 8-digit hex colors, and duplicate XML attributes in exported SVGs for strict parser compatibility (macOS Preview, Inkscape)
+- **Undo History Noise** — Node move operations removed from undo history; slider drags now produce exactly one entry on blur instead of spamming during drag
+
+### Changed
+
+- Default world height updated from 256 to 320 to match Hytale's actual limit
+- Voxel resolution slider extended to 256 with free typing beyond
+- SliderField supports overflow input values beyond the slider range
+
 ## [0.1.3] — 2026-02-14
 
 ### Added
@@ -208,6 +232,7 @@ Built over 85 commits (Feb 6–13, 2026) in the private TerraNovaDev repository 
 
 ---
 
+[0.1.4]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.4
 [0.1.3]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.3
 [0.1.2]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.2
 [0.1.1]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.1
@@ -218,3 +243,8 @@ Built over 85 commits (Feb 6–13, 2026) in the private TerraNovaDev repository 
 [#6]: https://github.com/HyperSystemsDev/TerraNova/pull/6
 [#7]: https://github.com/HyperSystemsDev/TerraNova/pull/7
 [#8]: https://github.com/HyperSystemsDev/TerraNova/pull/8
+[#10]: https://github.com/HyperSystemsDev/TerraNova/pull/10
+[#12]: https://github.com/HyperSystemsDev/TerraNova/pull/12
+[#13]: https://github.com/HyperSystemsDev/TerraNova/pull/13
+[#16]: https://github.com/HyperSystemsDev/TerraNova/pull/16
+[#17]: https://github.com/HyperSystemsDev/TerraNova/pull/17

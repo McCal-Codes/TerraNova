@@ -3,6 +3,8 @@ import { applyNodeChanges, applyEdgeChanges, addEdge } from "@xyflow/react";
 import { MATERIAL_DEFAULTS } from "@/schema/defaults";
 import type { MaterialProviderType } from "@/schema/material";
 import { alignNodes as alignNodesFn, distributeNodes as distributeNodesFn } from "@/utils/alignDistribute";
+import { NODE_WIDTH } from "@/constants";
+import { useSettingsStore } from "../settingsStore";
 import { usePreviewStore } from "../previewStore";
 import { emit } from "../storeEvents";
 import { getMutateAndCommit } from "./historySlice";
@@ -209,6 +211,84 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
 
         return { edges: newEdges };
       }, "Split edge");
+    },
+
+    interjectOnEdge: (edgeId, newNodeId, inputHandle?, outputHandle?) => {
+      const mutateAndCommit = getMutateAndCommit();
+      const flowDir = useSettingsStore.getState().flowDirection;
+      const REQUIRED_GAP = NODE_WIDTH + 80; // node width + ranksep
+
+      mutateAndCommit((state) => {
+        const edge = state.edges.find((e) => e.id === edgeId);
+        if (!edge) return {};
+
+        const sourceNode = state.nodes.find((n) => n.id === edge.source);
+        const targetNode = state.nodes.find((n) => n.id === edge.target);
+        if (!sourceNode || !targetNode) return {};
+
+        // 1. Split the edge (rewire)
+        const newEdges = state.edges.filter((e) => e.id !== edgeId);
+        newEdges.push({
+          id: `${edge.source}-${newNodeId}`,
+          source: edge.source,
+          target: newNodeId,
+          sourceHandle: edge.sourceHandle ?? null,
+          targetHandle: inputHandle ?? null,
+        });
+        newEdges.push({
+          id: `${newNodeId}-${edge.target}`,
+          source: newNodeId,
+          target: edge.target,
+          sourceHandle: outputHandle ?? null,
+          targetHandle: edge.targetHandle ?? null,
+        });
+
+        // 2. Snap interjected node to midpoint between source and target
+        const midX = (sourceNode.position.x + targetNode.position.x) / 2;
+        const midY = (sourceNode.position.y + targetNode.position.y) / 2;
+
+        // 3. Calculate push amount along flow axis
+        let pushAmount = 0;
+        if (flowDir === "LR") {
+          const gap = targetNode.position.x - midX;
+          if (gap < REQUIRED_GAP) pushAmount = REQUIRED_GAP - gap;
+        } else {
+          // RL: target is to the left of source; push leftward
+          const gap = midX - targetNode.position.x;
+          if (gap < REQUIRED_GAP) pushAmount = REQUIRED_GAP - gap;
+        }
+
+        // 4. BFS forward from target to find all downstream node IDs
+        const downstreamIds = new Set<string>();
+        {
+          const visited = new Set<string>();
+          const queue = [edge.target];
+          while (queue.length > 0) {
+            const current = queue.shift()!;
+            if (visited.has(current)) continue;
+            visited.add(current);
+            downstreamIds.add(current);
+            for (const e of newEdges) {
+              if (e.source === current) queue.push(e.target);
+            }
+          }
+        }
+
+        // 5. Apply position changes to all nodes
+        const newNodes = state.nodes.map((n) => {
+          if (n.id === newNodeId) {
+            return { ...n, position: { x: midX, y: midY } };
+          }
+          if (pushAmount > 0 && downstreamIds.has(n.id)) {
+            const shift = flowDir === "LR" ? pushAmount : -pushAmount;
+            return { ...n, position: { x: n.position.x + shift, y: n.position.y } };
+          }
+          return n;
+        });
+
+        return { nodes: newNodes, edges: newEdges };
+      }, "Interject node");
+      markDirty();
     },
 
     setOutputNode: (nodeId) => {

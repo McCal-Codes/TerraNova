@@ -185,7 +185,7 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
       }));
     },
 
-    splitEdge: (edgeId, newNodeId) => {
+    splitEdge: (edgeId, newNodeId, inputHandle?, outputHandle?) => {
       const mutateAndCommit = getMutateAndCommit();
       mutateAndCommit((state) => {
         const edge = state.edges.find((e) => e.id === edgeId);
@@ -197,13 +197,13 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
           source: edge.source,
           target: newNodeId,
           sourceHandle: edge.sourceHandle ?? null,
-          targetHandle: null,
+          targetHandle: inputHandle ?? null,
         });
         newEdges.push({
           id: `${newNodeId}-${edge.target}`,
           source: newNodeId,
           target: edge.target,
-          sourceHandle: null,
+          sourceHandle: outputHandle ?? null,
           targetHandle: edge.targetHandle ?? null,
         });
 

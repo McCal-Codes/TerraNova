@@ -1316,6 +1316,12 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     transformedFields = transformDensityBasedFields(transformedFields);
   }
 
+  // PositionsCellNoise: ReturnCurve → Curve (reverse of import normalization)
+  if (internalType === "PositionsCellNoise" && "ReturnCurve" in transformedFields) {
+    transformedFields.Curve = transformedFields.ReturnCurve;
+    delete transformedFields.ReturnCurve;
+  }
+
   // SimplexRidgeNoise2D/3D → Abs(SimplexNoise2D/3D) compound node
   if (internalType === "SimplexRidgeNoise2D" || internalType === "SimplexRidgeNoise3D") {
     const baseNoiseType = internalType === "SimplexRidgeNoise2D" ? "SimplexNoise2D" : "SimplexNoise3D";

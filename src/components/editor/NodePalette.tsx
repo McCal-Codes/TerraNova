@@ -308,7 +308,7 @@ export function NodePalette() {
           if (!entries) return null;
 
           const filteredEntries = hasSearch
-            ? entries.filter((e) => matchesSearch(e.type, search))
+            ? entries.filter((e) => matchesSearch(e.type, search) || matchesSearch(resolveNodeTypeKey(e), search))
             : entries;
 
           if (hasSearch && filteredEntries.length === 0) return null;
@@ -371,8 +371,11 @@ export function NodePalette() {
                           {!isSubCollapsed && (
                             <div className="ml-2">
                               {subEntries.map((entry) => {
-                                const tips = NODE_TIPS[entry.type];
+                                const nodeKey = resolveNodeTypeKey(entry);
+                                const tips = NODE_TIPS[nodeKey] ?? NODE_TIPS[entry.type];
                                 const tipText = tips?.[0]?.message;
+                                const rfDisplay = getTypeDisplayName(nodeKey);
+                                const entryDisplayName = (rfDisplay !== nodeKey) ? rfDisplay : getTypeDisplayName(entry.type);
                                 return (
                                   <button
                                     key={`${cat}:${entry.type}`}
@@ -385,7 +388,7 @@ export function NodePalette() {
                                       className="w-1.5 h-1.5 rounded-full shrink-0"
                                       style={{ backgroundColor: subColor }}
                                     />
-                                    <span className="truncate">{getTypeDisplayName(entry.type)}</span>
+                                    <span className="truncate">{entryDisplayName}</span>
                                     {isBridgeNode(entry.type) && (
                                       <span className="text-[9px] text-tn-text-muted opacity-60 shrink-0">⇄</span>
                                     )}
@@ -403,8 +406,11 @@ export function NodePalette() {
               {!isCollapsed && cat !== AssetCategory.Density && (
                 <div className="ml-2">
                   {filteredEntries.map((entry) => {
-                    const tips = NODE_TIPS[entry.type];
+                    const nodeKey = resolveNodeTypeKey(entry);
+                    const tips = NODE_TIPS[nodeKey] ?? NODE_TIPS[entry.type];
                     const tipText = tips?.[0]?.message;
+                    const rfDisplay = getTypeDisplayName(nodeKey);
+                    const entryDisplayName = (rfDisplay !== nodeKey) ? rfDisplay : getTypeDisplayName(entry.type);
                     return (
                       <button
                         key={`${cat}:${entry.type}`}
@@ -417,7 +423,7 @@ export function NodePalette() {
                           className="w-1.5 h-1.5 rounded-full shrink-0"
                           style={{ backgroundColor: color }}
                         />
-                        <span className="truncate">{getTypeDisplayName(entry.type)}</span>
+                        <span className="truncate">{entryDisplayName}</span>
                         {isBridgeNode(entry.type) && (
                           <span className="text-[9px] text-tn-text-muted opacity-60 shrink-0">⇄</span>
                         )}

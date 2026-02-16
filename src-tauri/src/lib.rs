@@ -40,6 +40,7 @@ pub fn run() {
             bridge_commands::bridge_sync_file,
             process::relaunch_app,
             hardware::get_hardware_info,
+            hardware::get_gpu_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running TerraNova");

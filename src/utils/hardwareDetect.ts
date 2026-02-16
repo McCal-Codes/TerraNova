@@ -7,6 +7,7 @@ export interface HardwareInfo {
   gpuRenderer: string;
   gpuVendor: string;
   estimatedVramMb: number;
+  vramDetected: boolean;
 }
 
 let _cached: HardwareInfo | null = null;
@@ -28,29 +29,51 @@ export async function detectHardware(): Promise<HardwareInfo> {
     // Tauri command unavailable — use web fallback
   }
 
-  // GPU info from WebGL
+  // Tier 1: Native GPU detection via Tauri
   let gpuRenderer = "";
   let gpuVendor = "";
+  let estimatedVramMb = 4096;
+  let vramDetected = false;
+
   try {
-    const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
-    if (gl) {
-      const ext = gl.getExtension("WEBGL_debug_renderer_info");
-      if (ext) {
-        gpuRenderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || "";
-        gpuVendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) || "";
-      }
-      // Clean up
-      const loseCtx = gl.getExtension("WEBGL_lose_context");
-      loseCtx?.loseContext();
+    const gpuInfo = await invoke<{ gpu_name: string | null; vram_mb: number | null }>("get_gpu_info");
+    if (gpuInfo.gpu_name) {
+      gpuRenderer = gpuInfo.gpu_name;
+    }
+    if (gpuInfo.vram_mb) {
+      estimatedVramMb = gpuInfo.vram_mb;
+      vramDetected = true;
     }
   } catch {
-    // WebGL unavailable
+    // Native GPU detection unavailable
   }
 
-  const estimatedVramMb = estimateVram(gpuRenderer);
+  // Tier 2: WebGL fallback for GPU name if native didn't provide one
+  if (!gpuRenderer) {
+    try {
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+      if (gl) {
+        const ext = gl.getExtension("WEBGL_debug_renderer_info");
+        if (ext) {
+          gpuRenderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || "";
+          gpuVendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) || "";
+        }
+        // Clean up
+        const loseCtx = gl.getExtension("WEBGL_lose_context");
+        loseCtx?.loseContext();
+      }
+    } catch {
+      // WebGL unavailable
+    }
+  }
 
-  _cached = { cpuCores, cpuName, totalRamMb, gpuRenderer, gpuVendor, estimatedVramMb };
+  // Tier 3: Lookup table fallback for VRAM if not natively detected
+  if (!vramDetected) {
+    estimatedVramMb = estimateVram(gpuRenderer);
+  }
+
+  _cached = { cpuCores, cpuName, totalRamMb, gpuRenderer, gpuVendor, estimatedVramMb, vramDetected };
   return _cached;
 }
 
@@ -58,15 +81,27 @@ function estimateVram(renderer: string): number {
   if (!renderer) return 4096;
   const r = renderer.toLowerCase();
 
-  // NVIDIA
-  if (r.includes("rtx 40")) return 16384;
+  // NVIDIA RTX 40 series
+  if (r.includes("rtx 40")) {
+    if (r.includes("4090")) return 24576;
+    if (r.includes("4080")) return 16384;
+    if (r.includes("4070")) return 12288;
+    if (r.includes("4060")) return 8192;
+    return 12288;
+  }
   if (r.includes("rtx 30")) return r.includes("3060") ? 12288 : r.includes("3070") ? 8192 : r.includes("3080") ? 10240 : r.includes("3090") ? 24576 : 8192;
   if (r.includes("rtx 20")) return 8192;
   if (r.includes("gtx 16")) return 6144;
   if (r.includes("gtx 10")) return r.includes("1080") ? 8192 : r.includes("1070") ? 8192 : r.includes("1060") ? 6144 : 4096;
 
-  // AMD
-  if (r.includes("rx 7")) return r.includes("7900") ? 24576 : 16384;
+  // AMD RX 7000 series
+  if (r.includes("rx 7")) {
+    if (r.includes("7900")) return 24576;
+    if (r.includes("7800")) return 16384;
+    if (r.includes("7700")) return 12288;
+    if (r.includes("7600")) return 8192;
+    return 12288;
+  }
   if (r.includes("rx 6")) return r.includes("6900") ? 16384 : r.includes("6800") ? 16384 : r.includes("6700") ? 12288 : 8192;
   if (r.includes("rx 5")) return 8192;
 

@@ -6,6 +6,10 @@
 
 ---
 
+> **Security Notice:** TerraNova is in **closed alpha** and has not yet undergone a formal security audit. As a desktop application that parses user-provided biome files and other JSON assets, there is inherent surface area for potential issues such as malformed input handling or unexpected data in parsed files. I am actively aware of this and take it seriously. TerraNova is fully open-source — every line of file parsing, validation, and schema handling is publicly inspectable in the repo. If you discover a potential vulnerability, please report it immediately. A professional security audit is planned as the project stabilizes. For what it's worth: TerraNova uses a native Rust port of fastnoise-lite (no C++ FFI boundary), and all file I/O goes through Rust's serde with strict schema types, which helps — but I'm not going to claim that makes it bulletproof. Transparency and community review are the best tools I have right now, and I intend to keep using them.
+
+---
+
 ## Overview
 
 TerraNova is built with significant assistance from AI tooling, specifically Claude by Anthropic. Approximately **70%** of the codebase is AI-generated. This document exists to be fully transparent about how AI is used, where it's used, what role I play as the developer, and how security is handled.

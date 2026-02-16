@@ -286,6 +286,7 @@ const DENSITY_TYPES = new Set([
   "Terrain", "CellWallDistance", "DistanceToBiomeEdge", "Pipeline",
   // Shape SDFs
   "Ellipsoid", "Cuboid", "Cylinder", "Plane", "Shell",
+  "Angle",
 ]);
 
 function getNodeType(node: Node): string {
@@ -838,6 +839,43 @@ export function createEvaluationContext(
         const px = Number(pt?.x ?? 0);
         const pz = Number(pt?.z ?? 0);
         result = Math.atan2(z - pz, x - px);
+        break;
+      }
+
+      case "Angle": {
+        const vecProvId = inputs.get("VectorProvider");
+        const vecId = inputs.get("Vector");
+        let refX: number, refY: number, refZ: number;
+
+        if (vecProvId) {
+          const vec = evaluateVectorProvider(vecProvId, x, y, z, nodeById, inputEdges, evaluate);
+          refX = vec.x; refY = vec.y; refZ = vec.z;
+        } else if (vecId) {
+          const vec = evaluateVectorProvider(vecId, x, y, z, nodeById, inputEdges, evaluate);
+          refX = vec.x; refY = vec.y; refZ = vec.z;
+        } else {
+          const vecField = fields.Vector as { x?: number; y?: number; z?: number } | undefined;
+          refX = Number(vecField?.x ?? 0);
+          refY = Number(vecField?.y ?? 1);
+          refZ = Number(vecField?.z ?? 0);
+        }
+
+        const posLen = Math.sqrt(x * x + y * y + z * z);
+        const refLen = Math.sqrt(refX * refX + refY * refY + refZ * refZ);
+
+        if (posLen < 1e-10 || refLen < 1e-10) {
+          result = 0;
+          break;
+        }
+
+        const dotP = (x * refX + y * refY + z * refZ) / (posLen * refLen);
+        let angleDeg = Math.acos(Math.max(-1, Math.min(1, dotP))) * (180 / Math.PI);
+
+        if (fields.IsAxis === true && angleDeg > 90) {
+          angleDeg = 180 - angleDeg;
+        }
+
+        result = angleDeg;
         break;
       }
 

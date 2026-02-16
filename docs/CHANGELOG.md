@@ -2,6 +2,27 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystemsDev/TerraNova) are documented in this file.
 
+## [0.1.5] — 2026-02-16
+
+### Added
+
+- **Node Interjection** — Drag nodes from the palette or canvas onto existing wires to insert them in-between. Wires highlight with an animated turquoise dashed stroke on hover, nodes snap to the midpoint between source and target, and downstream nodes automatically push apart to maintain proper spacing. Works in both LR and RL flow directions as a single undo step (Closes [#20])
+- **Angle Density Evaluator** — New Angle density node that computes the angle (0–180°) between the sample position and a reference vector using dot product, with IsAxis flag for bidirectional symmetry mirroring ([#36])
+- **Manual Curve Interactive Sliders** — Range sliders beneath Manual Curve point In/Out number inputs with default [-2, 2] range while number inputs accept any value for manual override beyond slider bounds ([#42])
+- **FieldFunction Delimiter Nodes** — Standalone FieldFunction MaterialProviders with Delimiters are now fully supported in the import/export pipeline and rendered as dedicated graph nodes with editable From/To delimiter ranges and add/remove controls ([#37], Closes [#30])
+- **Manual Curve Static Bounds** — Preview bounds are computed once on initial data load instead of recomputing on every point change. Compact mode continues to auto-fit, presets reset bounds to [0,1], and switching nodes forces a remount so bounds recompute ([#41], Closes [#22])
+- **AI Transparency Documentation** — Added AI transparency disclaimer with development workflow details, and security disclaimer to `docs/AI_TRANSPARENCY.md`
+
+### Fixed
+
+- **3D Point Node Display** — Vector:Constant nodes imported from Hytale Point3D format now display correctly as "3D Point" instead of "Constant" in node headers, PropertyPanel, and NodePalette search ([#32], Resolves [#29])
+- **RangeDouble Property Fields** — RangeDouble fields are now editable in the property panel instead of displaying as read-only ([#31])
+- **Angle Density Input Ports** — Added missing Vector input port to the Angle density node with meaningful defaults and correct round-trip export ([#34], Closes [#28])
+- **Manual Curve PositionsCellNoise Import** — Manual curves now import correctly for PositionsCellNoise nodes by normalizing both Hytale format variants into a unified internal field ([#35])
+- **Graph Flow Direction Edges** — Replaced `setTimeout` with double `requestAnimationFrame` for handle position updates when changing graph flow direction, ensuring edges route to correct connection points ([#47], Fixes [#44])
+- **Hardware Detection** — Removed hardcoded 16 GB RAM cap so the slider respects actual system memory, added native GPU detection via Tauri command with platform-specific implementations (nvidia-smi/sysfs/lspci on Linux, PowerShell/registry on Windows, system_profiler on macOS), and fixed incorrect VRAM estimates for RX 7700 XT, RX 7600, RTX 4060, and RTX 4090 ([#46], Closes [#21], [#25])
+- **Density Evaluator Bugs** — Fixed Anchor (evaluates at origin), CellWallDistance (returns 0 fallback), YSampled (reads YProvider handle), SwitchState (returns State field), and Shell (computes SDF from InnerRadius/OuterRadius). Also fixed VectorWarp handle registry name and added GradientWarp WarpScale default
+
 ## [0.1.4] — 2026-02-15
 
 ### Added
@@ -237,6 +258,7 @@ Built over 85 commits (Feb 6–13, 2026) in the private TerraNovaDev repository 
 
 ---
 
+[0.1.5]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.5
 [0.1.4]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.4
 [0.1.3]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.3
 [0.1.2]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.2
@@ -253,3 +275,21 @@ Built over 85 commits (Feb 6–13, 2026) in the private TerraNovaDev repository 
 [#13]: https://github.com/HyperSystemsDev/TerraNova/pull/13
 [#16]: https://github.com/HyperSystemsDev/TerraNova/pull/16
 [#17]: https://github.com/HyperSystemsDev/TerraNova/pull/17
+[#20]: https://github.com/HyperSystemsDev/TerraNova/pull/20
+[#21]: https://github.com/HyperSystemsDev/TerraNova/issues/21
+[#22]: https://github.com/HyperSystemsDev/TerraNova/issues/22
+[#25]: https://github.com/HyperSystemsDev/TerraNova/issues/25
+[#28]: https://github.com/HyperSystemsDev/TerraNova/issues/28
+[#29]: https://github.com/HyperSystemsDev/TerraNova/issues/29
+[#30]: https://github.com/HyperSystemsDev/TerraNova/issues/30
+[#31]: https://github.com/HyperSystemsDev/TerraNova/pull/31
+[#32]: https://github.com/HyperSystemsDev/TerraNova/pull/32
+[#34]: https://github.com/HyperSystemsDev/TerraNova/pull/34
+[#35]: https://github.com/HyperSystemsDev/TerraNova/pull/35
+[#36]: https://github.com/HyperSystemsDev/TerraNova/pull/36
+[#37]: https://github.com/HyperSystemsDev/TerraNova/pull/37
+[#41]: https://github.com/HyperSystemsDev/TerraNova/pull/41
+[#42]: https://github.com/HyperSystemsDev/TerraNova/pull/42
+[#44]: https://github.com/HyperSystemsDev/TerraNova/issues/44
+[#46]: https://github.com/HyperSystemsDev/TerraNova/pull/46
+[#47]: https://github.com/HyperSystemsDev/TerraNova/pull/47

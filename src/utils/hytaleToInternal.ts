@@ -933,6 +933,12 @@ function transformNodeToInternal(
         processedFields.ReturnCurve = rt.Curve;
       }
     }
+    // Normalize: when ReturnType is the string "Curve" with a top-level Curve field,
+    // rename Curve → ReturnCurve so both Hytale format variants use the same field name.
+    if (processedFields.ReturnType === "Curve" && processedFields.Curve) {
+      processedFields.ReturnCurve = processedFields.Curve;
+      delete processedFields.Curve;
+    }
     if (processedFields.DistanceFunction && typeof processedFields.DistanceFunction === "object") {
       const df = processedFields.DistanceFunction as Record<string, unknown>;
       processedFields.DistanceFunction = (df.Type as string) ?? "Euclidean";

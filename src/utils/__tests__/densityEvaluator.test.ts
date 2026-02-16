@@ -1543,6 +1543,51 @@ describe("Imported biome chain evaluation", () => {
 
 /* ── PositionsCellNoise with MaxDistance ──────────────────────────── */
 
+/* ── Angle ───────────────────────────────────────────────────────── */
+
+describe("Angle", () => {
+  it("returns 0° when position is parallel to reference vector", () => {
+    const nodes = [makeNode("a", "Angle", { Vector: { x: 0, y: 1, z: 0 } })];
+    const val = evalAt(nodes, [], 0, 5, 0);
+    expect(val).toBeCloseTo(0);
+  });
+
+  it("returns 180° when position is antiparallel to reference vector", () => {
+    const nodes = [makeNode("a", "Angle", { Vector: { x: 0, y: 1, z: 0 } })];
+    const val = evalAt(nodes, [], 0, -5, 0);
+    expect(val).toBeCloseTo(180);
+  });
+
+  it("returns 90° when position is perpendicular to reference vector", () => {
+    const nodes = [makeNode("a", "Angle", { Vector: { x: 0, y: 1, z: 0 } })];
+    const val = evalAt(nodes, [], 5, 0, 0);
+    expect(val).toBeCloseTo(90);
+  });
+
+  it("IsAxis mirrors angles > 90° to [0, 90]", () => {
+    const nodes = [makeNode("a", "Angle", { Vector: { x: 0, y: 1, z: 0 }, IsAxis: true })];
+    const val = evalAt(nodes, [], 0, -5, 0);
+    expect(val).toBeCloseTo(0);
+  });
+
+  it("returns 0 at the origin (degenerate)", () => {
+    const nodes = [makeNode("a", "Angle", { Vector: { x: 0, y: 1, z: 0 } })];
+    const val = evalAt(nodes, [], 0, 0, 0);
+    expect(val).toBe(0);
+  });
+
+  it("works with a connected Vector:Constant node", () => {
+    const nodes = [
+      makeNode("a", "Angle"),
+      makeNode("vc", "Vector:Constant", { Value: { x: 1, y: 0, z: 0 } }),
+    ];
+    const edges = [makeEdge("vc", "a", "Vector")];
+    // position (5,0,0) is parallel to reference (1,0,0) → 0°
+    const val = evalAt(nodes, edges, 5, 0, 0);
+    expect(val).toBeCloseTo(0);
+  });
+});
+
 describe("PositionsCellNoise with MaxDistance", () => {
   it("uses MaxDistance to derive frequency", () => {
     const nodes = [makeNode("pcn", "PositionsCellNoise", { MaxDistance: 300, Seed: "test" })];

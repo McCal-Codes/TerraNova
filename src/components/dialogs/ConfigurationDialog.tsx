@@ -324,7 +324,7 @@ function GpuTab({ hw }: { hw: HardwareInfo | null }) {
       <HardwareInfoBar
         items={[
           { label: "GPU", value: hw?.gpuRenderer || "Detecting..." },
-          { label: "Est. VRAM", value: formatMb(estimatedVram) },
+          { label: hw?.vramDetected ? "VRAM" : "Est. VRAM", value: formatMb(estimatedVram) },
         ]}
       />
       <BudgetSlider
@@ -386,8 +386,8 @@ function RamTab({ hw }: { hw: HardwareInfo | null }) {
   const setMaxPersistedHistory = useConfigStore((s) => s.setMaxPersistedHistory);
 
   const totalRam = hw?.totalRamMb ?? 8192;
-  // Allow allocating up to 75% of system RAM or 16 GB, whichever is lower
-  const maxBudget = Math.min(Math.round(totalRam * 0.75), 16384);
+  // Allow allocating up to 75% of system RAM
+  const maxBudget = Math.round(totalRam * 0.75);
 
   return (
     <div className="flex flex-col gap-4">

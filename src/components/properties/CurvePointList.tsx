@@ -1,10 +1,69 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { normalizePoints, toOutputFormat, round4 } from "@/utils/curveEvaluators";
 
 interface CurvePointListProps {
   points: unknown[];
   onChange?: (points: [number, number][]) => void;
   onCommit?: () => void;
+}
+
+/** Inline slider + number input for a single axis of a curve point. */
+function PointAxisControl({
+  value,
+  pointKey,
+  axis,
+  onUpdate,
+  onCommit,
+}: {
+  value: number;
+  pointKey: string;
+  axis: "x" | "y";
+  onUpdate: (raw: string) => void;
+  onCommit?: () => void;
+}) {
+  const [localVal, setLocalVal] = useState<string | null>(null);
+  const dragging = useRef(false);
+
+  const displayVal = localVal ?? String(value);
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <input
+        type="number"
+        step="0.01"
+        value={displayVal}
+        onChange={(e) => {
+          setLocalVal(e.target.value);
+        }}
+        onBlur={(e) => {
+          const v = parseFloat(e.target.value);
+          if (!isNaN(v)) onUpdate(e.target.value);
+          setLocalVal(null);
+          onCommit?.();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        className="w-full px-1.5 py-0.5 text-xs bg-tn-bg border border-tn-border rounded"
+      />
+      <input
+        type="range"
+        min={-2}
+        max={2}
+        step={0.01}
+        value={Math.max(-2, Math.min(2, value))}
+        onChange={(e) => {
+          dragging.current = true;
+          onUpdate(e.target.value);
+        }}
+        onMouseUp={() => { dragging.current = false; onCommit?.(); }}
+        onTouchEnd={() => { dragging.current = false; onCommit?.(); }}
+        className="w-full h-3 accent-tn-accent cursor-pointer"
+      />
+    </div>
+  );
 }
 
 export function CurvePointList({ points, onChange, onCommit }: CurvePointListProps) {
@@ -79,36 +138,28 @@ export function CurvePointList({ points, onChange, onCommit }: CurvePointListPro
 
           {sorted.map((pt, sortIdx) => (
             <div
-              key={sortIdx}
-              className="grid grid-cols-[20px_1fr_1fr_20px] gap-1 items-center"
+              key={pt.origIdx}
+              className="grid grid-cols-[20px_1fr_1fr_20px] gap-1 items-start"
             >
-              <span className="text-[10px] text-tn-text-muted">{sortIdx}</span>
-              <input
-                type="number"
-                step="0.01"
-                defaultValue={pt.x}
-                key={`${pt.origIdx}-x-${pt.x}`}
-                onBlur={(e) => {
-                  updatePoint(pt.origIdx, "x", e.target.value);
-                  onCommit?.();
-                }}
-                className="w-full px-1.5 py-0.5 text-xs bg-tn-bg border border-tn-border rounded"
+              <span className="text-[10px] text-tn-text-muted pt-1">{sortIdx}</span>
+              <PointAxisControl
+                value={pt.x}
+                pointKey={`${pt.origIdx}-x`}
+                axis="x"
+                onUpdate={(raw) => updatePoint(pt.origIdx, "x", raw)}
+                onCommit={onCommit}
               />
-              <input
-                type="number"
-                step="0.01"
-                defaultValue={pt.y}
-                key={`${pt.origIdx}-y-${pt.y}`}
-                onBlur={(e) => {
-                  updatePoint(pt.origIdx, "y", e.target.value);
-                  onCommit?.();
-                }}
-                className="w-full px-1.5 py-0.5 text-xs bg-tn-bg border border-tn-border rounded"
+              <PointAxisControl
+                value={pt.y}
+                pointKey={`${pt.origIdx}-y`}
+                axis="y"
+                onUpdate={(raw) => updatePoint(pt.origIdx, "y", raw)}
+                onCommit={onCommit}
               />
               <button
                 onClick={() => removePoint(pt.origIdx)}
                 disabled={points.length <= 2}
-                className="text-[10px] text-tn-text-muted hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="text-[10px] text-tn-text-muted hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed pt-1"
                 title="Remove point"
               >
                 x

@@ -281,6 +281,16 @@ export function Toolbar({ onCloseProject }: ToolbarProps) {
         return;
       }
 
+      // Toggle split direction (V)
+      if (matchesKeybinding("toggleSplitDirection", e)) {
+        e.preventDefault();
+        const store = usePreviewStore.getState();
+        if (store.viewMode === "split") {
+          store.setSplitDirection(store.splitDirection === "horizontal" ? "vertical" : "horizontal");
+        }
+        return;
+      }
+
       // Tidy up
       if (matchesKeybinding("tidyUp", e)) {
         e.preventDefault();

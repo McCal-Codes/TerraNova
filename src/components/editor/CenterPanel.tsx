@@ -21,6 +21,8 @@ const VIEW_MODES: { key: ViewMode; label: string }[] = [
 const ViewModeOverlay = memo(function ViewModeOverlay() {
   const viewMode = usePreviewStore((s) => s.viewMode);
   const setViewMode = usePreviewStore((s) => s.setViewMode);
+  const splitDirection = usePreviewStore((s) => s.splitDirection);
+  const setSplitDirection = usePreviewStore((s) => s.setSplitDirection);
 
   return (
     <div className="absolute top-2 right-2 z-20 flex items-center gap-0.5 bg-tn-surface/80 backdrop-blur-sm border border-tn-border/60 rounded-lg shadow-lg px-1 py-0.5">
@@ -40,6 +42,15 @@ const ViewModeOverlay = memo(function ViewModeOverlay() {
           </button>
         );
       })}
+      {viewMode === "split" && (
+        <button
+          onClick={() => setSplitDirection(splitDirection === "horizontal" ? "vertical" : "horizontal")}
+          className="px-1.5 py-0.5 text-[11px] font-medium rounded transition-colors text-tn-text-muted hover:text-tn-text hover:bg-white/5 ml-0.5 border-l border-tn-border/40 pl-1.5"
+          title={`Split: ${splitDirection === "horizontal" ? "Horizontal" : "Vertical"} (V)`}
+        >
+          {splitDirection === "horizontal" ? "H" : "V"}
+        </button>
+      )}
     </div>
   );
 });
@@ -48,7 +59,9 @@ const SplitView = memo(function SplitView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const splitRatio = usePreviewStore((s) => s.splitRatio);
   const setSplitRatio = usePreviewStore((s) => s.setSplitRatio);
+  const splitDirection = usePreviewStore((s) => s.splitDirection);
   const dragging = useRef(false);
+  const isVertical = splitDirection === "vertical";
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -57,7 +70,9 @@ const SplitView = memo(function SplitView() {
     const onMouseMove = (ev: MouseEvent) => {
       if (!dragging.current || !containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const ratio = Math.max(0.15, Math.min(0.85, (ev.clientY - rect.top) / rect.height));
+      const ratio = isVertical
+        ? Math.max(0.15, Math.min(0.85, (ev.clientX - rect.left) / rect.width))
+        : Math.max(0.15, Math.min(0.85, (ev.clientY - rect.top) / rect.height));
       setSplitRatio(ratio);
     };
 
@@ -69,14 +84,30 @@ const SplitView = memo(function SplitView() {
 
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }, [setSplitRatio]);
+  }, [setSplitRatio, isVertical]);
+
+  if (isVertical) {
+    return (
+      <div ref={containerRef} className="flex flex-row h-full">
+        <div style={{ width: `${splitRatio * 100}%` }} className="min-w-0 overflow-hidden">
+          <EditorCanvas />
+        </div>
+        <div
+          className="shrink-0 w-1.5 bg-tn-border hover:bg-tn-accent/50 cursor-col-resize transition-colors"
+          onMouseDown={onMouseDown}
+        />
+        <div style={{ flex: 1 }} className="min-w-0 overflow-hidden">
+          <PreviewPanel />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className="flex flex-col h-full">
       <div style={{ height: `${splitRatio * 100}%` }} className="min-h-0 overflow-hidden">
         <EditorCanvas />
       </div>
-      {/* Drag divider */}
       <div
         className="shrink-0 h-1.5 bg-tn-border hover:bg-tn-accent/50 cursor-row-resize transition-colors"
         onMouseDown={onMouseDown}

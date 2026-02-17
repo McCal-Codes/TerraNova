@@ -17,6 +17,7 @@ export type MaterialProviderType =
   | "Cave"
   | "Cluster"
   | "Queue"
+  | "SimpleHorizontal"
   | "FieldFunction"
   | "Solidity"
   | "DownwardDepth"

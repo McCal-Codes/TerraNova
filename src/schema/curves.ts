@@ -55,7 +55,11 @@ export interface DistanceExponentialCurve extends CurveFields {
 
 export interface DistanceSCurve extends CurveFields {
   Type: "DistanceS";
-  Range?: RangeDouble;
+  Distance?: number;
+  Steepness?: number;
+  Offset?: number;
+  Width?: number;
+  Exponent?: number;
 }
 
 export interface MultiplierCurve extends CurveFields {

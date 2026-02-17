@@ -229,13 +229,14 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   // Additional material types
   "Material:Queue": [materialInput("Queue[0]", "Material 0"), materialInput("Queue[1]", "Material 1"), materialOutput()],
   "Material:FieldFunction": [densityInput("FieldFunction", "Field Fn"), materialInput("Materials[0]", "Material 0"), materialInput("Materials[1]", "Material 1"), materialOutput()],
-  "Material:Solidity": [materialOutput()],
+  "Material:Solidity": [densityInput("SolidityFunction", "Solidity"), materialOutput()],
+  "Material:SimpleHorizontal": [materialInput("Materials[0]", "Material 0"), materialInput("Materials[1]", "Material 1"), materialOutput()],
   "Material:DownwardDepth": [materialInput("Input", "Input"), materialOutput()],
   "Material:UpwardDepth": [materialInput("Input", "Input"), materialOutput()],
   "Material:DownwardSpace": [materialInput("Input", "Input"), materialOutput()],
   "Material:UpwardSpace": [materialInput("Input", "Input"), materialOutput()],
   "Material:Striped": [materialInput("Materials[0]", "Material 0"), materialInput("Materials[1]", "Material 1"), materialOutput()],
-  "Material:TerrainDensity": [materialOutput()],
+  "Material:TerrainDensity": [densityInput("TerrainDensity", "Terrain Density"), materialOutput()],
 
   // Layer sub-asset types (SpaceAndDepth.Layers[])
   "Material:ConstantThickness": [materialInput("Material", "Material"), materialOutput()],

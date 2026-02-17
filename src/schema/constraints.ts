@@ -8,22 +8,22 @@ import { getSchemaConstraints } from "./schemaLoader";
 export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> = {
   // Noise generators
   SimplexNoise2D: {
-    Scale: { min: 1, max: 10000, message: "Scale must be positive" },
+    Scale: { min: 0, max: 10000, message: "Scale must be >= 0" },
     Octaves: { min: 1, message: "Octaves must be >= 1" },
     Lacunarity: { min: 0, message: "Lacunarity must be >= 0" },
     Persistence: { min: 0, max: 1, message: "Persistence should be between 0 and 1" },
   },
   SimplexNoise3D: {
-    Scale: { min: 1, max: 10000, message: "Scale must be positive" },
+    Scale: { min: 0, max: 10000, message: "Scale must be >= 0" },
     Octaves: { min: 1, message: "Octaves must be >= 1" },
     Lacunarity: { min: 0, message: "Lacunarity must be >= 0" },
     Persistence: { min: 0, max: 1, message: "Persistence should be between 0 and 1" },
   },
   CellNoise2D: {
-    Scale: { min: 1, max: 10000, message: "Scale must be positive" },
+    Scale: { min: 0, max: 10000, message: "Scale must be >= 0" },
   },
   CellNoise3D: {
-    Scale: { min: 1, max: 10000, message: "Scale must be positive" },
+    Scale: { min: 0, max: 10000, message: "Scale must be >= 0" },
   },
 
   // Constants

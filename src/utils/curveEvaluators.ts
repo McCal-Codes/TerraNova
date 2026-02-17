@@ -67,16 +67,53 @@ export function evalDistanceExponential(
   return (x) => {
     if (rangeMax === rangeMin) return 0;
     const t = Math.max(0, Math.min(1, (x - rangeMin) / (rangeMax - rangeMin)));
-    return Math.pow(t, exponent);
+    return 1 - Math.pow(t, exponent);
   };
 }
 
-export function evalDistanceS(rangeMin: number, rangeMax: number): (x: number) => number {
-  return evalSmoothStep(rangeMin, rangeMax);
+/**
+ * V2 DistanceS: dual-exponential tent/bell curve.
+ * Formula: exp(-((|x - offset| / width) ^ exponent) * steepness)
+ */
+export function evalDistanceS(
+  steepness: number,
+  offset: number,
+  width: number,
+  exponent: number,
+): (x: number) => number {
+  return (x) => {
+    if (width <= 0) return 0;
+    const d = Math.abs(x - offset) / width;
+    return Math.exp(-Math.pow(d, exponent) * steepness);
+  };
 }
 
+/** V2 Inverter: negates the value (-x). */
 export function evalInverter(): (x: number) => number {
+  return (x) => -x;
+}
+
+/** V2 Not: boolean complement (1 - x). */
+export function evalNot(): (x: number) => number {
   return (x) => 1 - x;
+}
+
+/** Manual curve: linear interpolation between sorted control points. */
+export function evalManual(points: NormalizedPoint[]): ((x: number) => number) | null {
+  const sorted = [...points].sort((a, b) => a.x - b.x);
+  if (sorted.length === 0) return null;
+  if (sorted.length === 1) return () => sorted[0].y;
+  return (x) => {
+    if (x <= sorted[0].x) return sorted[0].y;
+    if (x >= sorted[sorted.length - 1].x) return sorted[sorted.length - 1].y;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      if (x >= sorted[i].x && x <= sorted[i + 1].x) {
+        const t = (x - sorted[i].x) / (sorted[i + 1].x - sorted[i].x);
+        return sorted[i].y + t * (sorted[i + 1].y - sorted[i].y);
+      }
+    }
+    return sorted[sorted.length - 1].y;
+  };
 }
 
 export function evalClamp(min: number, max: number): (x: number) => number {
@@ -176,6 +213,11 @@ export function getCurveEvaluator(
   fields: Record<string, unknown>,
 ): ((x: number) => number) | null {
   switch (typeName) {
+    case "Manual": {
+      const rawPoints = fields.Points as unknown[] | undefined;
+      if (!rawPoints || rawPoints.length === 0) return null;
+      return evalManual(normalizePoints(rawPoints));
+    }
     case "Constant":
       return evalConstant(Number(fields.Value ?? 1));
     case "Power":
@@ -194,12 +236,17 @@ export function getCurveEvaluator(
         Number(range?.Max ?? 1),
       );
     }
-    case "DistanceS": {
-      const range = fields.Range as { Min?: number; Max?: number } | undefined;
-      return evalDistanceS(Number(range?.Min ?? 0), Number(range?.Max ?? 1));
-    }
+    case "DistanceS":
+      return evalDistanceS(
+        Number(fields.Steepness ?? 1),
+        Number(fields.Offset ?? 0.5),
+        Number(fields.Width ?? 0.5),
+        Number(fields.Exponent ?? 2),
+      );
     case "Inverter":
       return evalInverter();
+    case "Not":
+      return evalNot();
     case "Clamp":
       return evalClamp(Number(fields.Min ?? 0), Number(fields.Max ?? 1));
     case "LinearRemap": {

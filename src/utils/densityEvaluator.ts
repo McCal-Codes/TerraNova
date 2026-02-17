@@ -561,10 +561,17 @@ export function createEvaluationContext(
         const octaves = Math.max(1, Number(fields.Octaves ?? 1));
         const lacunarity = Number(fields.Lacunarity ?? 2.0);
         const gain = Number(fields.Gain ?? 0.5);
+        const returnType = (fields.ReturnType as string) ?? "Distance";
         const noise = getVoronoi2D(seed, cellType, jitter);
-        result = octaves > 1
+        let rawVor2D = octaves > 1
           ? voronoiFbm2D(noise, x, z, freq, octaves, lacunarity, gain)
           : noise(x * freq, z * freq);
+        if (returnType === "Curve") {
+          rawVor2D = applyCurve("ReturnCurve", rawVor2D, inputs);
+        } else if (returnType === "Density") {
+          rawVor2D = getInput(inputs, "ReturnDensity", x, y, z) * rawVor2D;
+        }
+        result = rawVor2D;
         break;
       }
 
@@ -576,10 +583,17 @@ export function createEvaluationContext(
         const octaves = Math.max(1, Number(fields.Octaves ?? 1));
         const lacunarity = Number(fields.Lacunarity ?? 2.0);
         const gain = Number(fields.Gain ?? 0.5);
+        const returnType = (fields.ReturnType as string) ?? "Distance";
         const noise = getVoronoi3D(seed, cellType, jitter);
-        result = octaves > 1
+        let rawVor3D = octaves > 1
           ? voronoiFbm3D(noise, x, y, z, freq, octaves, lacunarity, gain)
           : noise(x * freq, y * freq, z * freq);
+        if (returnType === "Curve") {
+          rawVor3D = applyCurve("ReturnCurve", rawVor3D, inputs);
+        } else if (returnType === "Density") {
+          rawVor3D = getInput(inputs, "ReturnDensity", x, y, z) * rawVor3D;
+        }
+        result = rawVor3D;
         break;
       }
 
@@ -1011,6 +1025,12 @@ export function createEvaluationContext(
         if (returnType === "Distance2Div") {
           raw = Math.abs(raw);
         }
+        // Write cell wall distance to context for CellWallDistance nodes
+        // Approximate wall distance as 0.5 - |raw| (normalized F2-F1 / 2)
+        ctxCellWallDist = Math.max(0, 0.5 - Math.abs(raw));
+        // NOTE: V2 applies ReturnCurve here when ReturnType === "Curve",
+        // but existing templates were authored expecting raw values.
+        // See docs/audit/02-density-evaluator.md for the V2-correct version.
         result = raw;
         break;
       }
@@ -1265,13 +1285,19 @@ export function createEvaluationContext(
         break;
       }
 
+      case "Cube": {
+        // Unit cube SDF with optional curve applied to distance
+        const q = Math.max(Math.abs(x), Math.abs(y), Math.abs(z)) - 1.0;
+        result = applyCurve("Curve", q, inputs);
+        break;
+      }
+
       case "Cylinder": {
         const rot = buildRotationMatrix(
           fields.NewYAxis as { x?: number; y?: number; z?: number } | undefined,
           Number(fields.SpinAngle ?? 0),
         );
         const [cylrx, cylry, cylrz] = mat3Apply(rot, x, y, z);
-        // Cylinder SDF along local Y axis
         const radius = Number(fields.Radius ?? 1) || 1;
         const height = Number(fields.Height ?? 2);
         const halfH = height / 2;

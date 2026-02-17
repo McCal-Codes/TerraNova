@@ -20,6 +20,9 @@ interface BundleField {
   required?: boolean;
   default?: unknown;
   description?: string;
+  min?: number;
+  max?: number;
+  enum?: string[];
 }
 
 interface BundlePort {
@@ -134,11 +137,19 @@ export function getSchemaConstraints(nodeType: string): Record<string, FieldCons
 
   const constraints: Record<string, FieldConstraint> = {};
   for (const [fieldName, field] of Object.entries(node.fields)) {
+    const constraint: FieldConstraint = {};
     if (field.required) {
-      constraints[fieldName] = {
-        required: true,
-        message: `${nodeType} requires ${fieldName}`,
-      };
+      constraint.required = true;
+      constraint.message = `${nodeType} requires ${fieldName}`;
+    }
+    if (field.min !== undefined) {
+      constraint.min = field.min;
+    }
+    if (field.max !== undefined) {
+      constraint.max = field.max;
+    }
+    if (Object.keys(constraint).length > 0) {
+      constraints[fieldName] = constraint;
     }
   }
   return Object.keys(constraints).length > 0 ? constraints : null;

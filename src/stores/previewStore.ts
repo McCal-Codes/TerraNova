@@ -6,6 +6,7 @@ import { useConfigStore } from "@/stores/configStore";
 
 export type PreviewMode = "2d" | "3d" | "voxel" | "world";
 export type ViewMode = "graph" | "preview" | "split" | "compare";
+export type SplitDirection = "horizontal" | "vertical";
 
 export interface CanvasTransform {
   scale: number;
@@ -112,6 +113,8 @@ interface PreviewState {
   compareLoadingB: boolean;
   linkCameras3D: boolean;
 
+  splitDirection: SplitDirection;
+
   fidelityScore: number;
 
   // Actions
@@ -198,6 +201,9 @@ interface PreviewState {
   setCompareLoadingA: (loading: boolean) => void;
   setCompareLoadingB: (loading: boolean) => void;
   setLinkCameras3D: (link: boolean) => void;
+
+  setSplitDirection: (dir: SplitDirection) => void;
+
   setFidelityScore: (score: number) => void;
 }
 
@@ -250,6 +256,7 @@ const PERSIST_MAP: Record<string, string> = {
   compareModeA: "tn-compareModeA",
   compareModeB: "tn-compareModeB",
   linkCameras3D: "tn-linkCameras3D",
+  splitDirection: "tn-splitDirection",
 };
 
 function getStored(key: string): string | null {
@@ -315,6 +322,7 @@ function hydratePersistedState() {
     compareModeA: (getStored("tn-compareModeA") as PreviewMode | null) ?? "2d",
     compareModeB: (getStored("tn-compareModeB") as PreviewMode | null) ?? "2d",
     linkCameras3D: getStoredBool("tn-linkCameras3D", true),
+    splitDirection: (getStored("tn-splitDirection") as SplitDirection | null) ?? "horizontal",
   };
 }
 
@@ -460,5 +468,7 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setCompareModeA: (compareModeA) => persistedSet({ compareModeA }),
     setCompareModeB: (compareModeB) => persistedSet({ compareModeB }),
     setLinkCameras3D: (linkCameras3D) => persistedSet({ linkCameras3D }),
+
+    setSplitDirection: (splitDirection) => persistedSet({ splitDirection }),
   };
 });

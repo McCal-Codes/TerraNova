@@ -7,7 +7,6 @@ dist/
 build/
 tsconfig.tsbuildinfo
 src-tauri/target/
-tsconfig.tsbuildinfo
 
 # IDE
 .vscode/

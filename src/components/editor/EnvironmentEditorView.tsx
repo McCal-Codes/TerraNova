@@ -557,8 +557,8 @@ export function EnvironmentEditorView() {
   const isHytaleAssetPath = useCallback((resolvedPath: string): boolean => {
     if (!projectPath) return false;
     const norm = resolvedPath.replace(/\\/g, "/").toLowerCase();
-    const projNorm = projectPath.replace(/\\/g, "/").toLowerCase();
-    return !norm.startsWith(projNorm);
+    const projNorm = projectPath.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+    return !(norm === projNorm || norm.startsWith(`${projNorm}/`));
   }, [projectPath]);
 
   const refreshProjectTreeAndLookup = useCallback(async () => {

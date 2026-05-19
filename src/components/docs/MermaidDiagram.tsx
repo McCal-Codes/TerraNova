@@ -17,23 +17,20 @@ export function MermaidDiagram({ code }: { code: string }) {
     mermaid
       .render(id, code)
       .then((result) => {
-        if (cancelled || !containerRef.current) return;
-        containerRef.current.innerHTML = result.svg;
+        if (cancelled) return;
+        container.innerHTML = result.svg;
       })
       .catch((err) => {
-        if (cancelled || !containerRef.current) return;
+        if (cancelled) return;
         const pre = document.createElement("pre");
-        pre.style.color = "#f00";
-        pre.style.fontSize = "11px";
+        pre.style.cssText = "color:#f00;font-size:11px";
         pre.textContent = `Mermaid render error: ${String(err)}`;
-        containerRef.current.replaceChildren(pre);
+        container.replaceChildren(pre);
       });
 
     return () => {
       cancelled = true;
-      if (container) {
-        container.innerHTML = "";
-      }
+      container.innerHTML = "";
     };
   }, [code, id]);
 

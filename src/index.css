@@ -117,7 +117,33 @@ body,
   color: var(--tn-text);
   font-size: 13px;
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
+
+.docs-content[data-font-size="small"]  { font-size: 12px; }
+.docs-content[data-font-size="medium"] { font-size: 14px; }
+.docs-content[data-font-size="large"]  { font-size: 15px; }
+
+.docs-reading-shell {
+  width: 100%;
+}
+
+.docs-reading-shell > :not(.docs-wide-block) {
+  width: min(100%, 760px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.docs-reading-shell > .docs-wide-block {
+  width: min(100%, 980px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.docs-content[data-reading-width="narrow"]  .docs-reading-shell > :not(.docs-wide-block) { width: min(100%, 580px); }
+.docs-content[data-reading-width="wide"]    .docs-reading-shell > :not(.docs-wide-block) { width: min(100%, 960px); }
+.docs-content[data-reading-width="narrow"]  .docs-reading-shell > .docs-wide-block       { width: min(100%, 720px); }
+.docs-content[data-reading-width="wide"]    .docs-reading-shell > .docs-wide-block       { width: min(100%, 1100px); }
 
 /* Sidebar docs navigation */
 .docs-sidebar {
@@ -145,9 +171,44 @@ body,
   padding-bottom: 0.45rem;
 }
 
+.docs-sidebar .docs-folder[data-depth="0"] {
+  margin-top: 0.7rem;
+  padding-top: 0;
+}
+
+.docs-sidebar .docs-folder-button[data-depth="0"] {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: rgba(210, 185, 130, 0.85);
+}
+
+.docs-sidebar .docs-folder[data-depth="0"] + .docs-folder[data-depth="0"] {
+  border-top: 1px solid rgba(181, 147, 80, 0.1);
+}
+
 .docs-sidebar .docs-file {
   font-weight: 500;
   font-size: 0.9rem;
+}
+
+.docs-sidebar .docs-file-button,
+.docs-sidebar .docs-folder-button {
+  position: relative;
+}
+
+.docs-sidebar .docs-tree-children {
+  position: relative;
+}
+
+.docs-sidebar .docs-tree-children::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(181, 147, 80, 0.22), rgba(181, 147, 80, 0.04));
 }
 
 .docs-sidebar .docs-folder .text-tn-text-muted {
@@ -166,14 +227,37 @@ body,
   letter-spacing: 0.02em;
 }
 
-.docs-content h1 { font-size: 1.9rem; }
-.docs-content h2 { font-size: 1.6rem; }
-.docs-content h3 { font-size: 1.3rem; }
+.docs-content h1 {
+  font-size: 1.9rem;
+  color: rgba(245, 235, 210, 0.97);
+}
+
+.docs-content h2 {
+  font-size: 1.6rem;
+  color: rgba(232, 210, 160, 0.95);
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid rgba(181, 147, 80, 0.25);
+}
+
+.docs-content h3 {
+  font-size: 1.3rem;
+  color: rgba(210, 195, 160, 0.9);
+}
+
 .docs-content h4 { font-size: 1.1rem; }
 
 .docs-content p {
   margin-top: 0.75em;
   margin-bottom: 0.75em;
+}
+
+.docs-content p,
+.docs-content li,
+.docs-content blockquote,
+.docs-content td,
+.docs-content th {
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .docs-content a {
@@ -185,8 +269,16 @@ body,
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 1rem;
-  overflow: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   margin: 1em 0;
+}
+
+.docs-content[data-code-wrap="scroll"] pre {
+  overflow-x: auto;
+  white-space: pre;
+  word-break: normal;
 }
 
 .docs-content code {
@@ -195,6 +287,7 @@ body,
   background: rgba(255, 255, 255, 0.08);
   padding: 0.2em 0.35em;
   border-radius: 4px;
+  overflow-wrap: anywhere;
 }
 
 .docs-content blockquote {
@@ -279,24 +372,52 @@ body,
   margin: 0.75em 0;
 }
 
+.docs-content ul li::marker {
+  color: rgba(181, 147, 80, 0.6);
+}
+
+.docs-content hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(181, 147, 80, 0.35) 20%, rgba(181, 147, 80, 0.35) 80%, transparent);
+  margin: 2em 0;
+}
+
 .docs-content table {
   width: 100%;
   border-collapse: collapse;
   margin: 1em 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(181, 147, 80, 0.18);
 }
 
 .docs-content th,
 .docs-content td {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(181, 147, 80, 0.12);
   padding: 0.5em 0.75em;
 }
 
 .docs-content th {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(181, 147, 80, 0.12);
+  color: rgba(232, 210, 160, 0.95);
   text-align: left;
+  font-size: 0.82em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.docs-content code.hljs {
+.docs-content tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.docs-content tbody tr:hover td {
+  background: rgba(181, 147, 80, 0.06);
+}
+
+/* Override hljs backgrounds so they sit on TN's own pre background */
+.docs-content code.hljs,
+.docs-content pre code.hljs {
   background: transparent;
   padding: 0;
 }
@@ -304,6 +425,41 @@ body,
 .docs-content pre code {
   background: transparent;
   padding: 0;
+  white-space: inherit;
+}
+
+/* Tone down hljs token colors slightly to stay readable on warm dark bg */
+.docs-content .hljs-string  { color: #b8d9a0; }
+.docs-content .hljs-number  { color: #d4a96a; }
+.docs-content .hljs-keyword { color: #b48de0; }
+.docs-content .hljs-comment { color: #6a7d6a; font-style: italic; }
+.docs-content .hljs-attr    { color: #7cbfe0; }
+.docs-content .hljs-literal { color: #d4a96a; }
+.docs-content .hljs-name    { color: #e0957c; }
+
+.docs-snippet-card {
+  backdrop-filter: blur(4px);
+}
+
+.docs-snippet-actions {
+  align-self: flex-start;
+}
+
+@media (max-width: 760px) {
+  .docs-reading-shell > :not(.docs-wide-block),
+  .docs-reading-shell > .docs-wide-block {
+    width: 100%;
+  }
+
+  .docs-snippet-actions {
+    width: 100%;
+  }
+
+  .docs-snippet-actions > * {
+    flex: 1 1 0;
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 @keyframes interjection-march {
@@ -312,9 +468,50 @@ body,
   }
 }
 
+/* DocNodeGraph: dark-theme controls override */
+.react-flow__controls {
+  box-shadow: none !important;
+}
+
+.react-flow__controls-button {
+  background: #1c1a17 !important;
+  border-bottom: 1px solid #3a3428 !important;
+  color: #a09070 !important;
+  fill: #a09070 !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #2a2720 !important;
+}
+
+.react-flow__controls-button svg {
+  fill: #a09070;
+  max-width: 12px;
+  max-height: 12px;
+}
+
+/* DocNodeGraph: dark-theme minimap override */
+.react-flow__minimap {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
 /* Doc node graph: active edge flow animation */
 @keyframes edge-flow {
   to {
     stroke-dashoffset: -9;
   }
+}
+
+/* Docs: text highlight marks (search-driven + in-page find) */
+mark.docs-highlight {
+  background-color: rgba(181, 147, 80, 0.30);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+mark.docs-highlight-active {
+  background-color: rgba(181, 147, 80, 0.65);
+  outline: 1px solid rgba(181, 147, 80, 0.8);
 }

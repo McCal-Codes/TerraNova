@@ -15,23 +15,41 @@ src/docs/
 
   walkthroughs/             -- step-by-step tutorials, one task per file
     README.md               -- index of all walkthroughs
+    quickstart.md
+    data-flow-first-steps.md
+    basic-terrain-generation.md
     create-a-world.md
+    sky-islands.md
     terrain-and-caves.md
     multi-biome-world.md
     periodic-density-stripes.md
-    [future] beginner/      -- split into beginner/ and advanced/ once 4+ files each
 
   guides/                   -- concept deep-dives, longer-form explanations
     README.md               -- index of all guides
     setup-data-flow-first-steps.md
     understanding-basic-terrain-generation.md
-    node-combinations.md
-    biome-system.md
-    [future] terrain/       -- split into terrain/ and biomes/ once 6+ files each
-    [future] biomes/
+
+    world/                  -- world-structure and system guides
+      biome-system.md
+      node-combinations.md
+      curves-explained.md
+      environments-and-weather.md
+
+    content/                -- material and prop guides
+      materials-guide.md
+      props-and-placement.md
+
+    terrain/                -- terrain recipes and math
+      terrain-math-explained.md
+      terrain-types.md
+      terrain-types-advanced.md
+      terrain-types-expert.md
+      terrain-sculpting-advanced.md
+      terrain-composition-expert.md
+      terrain-experimental.md
 
   templates/
-    README.md               -- index of templates and doc templates
+    README.md               -- contributor doc templates
     guide-template.md       -- copy this to start a new guide
     walkthrough-template.md -- copy this to start a new walkthrough
 
@@ -42,20 +60,16 @@ src/docs/
 
   reference/                -- complete technical listings; split into subfolders as it grows
     README.md               -- current single-page reference (nodes, schema, commands)
+    curves.md               -- visual curve type reference with previews
+    node-effects.md         -- what each node category does to terrain
+    reading-the-graph.md    -- how to read and debug any node graph
+    terrain-types.md        -- paste-ready terrain JSON snippets
     [future] nodes/         -- one file per node category when reference outgrows one page
-      density.md            --   all density node types
-      material.md           --   material provider and layer types
-      position.md           --   position provider types
-      prop.md               --   prop types
-      scanner.md            --   scanner types
     [future] schema/        -- JSON asset schemas (world, biome, prop, framework)
-      world.md
-      biome.md
     [future] commands/      -- in-game commands (consolidates glossary/in-game-commands.md)
-      README.md
 ```
 
-**When to split reference into subfolders:** when `reference/README.md` exceeds ~300 lines or when a single category (e.g. density nodes) has grown enough to warrant its own page. Until then, keep everything in `reference/README.md` -- one long page is easier to search than many short ones.
+**When to split reference into subfolders:** `reference/` already has companion pages (`curves.md`, `node-effects.md`, `reading-the-graph.md`, `terrain-types.md`). Add a new companion page when a topic is long enough to warrant its own focused page. Future splits into `nodes/`, `schema/`, and `commands/` subfolders make sense when those sections outgrow a single page each.
 
 ---
 
@@ -194,6 +208,15 @@ If a node only exists in the editor and not in the bundle, note it clearly as ed
 
 ---
 
+## Source-Backed Terrain Examples
+
+- For terrain, biome, curve, and worldgen examples, start from a real Hytale biome asset in `Examples/`, `Experimental/`, or `Generative/` rather than inventing a "representative" graph from memory.
+- Add a short note near the top of the page in this format: `**Biome source assets:** \`Examples/Example_Curve_Mapper.json\`, \`Experimental/Mountains.json\`, \`Generative/Generative_Arches.json\``
+- If a doc is a teaching reconstruction rather than a direct transcription, say so plainly.
+- If you cannot point to a matching biome asset with confidence, stop and ask before documenting it as a concrete example.
+
+---
+
 ## Writing Style
 
 - **No em-dashes.** Use double hyphens (--) for an aside, or rewrite the sentence.
@@ -212,7 +235,7 @@ Use relative paths for all internal links:
 
 ```markdown
 [Node Combinations](../guides/world/node-combinations.md)
-[Walkthrough: Terrain and Caves](./terrain-and-caves.md)
+[Walkthrough: Terrain and Caves](./walkthroughs/terrain-and-caves.md)
 [Getting Started](../getting-started.md)
 ```
 
@@ -222,7 +245,7 @@ External links open in a new tab automatically.
 
 ## Submitting
 
-1. Copy the relevant template from [templates/](./templates/README.md).
+1. Copy the relevant writing template from [templates/](./templates/README.md).
 2. Follow the naming and title standards above.
 3. Check every node name against the bundle.
 4. Remove all template comments before submitting.

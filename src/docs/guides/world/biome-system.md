@@ -4,6 +4,10 @@
 
 This guide explains exactly how biomes are structured, how the world selects which biome applies at each location, and how to configure each of the four systems a biome controls.
 
+> **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Experimental/Dunes.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`
+>
+> The terrain fragments below are simplified teaching sketches based on those Hytale `Examples/`, `Experimental/`, and `Generative/` assets. Use them to understand structure; for exact wiring, inspect the source files directly.
+
 ---
 
 ## What Is a Biome?
@@ -59,6 +63,22 @@ At every (x, z) coordinate, the world evaluates a **biome selector density** -- 
 - **`Density`** is any density node -- `SimplexNoise2D` is typical. A low `Scale` (0.001) produces large, gradual biome regions.
 - **`DefaultBiome`** is used if no range matches (e.g. exactly on a boundary edge case).
 - Ranges should cover the full -1 to 1 span with no gaps.
+
+The three biome windows from the example JSON partition the full [-1, 1] noise range with no overlap and no gap:
+
+```bounds
+{"min": -1, "max": -0.3, "label": "Plains — [-1.0, -0.3]"}
+```
+
+```bounds
+{"min": -0.3, "max": 0.3, "label": "Forest — [-0.3, 0.3]"}
+```
+
+```bounds
+{"min": 0.3, "max": 1, "label": "Mountains — [0.3, 1.0]"}
+```
+
+Each biome occupies roughly equal portions of the noise distribution. To make a biome more common, widen its range. To make it rare, narrow it.
 
 ```nodegraph
 {

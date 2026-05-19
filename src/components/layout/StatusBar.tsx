@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { getVersion } from "@tauri-apps/api/app";
 import { useProjectStore } from "@/stores/projectStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
@@ -9,6 +8,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useUpdateStore } from "@/stores/updateStore";
 import { downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { useStore } from "@xyflow/react";
+import { getAppVersion } from "@/utils/fetchReleases";
 
 export function StatusBar() {
   const currentFile = useProjectStore((s) => s.currentFile);
@@ -34,12 +34,7 @@ export function StatusBar() {
   // App version
   const [appVersion, setAppVersion] = useState<string>("");
   useEffect(() => {
-    void getVersion()
-      .then(setAppVersion)
-      .catch((e) => {
-        console.warn("Failed to get app version:", e);
-        setAppVersion("");
-      });
+    void getAppVersion().then(setAppVersion);
   }, []);
 
   // Update state

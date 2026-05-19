@@ -58,6 +58,7 @@ describe("CurveCanvas", () => {
       <CurveCanvas points={[]} onChange={() => {}} onCommit={() => {}} />,
     );
     expect(container.textContent).toContain("Shape:");
+    expect(container.textContent).toContain("Terrain:");
     expect(container.textContent).toContain("Linear");
     expect(container.textContent).toContain("Ease In");
     expect(container.textContent).toContain("S-Curve");
@@ -80,6 +81,14 @@ describe("CurveCanvas", () => {
     );
     const wrapper = container.firstElementChild as HTMLElement;
     expect(wrapper.style.height).toBe("40px");
+  });
+
+  it("compact mode can use a larger preview height", () => {
+    const { container } = render(
+      <CurveCanvas evaluator={(x) => x} compact compactHeight={72} />,
+    );
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.style.height).toBe("72px");
   });
 
   describe("static bounds behavior", () => {

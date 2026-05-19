@@ -2,6 +2,20 @@
 
 This section contains technical reference material for TerraNova / Hytale WorldGen V2.
 
+> **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Experimental/Arches.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Pillars_Marble_Large.json`, `Generative/Generative_Veins.json`
+>
+> **Audit note:** Terrain reference examples on this branch should come from Hytale's `Examples/`, `Experimental/`, and `Generative/` biome folders. The source biome assets actively use `AmplitudeConstant`, and they use `BaseHeight` as a named terrain anchor that is often remapped through `CurveMapper`. If a compact summary table below conflicts with that source-backed wording, prefer this note and the dedicated pages.
+
+If you are still learning, start with these focused pages before diving into the full listings below:
+
+- [Node Effects](./node-effects.md) — what each node family is for
+- [Curves Reference](./curves.md) — curve types and shape previews
+- [Reading the Graph](./reading-the-graph.md) — how to read the editor visually
+- [Terrain Snippets](./terrain-types.md) — paste-ready terrain examples
+- [Exporting](./exporting.md) — export paths, node-to-Hytale type mapping, field renames
+
+Use the rest of this page when you need exact terms, schemas, or category listings.
+
 ## Density Node Types
 
 The density system is the mathematical backbone of terrain generation. Every terrain shape, biome boundary, and underground cave is defined by composing density nodes.
@@ -10,7 +24,7 @@ The density system is the mathematical backbone of terrain generation. Every ter
 | Node | Purpose |
 |------|---------|
 | `Constant` | Outputs a fixed value regardless of position |
-| `AmplitudeConstant` | Legacy stub — no configurable fields. Use `Multiplier` + `Constant` instead |
+| `AmplitudeConstant` | Common source-asset scale stage; multiplies a density by a fixed amount. In TerraNova you can also model the same idea with `Multiplier` + `Constant` |
 | `OffsetConstant` | Legacy stub — no configurable fields. Use `Sum` + `Constant` instead |
 
 ### Noise
@@ -53,7 +67,7 @@ The density system is the mathematical backbone of terrain generation. Every ter
 | `Scale` | Scale the coordinate space (zooms in/out on noise) |
 | `Offset` | Translate the coordinate space |
 | `Amplitude` | Legacy Y-dependent multiplier — scales one density input by a `FunctionForY` curve |
-| `AmplitudeConstant` | Legacy stub — no configurable fields. Use `Multiplier` + `Constant` instead |
+| `AmplitudeConstant` | Common source-asset scale stage; multiplies a density by a fixed amount |
 | `Rotator` | Rotate the coordinate space |
 | `Inverter` | Multiply by -1 (flips solid/empty) |
 | `VectorWarp` | Warp position by a full 3D vector field |
@@ -86,7 +100,7 @@ The density system is the mathematical backbone of terrain generation. Every ter
 ### Terrain Utilities
 | Node | Purpose |
 |------|---------|
-| `BaseHeight` | Outputs 0 at a configured Y level; positive above, negative below |
+| `BaseHeight` | Crosses zero at a named height reference; with `Distance: true` it outputs signed distance from that height |
 | `CurveMapper` | Remaps input through a curve -- used to shape terrain profiles. Curve types: Manual, DistanceS, DistanceExponential |
 | `Terrain` | Back-reference to the biome's own terrain density |
 | `DistanceToBiomeEdge` | Value based on proximity to the nearest biome boundary |

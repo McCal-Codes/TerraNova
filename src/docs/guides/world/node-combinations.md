@@ -2,6 +2,10 @@
 
 Each section shows a common wiring pattern -- what nodes to connect and why. The diagrams mirror how they look in the actual editor.
 
+> **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Experimental/Arches.json`, `Experimental/Dunes.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Pillars_Marble_Large.json`, `Generative/Generative_Veins.json`
+>
+> These patterns are simplified reading diagrams derived from those Hytale `Examples/`, `Experimental/`, and `Generative/` terrain assets plus the active editor node set. They show recurring graph shapes, not full biome copies.
+
 **Beginner?** Start with patterns 1-4, then try the [Basic Terrain Generation guide](../understanding-basic-terrain-generation.md).
 **Advanced?** Patterns 7-14 cover blending, warping, shape SDFs, and full terrain stacks. Pattern 15 covers the skylands altitude band technique.
 
@@ -47,6 +51,14 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 }
 ```
 
+```bounds
+{"min": -1, "max": 1, "context": [-1, 1], "label": "SimplexNoise2D — raw output [-1, 1]"}
+```
+
+```bounds
+{"min": 0, "max": 1, "context": [-1, 1], "label": "After Normalizer — remapped to [0, 1] for use as a blend weight"}
+```
+
 ---
 
 ## 2. Ridge Noise (Noise to Abs)
@@ -66,6 +78,11 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
   "edges": [
     { "from": "n",   "to": "abs", "label": "signed" },
     { "from": "abs", "to": "out", "label": "ridges" }
+  ],
+  "steps": [
+    { "nodeId": "n",   "text": "SimplexNoise2D outputs a smooth signed value in **[-1, +1]**. Valleys are negative, hilltops are positive. Before Abs, the field looks like gently rolling hills — every zero-crossing is just a flat transition." },
+    { "nodeId": "abs", "text": "Abs takes the absolute value: any negative number flips to positive. A valley at -0.7 becomes +0.7. Every place the noise crosses zero is now a **sharp peak** instead of a flat crossing. Higher frequency noise = tighter, more dramatic ridges." },
+    { "nodeId": "out", "text": "The output is always in [0, 1] — no negatives. Add this to a BaseHeight + CurveMapper chain using Sum, and every ridge line in the noise becomes a raised mountain spine in the world." }
   ]
 }
 ```
@@ -89,15 +106,28 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
   "edges": [
     { "from": "cy", "to": "nr",  "label": "0-256" },
     { "from": "nr", "to": "out", "label": "0-1" }
+  ],
+  "steps": [
+    { "nodeId": "cy",  "text": "YValue reads the **world Y coordinate** at each point and outputs it as a raw number. At Y=0, output=0. At Y=128, output=128. On its own this is just a gradient — but combined with Normalizer it becomes a universal altitude factor." },
+    { "nodeId": "nr",  "text": "Normalizer remaps the Y range [0, 256] to [0, 1]. You define the input range to match your world's meaningful altitude window. The output is always a clean 0–1 value: 0 at the bottom, 1 at the top. Use this anywhere you need something to change smoothly with height." },
+    { "nodeId": "out", "text": "The 0–1 height factor feeds any Mix, material condition, or Amplitude node. Snow cap? Mix at values above 0.75. Deep underground ore? Gate on values below 0.2. This two-node chain is the basis of nearly every altitude-aware effect." }
   ]
 }
+```
+
+```bounds
+{"min": 0, "max": 256, "context": [0, 256], "label": "YValue — raw world Y coordinate [0, 256]"}
+```
+
+```bounds
+{"min": 0, "max": 1, "context": [0, 256], "label": "After Normalizer — altitude as a clean [0, 1] factor"}
 ```
 
 ---
 
 ## 4. BaseHeight + CurveMapper (Height Profile)
 
-**What it does:** `BaseHeight` outputs 0 at a reference Y, negative below, positive above. `CurveMapper` remaps those values through a hand-drawn curve to sculpt the vertical terrain profile -- flat plains, sharp cliffs, or rolling hills.
+**What it does:** `BaseHeight` crosses 0 at a named height reference. `CurveMapper` remaps that anchor through a hand-drawn curve to sculpt the vertical terrain profile -- flat plains, sharp cliffs, or rolling hills.
 
 **When to use it:** Every terrain setup needs this as its vertical backbone before adding noise.
 
@@ -118,7 +148,7 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "sum", "to": "out" }
   ],
   "steps": [
-    { "nodeId": "bh",  "text": "BaseHeight outputs 0 at Y=64, positive above (solid), negative below (air). It is the vertical zero-line of your terrain. Every terrain graph starts here." },
+    { "nodeId": "bh",  "text": "BaseHeight is the vertical zero-line of your terrain. In the audited source assets it usually anchors the graph before CurveMapper, Sum, or later reuse via Exported/Imported." },
     { "nodeId": "cf",  "text": "CurveMapper remaps the BaseHeight value through a hand-drawn curve. A flat line keeps the default shape. An S-curve creates cliff overhangs. A steep drop at one end creates mesas. This is how you sculpt terrain height without noise." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds horizontal variation to the terrain -- hills and valleys. Without it, the terrain would be completely flat at every Y level defined by the curve." },
     { "nodeId": "sum", "text": "Sum adds the CurveMapper output and the noise together. The curve sets the overall vertical shape; the noise gives it organic surface variation. Both are still in density units -- positive = solid." },
@@ -152,8 +182,27 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "mul", "to": "sum" },
     { "from": "con", "to": "sum", "label": "+0.5" },
     { "from": "sum", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "src", "text": "SimplexNoise2D starts in **[-1, +1]**. All subsequent math is in density units, so this is your raw material before any scaling or shifting." },
+    { "nodeId": "mul", "text": "Multiplier scales the amplitude. Constant × 2.0 doubles the peak-to-trough swing: the range becomes **[-2, +2]**. Use this to make hills taller or noise more dramatic without touching the frequency or feature size." },
+    { "nodeId": "con", "text": "The offset Constant adds a fixed positive shift after scaling. Adding +0.5 shifts the whole range from [-2, +2] to **[-1.5, +2.5]**. This lifts the whole terrain, bringing more of the field into positive (solid) territory." },
+    { "nodeId": "sum", "text": "Sum applies the offset. The final density has a different zero-crossing level than the original noise — terrain will be more elevated or more buried depending on the offset sign and magnitude." },
+    { "nodeId": "out", "text": "The scaled and offset density value. These two operations — scale and translate — are the most common density adjustments and cover almost every practical need without affecting feature shape or frequency." }
   ]
 }
+```
+
+```bounds
+{"min": -1, "max": 1, "context": [-2, 2.5], "label": "Source noise — [-1, 1]"}
+```
+
+```bounds
+{"min": -2, "max": 2, "context": [-2, 2.5], "label": "After × 2.0 — amplitude doubled to [-2, 2]"}
+```
+
+```bounds
+{"min": -1.5, "max": 2.5, "context": [-2, 2.5], "label": "After + 0.5 offset — range shifted to [-1.5, 2.5]"}
 ```
 
 ---
@@ -181,6 +230,14 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "f",  "to": "nr" },
     { "from": "nr", "to": "mx", "label": "0-1 factor" },
     { "from": "mx", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "a",   "text": "Terrain A is one complete density field — could be rolling hills, desert dunes, anything. Mix treats it as the \"zero end\" of the blend: when the factor is 0, you get 100% of A." },
+    { "nodeId": "b",   "text": "Terrain B is a different density field — different noise, different character. When the factor is 1, you get 100% of B. The formula is: `output = A × (1 - factor) + B × factor`." },
+    { "nodeId": "f",   "text": "CellNoise2D drives the spatial blend. Its Voronoi cells create hard-edged, organic-shaped blending regions. You can use any noise type here — large-scale SimplexNoise2D gives soft gradients; small-scale CellNoise gives sharp speckled mixing." },
+    { "nodeId": "nr",  "text": "Normalizer maps the factor noise from [-1, 1] to [0, 1]. **This step is required** — Mix will misbehave with negative factors or factors above 1. Always normalize the blend factor before feeding it to Mix." },
+    { "nodeId": "mx",  "text": "Mix produces the weighted blend. At every point in the world, the factor value from CellNoise determines how much of A vs B contributes. Biome transitions, stylistic blends, and material selection all use this exact pattern." },
+    { "nodeId": "out", "text": "The blended density field — a seamless combination of A and B shaped by the spatial factor. Adjust the factor's noise Scale to control how wide the transition zones are." }
   ]
 }
 ```
@@ -210,6 +267,13 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "inv", "to": "amp", "label": "cave mask" },
     { "from": "cm",  "to": "amp", "label": "depth weight" },
     { "from": "amp", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "yv",  "text": "YValue outputs the raw world Y coordinate. This is the input we use to decide how deep we are — Y=0 is bedrock, Y=256 is sky." },
+    { "nodeId": "cm",  "text": "CurveMapper maps the Y value to a 0–1 depth weight. A curve that outputs 1.0 below Y=40 and tapers to 0 above means: full cave intensity at depth, no caves near surface. The exact shape controls where caves fade in and out." },
+    { "nodeId": "inv", "text": "Inverter flips the cave noise sign: where noise was +0.8 (solid), it becomes -0.8 (hollow). This turns \"solid lumps\" into \"carved voids\" — the exact shape of the tunnel cross-section is defined by the noise field, just inverted." },
+    { "nodeId": "amp", "text": "Amplitude multiplies the inverted cave mask by the depth weight. At depth (weight=1), the cave carving is full strength. Near the surface (weight→0), the caves fade out smoothly. This prevents tunnels from emerging at the terrain surface and creating sinkholes." },
+    { "nodeId": "out", "text": "The output is the depth-weighted cave mask, ready to be subtracted from terrain density via Min or Sum. The math: strong negative values carve deep underground caves; values near zero fade the caves out near the surface." }
   ]
 }
 ```
@@ -237,6 +301,12 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "wn",  "to": "dw",  "label": "warp" },
     { "from": "dw",  "to": "tn",  "label": "offset pos" },
     { "from": "tn",  "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "wn",  "text": "The warp noise is a standard 2D noise field used **only for its spatial pattern** — not for direct density output. Its values [-1, +1] get multiplied by WarpStrength to produce an XZ offset in world units." },
+    { "nodeId": "dw",  "text": "GradientWarp reads the warp noise and **displaces the sampling coordinates** before passing them to its child. At WarpStrength=64: a noise value of +0.5 shifts the sample point 32 blocks east. The terrain node downstream never sees the real world position — only the warped one." },
+    { "nodeId": "tn",  "text": "SimplexNoise3D evaluates at the **offset position**, not the true world position. The result looks like the original noise pattern physically bent and twisted. Ridges fold back on themselves; valleys spiral. The original noise frequency and character are preserved — just warped through space." },
+    { "nodeId": "out", "text": "The warped density field. Because coordinates are offset, features that should be far apart can become adjacent, and straight shapes become organic. Strong WarpStrength (64+) creates chaotic folding; gentle warp (8–16) adds subtle turbulence." }
   ]
 }
 ```
@@ -262,6 +332,12 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "t",  "to": "sm" },
     { "from": "c",  "to": "sm", "label": "cave" },
     { "from": "sm", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "t",   "text": "The solid terrain field — the density from your standard BaseHeight + noise stack. Positive values here are rock; negative values are air above the ground surface." },
+    { "nodeId": "c",   "text": "The cave shape field — a 3D noise field representing the desired void space. Raw noise goes from [-1, +1]. You want cave voids to be **negative** so that Min will prefer them over solid terrain." },
+    { "nodeId": "sm",  "text": "SmoothMin keeps whichever input is **smaller** (more empty) at each point — like Min, it carves caves through terrain. But instead of a hard boundary seam, it blends over a radius (here 0.2 density units). The join between cave wall and open terrain is rounded and organic rather than a sharp geometric cut." },
+    { "nodeId": "out", "text": "The carved terrain with smooth cave joins. Compare: `Min` gives crisp geological fractures. `SmoothMin` gives worn, water-carved tunnels. The `Smoothness` parameter controls how wide the blend radius is in density units — larger = more rounded." }
   ]
 }
 ```
@@ -291,6 +367,14 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "a",   "to": "mx", "label": "A" },
     { "from": "b",   "to": "mx", "label": "B" },
     { "from": "mx",  "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "dbe", "text": "DistanceToBiomeEdge outputs **0 at the biome boundary** and increases as you move further inside the biome. At the edge you get pure 0; 32 blocks in you might get 32. This node knows nothing about terrain — it only measures proximity to the boundary line defined by the biome system." },
+    { "nodeId": "nr",  "text": "Normalizer maps [0, 32] to [0, 1], turning the raw distance into a clean blend weight. Right at the biome edge: weight = 0 → full Feature A. 32 blocks inside: weight = 1 → full Feature B. Adjust the input range to control how wide the transition strip is." },
+    { "nodeId": "a",   "text": "Feature A is the terrain characteristic that appears **at the biome boundary** — often the neighboring biome's terrain style, or a neutral transition type like flat ground." },
+    { "nodeId": "b",   "text": "Feature B is the terrain characteristic that dominates **inside the biome** — the full biome character, once you are far enough from the edge that the transition is complete." },
+    { "nodeId": "mx",  "text": "Mix blends A and B using the normalized distance as the factor. The result: terrain morphs from A at the biome edge to B at the biome center. No hard seam, no noise-driven randomness — the transition is purely governed by spatial distance to the boundary." },
+    { "nodeId": "out", "text": "A soft biome transition. The blend width is controlled by the Normalizer input range. Tighter range = sharper, narrower transition strip. Wider range = gradual, wide transition zone." }
   ]
 }
 ```
@@ -320,6 +404,14 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "mx",  "to": "sum", "label": "island" },
     { "from": "sn",  "to": "sum", "label": "detail" },
     { "from": "sum", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "el",  "text": "Ellipsoid outputs a **signed distance field** — negative inside the ellipsoid bubble, positive outside. Think of it as a density balloon: inside is solid potential, outside is air. The `Scale` vector [200, 80, 200] sets the radii in X, Y, and Z." },
+    { "nodeId": "pl",  "text": "Plane also outputs a signed distance — negative on one side, positive on the other. With PlaneNormal [0,1,0], it is horizontal: negative above the plane, positive below. This will be used to cut the bottom off the island." },
+    { "nodeId": "mx",  "text": "Max keeps the **larger** of the two values at each point. The Ellipsoid is negative inside (solid candidate) and positive outside (air). The Plane is negative above (solid candidate) and positive below. Max = air wherever **either** source says air. This intersects the two shapes: you only get solid where you are inside the ellipsoid AND above the plane — a flat-bottomed island shape." },
+    { "nodeId": "sn",  "text": "SimplexNoise2D adds surface irregularity so the island has a rocky top instead of a smooth dome. Keep the amplitude small (0.1–0.2) so the noise does not punch through the island edges defined by the SDF." },
+    { "nodeId": "sum", "text": "Sum combines the island SDF mask and the surface noise. The island SDF provides the overall shape; the noise roughens the surface. Both are in density units — adding them keeps everything in the same space." },
+    { "nodeId": "out", "text": "A floating island with a defined ellipsoidal body, a flat underside from the Plane cut, and a noisy top surface. Vary Ellipsoid Scale to change island size; adjust Plane offset to change how much is cut off the bottom." }
   ]
 }
 ```
@@ -347,6 +439,13 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "n2", "to": "sum", "label": "mid" },
     { "from": "n3", "to": "sum", "label": "fine" },
     { "from": "sum", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "n1",  "text": "The coarse layer uses a low Scale (0.005) — broad, sweeping hills that define the macro terrain shape. Octaves=2 adds a small amount of internal detail without getting noisy. This layer contributes the most to the overall elevation profile." },
+    { "nodeId": "n2",  "text": "The mid layer uses a medium Scale (0.02) — medium terrain features like ridges, rocky outcrops, and valley variations. Scale 0.02 is 4× higher frequency than 0.005, so it adds features about 4× smaller. The amplitude (weight) of this layer should be lower than the coarse layer so it doesn't dominate." },
+    { "nodeId": "n3",  "text": "The fine layer uses a high Scale (0.08) — small surface bumps and texture. This is 16× higher frequency than the coarse layer. Its contribution to overall height is small, but it makes the terrain feel rough and hand-crafted rather than smooth." },
+    { "nodeId": "sum", "text": "Sum stacks all three octaves. The coarse layer provides the large-scale envelope; the finer layers add successively smaller detail. This is the same as using `Octaves=3` on one noise node — but here each layer has independent `Seed`, `Scale`, and can even be a different noise type (mix 2D and 3D)." },
+    { "nodeId": "out", "text": "Multi-octave stacked noise. To control the relative contribution of each layer, add a `Multiplier × Constant` before the Sum for each noise: coarse × 1.0, mid × 0.5, fine × 0.25 is a classic 1/2 persistence falloff." }
   ]
 }
 ```
@@ -375,6 +474,13 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "cf",  "to": "sum" },
     { "from": "sum", "to": "ys",  "label": "wrap" },
     { "from": "ys",  "to": "out", "label": "fast" }
+  ],
+  "steps": [
+    { "nodeId": "sn",  "text": "SimplexNoise2D is the terrain source — two outputs used here: raw noise into CurveMapper for the height profile, and also directly into Sum for horizontal variation." },
+    { "nodeId": "cf",  "text": "CurveMapper shapes the height profile. This node and everything feeding it forms the expensive part of the graph — it samples noise and applies a curve transformation for every Y level of every column." },
+    { "nodeId": "sum", "text": "Sum combines the shaped profile and raw variation into the complete terrain density field. This is the full terrain subgraph — what YSampled will now wrap." },
+    { "nodeId": "ys",  "text": "YSampled wraps the entire Sum subgraph and **samples it only every 4 Y blocks** instead of every block. Between sample points it linearly interpolates. This reduces the number of density evaluations by ~4×. At SampleDistance=4 the visual difference is negligible for most terrain types. For 3D noise-heavy graphs, the speedup is critical." },
+    { "nodeId": "out", "text": "The performance-optimized terrain output. YSampled is one of the highest-leverage optimizations in the node graph. Apply it around any Sum that includes 3D noise or CurveMapper chains before testing in-game." }
   ]
 }
 ```

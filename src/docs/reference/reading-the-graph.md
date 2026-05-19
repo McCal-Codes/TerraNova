@@ -2,6 +2,10 @@
 
 This guide explains how to look at any TerraNova (or Hytale) node graph and understand what it does, even if you didn't build it.
 
+> **Biome source assets:** `Examples/Example_Curve_Mapper.json`, `Experimental/Arches.json`, `Experimental/Mountains.json`, `Generative/Generative_Arches.json`
+>
+> The recurring graph patterns below are drawn from those real Hytale biome graphs. The diagrams are simplified teaching sketches, but the node combinations and roles are taken from audited `Examples/`, `Experimental/`, and `Generative/` terrain assets rather than invented examples.
+
 ---
 
 ## The direction of data flow
@@ -61,7 +65,7 @@ This is a **noise-driven height map**. The noise (output: `-1` to `1`) is scaled
 {"min": 70, "max": 150, "label": "Typical noise-driven height range"}
 ```
 
-Whenever you see `AmplitudeConstant` + `Sum` + `Constant`, you're looking at scale-and-offset. The equivalent in TerraNova's native nodes is `Curve:LinearRemap`.
+Whenever you see `AmplitudeConstant` + `Sum` + `Constant`, you're looking at scale-and-offset. In TerraNova's active node set, the closest direct tools are `Normalizer` or an explicit scale-plus-offset chain like this one.
 
 ### Pattern 3: Noise → Curve → Mask
 

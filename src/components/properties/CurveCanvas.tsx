@@ -26,6 +26,11 @@ const CROSSHAIR_COLOR = "#e8e2d930";
 const SNAP_GRID = 0.25;
 const SNAP_GRID_HIGHLIGHT = "#5a5347";
 const BOUNDS_PADDING_FACTOR = 0.1;
+const DOCS_GUIDE_COLOR = "#e8e2d918";
+const DOCS_ZERO_GUIDE_COLOR = "#e8e2d92c";
+const DOCS_BADGE_BG = "#161411e6";
+const DOCS_BADGE_BORDER = "#5f584c";
+const DOCS_BADGE_TEXT = "#efe5d8";
 
 interface Bounds {
   xMin: number;
@@ -46,6 +51,8 @@ interface CurveCanvasProps {
   evaluator?: (x: number) => number;
   label?: string;
   compact?: boolean;
+  compactHeight?: number;
+  docsCompact?: boolean;
 }
 
 /** Compute viewport bounds from points with 10% padding. Defaults to [0,1] when all points fit. */
@@ -104,17 +111,65 @@ function formatAxisLabel(v: number): string {
   return v.toFixed(3);
 }
 
+function drawDocsBadge(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  align: "left" | "right" = "left",
+) {
+  ctx.save();
+  ctx.font = "10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+  ctx.textBaseline = "middle";
+
+  const padX = 5;
+  const badgeHeight = 16;
+  const badgeWidth = Math.ceil(ctx.measureText(text).width) + padX * 2;
+  const badgeX = align === "right" ? x - badgeWidth : x;
+
+  ctx.fillStyle = DOCS_BADGE_BG;
+  ctx.fillRect(badgeX, y, badgeWidth, badgeHeight);
+  ctx.strokeStyle = DOCS_BADGE_BORDER;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(badgeX + 0.5, y + 0.5, badgeWidth - 1, badgeHeight - 1);
+
+  ctx.fillStyle = DOCS_BADGE_TEXT;
+  ctx.textAlign = "left";
+  ctx.fillText(text, badgeX + padX, y + badgeHeight / 2 + 0.5);
+  ctx.restore();
+}
+
 const snapToGrid = (v: number, interval: number = SNAP_GRID) =>
   Math.round(v / interval) * interval;
 
-export function CurveCanvas({ points, onChange, onCommit, evaluator, label, compact }: CurveCanvasProps) {
+function resolveDocsMarkerPoints(
+  curvePoints: NormalizedPoint[],
+  sourcePoints: NormalizedPoint[],
+  evaluator?: (x: number) => number,
+): NormalizedPoint[] {
+  if (curvePoints.length === 0) return [];
+  if (evaluator) {
+    return [
+      curvePoints[0],
+      curvePoints[Math.floor(curvePoints.length / 2)],
+      curvePoints[curvePoints.length - 1],
+    ].filter(Boolean);
+  }
+  return [...sourcePoints].sort((a, b) => a.x - b.x);
+}
+
+export function CurveCanvas({ points, onChange, onCommit, evaluator, label, compact, compactHeight, docsCompact }: CurveCanvasProps) {
+  const isDocsCompact = docsCompact ?? false;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pointsRef = useRef<NormalizedPoint[]>([]);
   const dragRef = useRef<DragState | null>(null);
   const hoverIndexRef = useRef<number>(-1);
+  const docsHoverIndexRef = useRef<number>(-1);
+  const docsMarkerPointsRef = useRef<NormalizedPoint[]>([]);
   const rafRef = useRef<number>(0);
-  const sizeRef = useRef({ w: 0, h: compact ? 40 : CANVAS_HEIGHT });
+  const resolvedCompactHeight = compact ? Math.max(40, compactHeight ?? 40) : CANVAS_HEIGHT;
+  const sizeRef = useRef({ w: 0, h: resolvedCompactHeight });
   const cursorPosRef = useRef<{ x: number; y: number } | null>(null);
   const shiftHeldRef = useRef(false);
   const boundsRef = useRef<Bounds>({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 });
@@ -124,8 +179,14 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
   const [localBounds, setLocalBounds] = useState<Partial<Record<keyof Bounds, string>>>({});
 
   const isInteractive = !!onChange && !compact;
-  const canvasHeight = compact ? 40 : CANVAS_HEIGHT;
-  const padding = compact ? 4 : PADDING;
+  const canvasHeight = compact ? resolvedCompactHeight : CANVAS_HEIGHT;
+  const padding = compact
+    ? (
+        isDocsCompact
+          ? Math.min(Math.max(12, Math.round(canvasHeight * 0.18)), Math.max(12, Math.floor(canvasHeight * 0.25)))
+          : Math.max(4, Math.round(canvasHeight * 0.1))
+      )
+    : PADDING;
 
   // Keep pointsRef in sync with props; compute bounds once on first load (interactive) or always (compact)
   useEffect(() => {
@@ -256,6 +317,80 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
           ctx.fillText(formatAxisLabel(v), padding - 3, cy + 3);
         }
       }
+    } else if (isDocsCompact) {
+      const { xMin, xMax, yMin, yMax } = boundsRef.current;
+      const xTicks = [xMin, xMin + (xMax - xMin) / 2, xMax];
+      const yTicks = [yMax, yMin + (yMax - yMin) / 2, yMin];
+      const bottomAxisY = h - padding;
+      const leftAxisX = padding;
+      const badgeHeight = 16;
+
+      ctx.strokeStyle = BORDER_COLOR;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(padding, padding, w - padding * 2, h - padding * 2);
+
+      ctx.strokeStyle = GRID_COLOR;
+      ctx.lineWidth = 0.75;
+      for (let i = 1; i < xTicks.length - 1; i++) {
+        const cx = toCanvasX(xTicks[i]);
+        ctx.beginPath();
+        ctx.moveTo(cx, padding);
+        ctx.lineTo(cx, h - padding);
+        ctx.stroke();
+      }
+      for (let i = 1; i < yTicks.length - 1; i++) {
+        const cy = toCanvasY(yTicks[i]);
+        ctx.beginPath();
+        ctx.moveTo(padding, cy);
+        ctx.lineTo(w - padding, cy);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = DOCS_GUIDE_COLOR;
+      ctx.lineWidth = 1;
+      for (const tick of xTicks) {
+        const cx = toCanvasX(tick);
+        ctx.beginPath();
+        ctx.moveTo(cx, bottomAxisY);
+        ctx.lineTo(cx, bottomAxisY + 5);
+        ctx.stroke();
+      }
+      for (const tick of yTicks) {
+        const cy = toCanvasY(tick);
+        ctx.beginPath();
+        ctx.moveTo(leftAxisX - 5, cy);
+        ctx.lineTo(leftAxisX, cy);
+        ctx.stroke();
+      }
+
+      if (yMin < 0 && yMax > 0) {
+        const zeroY = toCanvasY(0);
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = DOCS_ZERO_GUIDE_COLOR;
+        ctx.beginPath();
+        ctx.moveTo(padding, zeroY);
+        ctx.lineTo(w - padding, zeroY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (xMin < 0 && xMax > 0) {
+        const zeroX = toCanvasX(0);
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = DOCS_ZERO_GUIDE_COLOR;
+        ctx.beginPath();
+        ctx.moveTo(zeroX, padding);
+        ctx.lineTo(zeroX, h - padding);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      drawDocsBadge(ctx, `y ${formatAxisLabel(yMax)}`, 4, Math.max(2, padding - 4));
+      drawDocsBadge(ctx, `y ${formatAxisLabel(yMin)}`, 4, Math.max(2, h - padding - badgeHeight - 4));
+      drawDocsBadge(ctx, `x ${formatAxisLabel(xMin)}`, padding + 4, Math.max(2, h - badgeHeight - 2));
+      drawDocsBadge(ctx, `x ${formatAxisLabel(xMax)}`, w - padding - 4, Math.max(2, h - badgeHeight - 2), "right");
     }
 
     // Build curve points to render
@@ -272,6 +407,9 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       const sorted = [...pointsRef.current].sort((a, b) => a.x - b.x);
       curvePoints = sorted.length >= 2 ? catmullRomInterpolate(sorted) : sorted;
     }
+    docsMarkerPointsRef.current = isDocsCompact
+      ? resolveDocsMarkerPoints(curvePoints, pointsRef.current, evaluator)
+      : [];
 
     if (curvePoints.length > 0) {
       const { yMin } = boundsRef.current;
@@ -296,6 +434,92 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       ctx.strokeStyle = CURVE_COLOR;
       ctx.lineWidth = compact ? 1.5 : 2;
       ctx.stroke();
+
+      if (isDocsCompact) {
+        const markerPoints = docsMarkerPointsRef.current;
+        const hoveredMarkerIndex =
+          docsHoverIndexRef.current >= 0 && docsHoverIndexRef.current < markerPoints.length
+            ? docsHoverIndexRef.current
+            : -1;
+        const hoveredMarker = hoveredMarkerIndex >= 0 ? markerPoints[hoveredMarkerIndex] : null;
+
+        if (hoveredMarker) {
+          const hoverCX = toCanvasX(hoveredMarker.x);
+          const hoverCY = toCanvasY(hoveredMarker.y);
+
+          ctx.save();
+          ctx.setLineDash([3, 3]);
+          ctx.strokeStyle = DOCS_ZERO_GUIDE_COLOR;
+          ctx.lineWidth = 1;
+
+          ctx.beginPath();
+          ctx.moveTo(hoverCX, hoverCY);
+          ctx.lineTo(hoverCX, h - padding);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(padding, hoverCY);
+          ctx.lineTo(hoverCX, hoverCY);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (!evaluator) {
+          ctx.save();
+          ctx.strokeStyle = DOCS_GUIDE_COLOR;
+          ctx.lineWidth = 1;
+          for (const point of markerPoints) {
+            const cx = toCanvasX(point.x);
+            ctx.beginPath();
+            ctx.moveTo(cx, h - padding);
+            ctx.lineTo(cx, h - padding + 4);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        markerPoints.forEach((point, index) => {
+          const cx = toCanvasX(point.x);
+          const cy = toCanvasY(point.y);
+          const isHovered = index === hoveredMarkerIndex;
+
+          if (isHovered) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+            ctx.fillStyle = "#bf96cc22";
+            ctx.fill();
+          }
+
+          ctx.beginPath();
+          ctx.arc(cx, cy, isHovered ? 5 : 4, 0, Math.PI * 2);
+          ctx.fillStyle = BG_COLOR;
+          ctx.fill();
+          ctx.strokeStyle = isHovered ? HOVER_COLOR : "#f5ebfb";
+          ctx.lineWidth = isHovered ? 1.5 : 1.25;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(cx, cy, isHovered ? 2.2 : 1.75, 0, Math.PI * 2);
+          ctx.fillStyle = isHovered ? HOVER_COLOR : CURVE_COLOR;
+          ctx.fill();
+        });
+
+        if (hoveredMarker) {
+          const hoverCX = toCanvasX(hoveredMarker.x);
+          const hoverCY = toCanvasY(hoveredMarker.y);
+          const badgeText = `(${formatAxisLabel(hoveredMarker.x)}, ${formatAxisLabel(hoveredMarker.y)})`;
+          const align = hoverCX > w * 0.68 ? "right" : "left";
+          const badgeY = hoverCY < padding + 24 ? hoverCY + 10 : hoverCY - 24;
+          const badgeX = align === "right" ? hoverCX - 10 : hoverCX + 10;
+          drawDocsBadge(
+            ctx,
+            badgeText,
+            badgeX,
+            Math.max(2, Math.min(h - 18, badgeY)),
+            align,
+          );
+        }
+      }
     }
 
     // Control points (interactive mode only)
@@ -381,7 +605,7 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       ctx.textAlign = "right";
       ctx.fillText(label, w - padding - 4, padding + 14);
     }
-  }, [evaluator, isInteractive, label, compact, canvasHeight, padding, toCanvasX, toCanvasY]);
+  }, [evaluator, isDocsCompact, isInteractive, label, compact, canvasHeight, padding, toCanvasX, toCanvasY]);
 
   // Redraw coalesced via rAF
   const requestDraw = useCallback(() => {
@@ -436,6 +660,27 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
     [toCanvasX, toCanvasY],
   );
 
+  const hitTestDocsMarker = useCallback(
+    (cx: number, cy: number): number => {
+      let bestIdx = -1;
+      let bestDist = HIT_RADIUS * HIT_RADIUS;
+      for (let i = 0; i < docsMarkerPointsRef.current.length; i++) {
+        const point = docsMarkerPointsRef.current[i];
+        const px = toCanvasX(point.x);
+        const py = toCanvasY(point.y);
+        const dx = cx - px;
+        const dy = cy - py;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < bestDist) {
+          bestDist = d2;
+          bestIdx = i;
+        }
+      }
+      return bestIdx;
+    },
+    [toCanvasX, toCanvasY],
+  );
+
   // -----------------------------------------------------------------------
   // Pointer handlers
   // -----------------------------------------------------------------------
@@ -466,10 +711,20 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!isInteractive) return;
       const rect = canvasRef.current!.getBoundingClientRect();
       const cx = e.clientX - rect.left;
       const cy = e.clientY - rect.top;
+
+      if (!isInteractive) {
+        if (!isDocsCompact) return;
+        const newHover = hitTestDocsMarker(cx, cy);
+        if (newHover !== docsHoverIndexRef.current) {
+          docsHoverIndexRef.current = newHover;
+          canvasRef.current!.style.cursor = newHover >= 0 ? "pointer" : "default";
+          requestDraw();
+        }
+        return;
+      }
 
       if (dragRef.current) {
         const drag = dragRef.current;
@@ -506,7 +761,7 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       }
       requestDraw();
     },
-    [isInteractive, fromCanvasX, fromCanvasY, hitTest, emitChange, requestDraw],
+    [isInteractive, isDocsCompact, fromCanvasX, fromCanvasY, hitTest, hitTestDocsMarker, emitChange, requestDraw],
   );
 
   const handlePointerUp = useCallback(
@@ -524,6 +779,8 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
 
   const handlePointerLeave = useCallback(() => {
     cursorPosRef.current = null;
+    docsHoverIndexRef.current = -1;
+    if (canvasRef.current) canvasRef.current.style.cursor = "default";
     requestDraw();
   }, [requestDraw]);
 
@@ -602,8 +859,13 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
 
   if (compact) {
     return (
-      <div ref={containerRef} style={{ width: "100%", height: 40 }}>
-        <canvas ref={canvasRef} style={{ display: "block" }} />
+      <div ref={containerRef} style={{ width: "100%", height: canvasHeight }}>
+        <canvas
+          ref={canvasRef}
+          style={{ display: "block" }}
+          onPointerMove={isDocsCompact ? handlePointerMove : undefined}
+          onPointerLeave={isDocsCompact ? handlePointerLeave : undefined}
+        />
       </div>
     );
   }

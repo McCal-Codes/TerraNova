@@ -65,12 +65,20 @@ mod tests {
         // WorldStructureAsset doesn't use tagged enum, just deserialize and check key fields
         let asset: WorldStructureAsset =
             serde_json::from_str(json).expect("deserialize WorldStructureAsset");
+        let original: serde_json::Value =
+            serde_json::from_str(json).expect("parse WorldStructure template");
+        let expected_default_biome = original["DefaultBiome"]
+            .as_str()
+            .expect("DefaultBiome should be a string");
+        let expected_range_biome = original["Biomes"][0]["Biome"]
+            .as_str()
+            .expect("Biomes[0].Biome should be a string");
 
         assert_eq!(asset.structure_type, "NoiseRange");
-        assert_eq!(asset.default_biome, "void_biome");
+        assert_eq!(asset.default_biome, expected_default_biome);
         assert_eq!(asset.default_transition_distance, 16);
         assert_eq!(asset.biomes.len(), 1);
-        assert_eq!(asset.biomes[0].biome, "void_biome");
+        assert_eq!(asset.biomes[0].biome, expected_range_biome);
         assert_eq!(asset.biomes[0].min, -1.0);
         assert_eq!(asset.biomes[0].max, 1.0);
 
@@ -78,7 +86,7 @@ mod tests {
         let reserialized = serde_json::to_value(&asset).expect("reserialize");
         let obj = reserialized.as_object().unwrap();
         assert_eq!(obj["Type"], "NoiseRange");
-        assert_eq!(obj["DefaultBiome"], "void_biome");
+        assert_eq!(obj["DefaultBiome"], expected_default_biome);
     }
 
     // ── Biome ─────────────────────────────────────────────────────────

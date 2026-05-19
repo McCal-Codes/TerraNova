@@ -1,5 +1,6 @@
 import { homeDir, join } from "@tauri-apps/api/path";
 import { pathExists } from "./ipc";
+import { isTauriRuntime } from "./platform";
 
 type OS = "windows" | "macos" | "linux";
 
@@ -10,6 +11,27 @@ function detectOsFromHome(home: string): OS {
   return "linux";
 }
 
+function detectOsFromNavigator(): OS {
+  if (navigator.userAgent.includes("Mac")) return "macos";
+  if (navigator.userAgent.includes("Windows")) return "windows";
+  return "linux";
+}
+
+function fallbackJoin(os: OS, ...parts: string[]): string {
+  const separator = os === "windows" ? "\\" : "/";
+  return parts
+    .filter((part) => part.length > 0)
+    .map((part, index) => {
+      if (index === 0) return part.replace(/[\\/]+$/g, "");
+      return part.replace(/^[\\/]+|[\\/]+$/g, "");
+    })
+    .join(separator);
+}
+
+async function joinPath(os: OS, ...parts: string[]): Promise<string> {
+  return isTauriRuntime() ? join(...parts) : fallbackJoin(os, ...parts);
+}
+
 /**
  * Returns the OS-appropriate Hytale AppData/config root, e.g.:
  *   Windows : C:\Users\<name>\AppData\Roaming\Hytale
@@ -17,6 +39,17 @@ function detectOsFromHome(home: string): OS {
  *   Linux   : /home/<name>/.local/share/Hytale
  */
 async function hytaleDataRoot(): Promise<{ home: string; root: string; os: OS }> {
+  if (!isTauriRuntime()) {
+    const os = detectOsFromNavigator();
+    const home = os === "windows" ? "%USERPROFILE%" : "~";
+    const root = os === "windows"
+      ? "%APPDATA%\\Hytale"
+      : os === "macos"
+        ? "~/Library/Application Support/Hytale"
+        : "~/.local/share/Hytale";
+    return { home, root, os };
+  }
+
   const home = await homeDir();
   const os = detectOsFromHome(home);
   let root: string;
@@ -38,8 +71,8 @@ async function hytaleDataRoot(): Promise<{ home: string; root: string; os: OS }>
  * Linux   : ~/.local/share/Hytale/install/pre-release/package/game/latest/Assets.zip
  */
 export async function resolveDefaultPreReleaseAssetsPath(): Promise<string> {
-  const { root } = await hytaleDataRoot();
-  return join(root, "install", "pre-release", "package", "game", "latest", "Assets.zip");
+  const { root, os } = await hytaleDataRoot();
+  return joinPath(os, root, "install", "pre-release", "package", "game", "latest", "Assets.zip");
 }
 
 /**
@@ -50,8 +83,8 @@ export async function resolveDefaultPreReleaseAssetsPath(): Promise<string> {
  * Linux   : ~/.local/share/Hytale/install/release/package/game/latest
  */
 export async function resolveDefaultReleaseAssetsPath(): Promise<string> {
-  const { root } = await hytaleDataRoot();
-  return join(root, "install", "release", "package", "game", "latest");
+  const { root, os } = await hytaleDataRoot();
+  return joinPath(os, root, "install", "release", "package", "game", "latest");
 }
 
 /**
@@ -67,16 +100,17 @@ export async function resolveDefaultCommonAssetsPath(): Promise<string> {
   }
 
   const releaseRoot = await resolveDefaultReleaseAssetsPath();
-  const releaseZip = await join(releaseRoot, "Assets.zip");
+  const { os } = await hytaleDataRoot();
+  const releaseZip = await joinPath(os, releaseRoot, "Assets.zip");
   if (await pathExists(releaseZip).catch(() => false)) {
     return releaseZip;
   }
 
-  const releaseCommon = await join(releaseRoot, "Common");
+  const releaseCommon = await joinPath(os, releaseRoot, "Common");
   if (await pathExists(releaseCommon).catch(() => false)) {
     return releaseCommon;
   }
 
-  const home = await homeDir();
-  return join(home, "Desktop", "Assets", "Common");
+  const { home } = await hytaleDataRoot();
+  return joinPath(os, home, "Desktop", "Assets", "Common");
 }

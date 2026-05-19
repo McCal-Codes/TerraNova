@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { getHandles, HANDLE_REGISTRY, findHandleDef } from "../handleRegistry";
+import {
+  getHandles,
+  HANDLE_REGISTRY,
+  NON_CONNECTABLE_NODE_TYPES,
+  findHandleDef,
+} from "../handleRegistry";
 import { nodeTypes } from "../index";
 import { AssetCategory } from "@/schema/types";
 
@@ -10,7 +15,7 @@ describe("HANDLE_REGISTRY", () => {
   it("has entries for all non-fallback node types in nodeTypes registry", () => {
     const missing: string[] = [];
     for (const key of Object.keys(nodeTypes)) {
-      if (key === "default" || key === "group" || key === "comment" || key === "frame") continue;
+      if (key === "default" || NON_CONNECTABLE_NODE_TYPES.has(key)) continue;
       if (!HANDLE_REGISTRY[key]) {
         missing.push(key);
       }
@@ -113,6 +118,13 @@ describe("getHandles", () => {
   it("returns empty handles for completely unknown types", () => {
     const handles = getHandles("CompletelyFakeNode");
     expect(handles.length).toBe(0);
+  });
+
+  it("does not expose fallback handles for non-connectable annotation nodes", () => {
+    expect(getHandles("comment")).toEqual([]);
+    expect(getHandles("frame")).toEqual([]);
+    expect(findHandleDef("comment", "output")).toBeUndefined();
+    expect(findHandleDef("frame", "output")).toBeUndefined();
   });
 
   it("returns valid handles for all density types", () => {

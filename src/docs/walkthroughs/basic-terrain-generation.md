@@ -4,6 +4,10 @@
 
 **Difficulty:** Beginner
 
+> **Biome source assets:** `Examples/Example_Curve_Mapper.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`
+>
+> Terrain examples on this page are grounded in those Hytale `Examples/`, `Experimental/`, and `Generative/` assets. The graphs below are teaching reductions, not full biome copies.
+
 This walkthrough builds a complete terrain graph from scratch — flat ground, curved height profile, noise variation, caves, and performance wrapping — one step at a time.
 
 ## Density and What It Means
@@ -26,9 +30,20 @@ The key parameters on noise generators:
 
 ## CurveMapper and BaseHeight
 
-`BaseHeight` outputs a density based on world height — positive above the reference Y, negative below. On its own it makes a flat infinite plane.
+`BaseHeight` reads a named height reference and crosses zero at that Y. In the audited source assets it commonly feeds `CurveMapper` or `Sum`, making it the vertical anchor rather than a freehand height formula.
 
 `CurveMapper` remaps that value using a hand-drawn curve. This is how you shape cliff faces, plateaus, and gentle slopes — by drawing the profile you want.
+
+Start with this simple profile instead of freehanding from scratch:
+
+```curve
+Starter terrain profile - gentle slope into a firmer surface
+[[0,-1],[0.18,-0.96],[0.34,-0.72],[0.48,-0.18],[0.56,0.3],[0.7,0.78],[0.86,0.96],[1,1]]
+```
+
+- Keep the left side low so air stays air.
+- Let the middle rise smoothly for a walkable slope.
+- Push one middle point upward if you want a sharper cliff.
 
 ```nodegraph
 {
@@ -43,7 +58,7 @@ The key parameters on noise generators:
     { "from": "cm",  "to": "out", "label": "density" }
   ],
   "steps": [
-    { "nodeId": "bh",  "text": "BaseHeight outputs 0 at Y=64, positive above, negative below. Connect it to CurveMapper to shape what those values mean for the terrain surface." },
+    { "nodeId": "bh",  "text": "BaseHeight marks the terrain anchor by crossing zero at the named height reference. Connect it to CurveMapper to decide how that anchor becomes a usable terrain profile." },
     { "nodeId": "cm",  "text": "Set CurveMapper's Curve type to Manual. The x-axis is the input from BaseHeight; the y-axis is the output density. A gentle S-curve gives natural slopes; a steep step gives cliffs." },
     { "nodeId": "out", "text": "Terrain Out receives the final density. Click Generate — you should see a flat plane at Y=64. The CurveMapper is not doing much yet; its effect becomes visible once you shape the curve." }
   ]
@@ -83,6 +98,13 @@ To make varied terrain with a proper surface, combine the `CurveMapper` height s
 1. `BaseHeight → CurveMapper` defines the vertical profile (where the surface is)
 2. `SimplexNoise2D` adds horizontal variation (hills and valleys)
 3. `Sum` merges both into one density per (x, y, z)
+
+If you are new to curves, do this in order:
+
+1. Load the starter curve above into `CurveMapper`.
+2. Generate once before touching noise.
+3. Move only one curve point at a time, then generate again.
+4. After the silhouette feels right, start adjusting the noise scale.
 
 ```nodegraph
 {

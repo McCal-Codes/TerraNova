@@ -6,10 +6,12 @@ node_modules/
 dist/
 build/
 src-tauri/target/
+tsconfig.tsbuildinfo
 
 # IDE
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 *~
@@ -42,3 +44,6 @@ templates/hytale-pre-release/
 .claude/
 docs/plans/
 docs/audit/
+
+# Instructions
+instructions.md

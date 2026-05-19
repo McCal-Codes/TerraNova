@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { getVersion } from "@tauri-apps/api/app";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
   resolveDefaultPreReleaseAssetsPath,
@@ -20,6 +19,7 @@ import { KeyboardShortcutsPanel } from "./KeyboardShortcutsDialog";
 import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolders";
 import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
 import { clearHardwareDetectionCache, detectHardware, type HardwareInfo } from "@/utils/hardwareDetect";
+import { getAppVersion } from "@/utils/fetchReleases";
 
 function getWhatsNewSuppressed(): boolean {
   try { return localStorage.getItem(WHATS_NEW_SUPPRESS_KEY) === "true"; } catch { return false; }
@@ -120,7 +120,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const [refreshingHardware, setRefreshingHardware] = useState(false);
 
   useEffect(() => {
-    getVersion().then(setAppVersion);
+    void getAppVersion().then(setAppVersion);
     void resolveDefaultPreReleaseAssetsPath().then(setExamplePreReleasePath);
     void resolveDefaultReleaseAssetsPath().then(setExampleReleasePath);
   }, []);

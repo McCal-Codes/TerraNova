@@ -2,6 +2,10 @@
 
 <!-- walkthrough -->
 
+> **Biome source assets:** `Examples/Example_Curve_Mapper.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Veins.json`
+>
+> Terrain and cave examples on this page are grounded in those Hytale `Examples/`, `Experimental/`, and `Generative/` assets. The walkthrough graphs are teaching reductions, not full biome copies.
+
 This walkthrough takes you through building four distinct terrain types from scratch, then adding caves to any of them. Each section builds on the last — work through them in order or jump to whichever shape you need.
 
 ## Step 1 — Flat Plains (Baseline)
@@ -10,7 +14,7 @@ The simplest terrain: a flat surface at a fixed height. This is the starting poi
 
 **Nodes needed:** `BaseHeight` → `Sum` → `Terrain Out`
 
-`BaseHeight` outputs `0` at a reference Y level — negative above it (air), positive below (solid). The world generator places solid blocks wherever density is positive, so this alone gives a perfectly flat plane.
+`BaseHeight` crosses `0` at a reference Y level and gives you the vertical anchor everything else builds on. In the source assets, the most common next step is to feed it into `CurveMapper` or combine it with noise in `Sum`.
 
 1. Right-click the canvas → **Add Node** → **Terrain** → **BaseHeight**
 2. In the properties panel set `Distance` to `false` (default).
@@ -28,6 +32,11 @@ The simplest terrain: a flat surface at a fixed height. This is the starting poi
   "edges": [
     { "from": "bh",  "to": "sum", "label": "density" },
     { "from": "sum", "to": "out", "label": "density" }
+  ],
+  "steps": [
+    { "nodeId": "bh",  "text": "BaseHeight outputs a density value that crosses zero at Y=64. Above that line the value is negative (air); below it is positive (solid). This single node defines a perfectly flat surface — the baseline every other terrain type builds on top of." },
+    { "nodeId": "sum", "text": "Sum routes the BaseHeight density forward. With only one input it passes the value through unchanged, but the Sum node is the right anchor point — every additional layer (noise, caves, shapes) gets added here later without restructuring the graph." },
+    { "nodeId": "out", "text": "Terrain Out receives the final density and hands it to the generator. Anything positive becomes solid ground; anything negative becomes air. Right now the result is a perfectly flat plane at Y=64." }
   ]
 }
 ```
@@ -66,6 +75,14 @@ Add `SimplexNoise2D` to introduce horizontal variation — hills, valleys, and u
     { "from": "c",   "to": "mul" },
     { "from": "mul", "to": "sum", "label": "scaled noise" },
     { "from": "sum", "to": "out", "label": "density" }
+  ],
+  "steps": [
+    { "nodeId": "bh",  "text": "BaseHeight anchors the terrain at Y=64. It contributes a fixed positive density below the surface line and negative above — the flat baseline that everything else offsets from." },
+    { "nodeId": "sn",  "text": "SimplexNoise2D outputs values in [−1, 1] that vary smoothly across the X/Z plane. At Scale 0.008 the pattern repeats roughly every 125 blocks — wide, gradual hill shapes. Increase Scale for tighter, choppier variation." },
+    { "nodeId": "c",   "text": "Constant supplies a fixed multiplier of 0.15. This controls the amplitude: the noise will offset density by at most ±0.15 relative to the baseline. Raise it to 0.3–0.5 for dramatic hills; lower it to 0.05 for gentle undulation." },
+    { "nodeId": "mul", "text": "Multiplier scales the noise: output = noise × 0.15. Without this, the raw [−1, 1] noise would shift terrain by a full unit in either direction — too extreme for gentle hills. The Constant value is the direct knob for hill amplitude." },
+    { "nodeId": "sum", "text": "Sum adds the scaled noise to the BaseHeight density. At any horizontal position the density is now: BaseHeight + (noise × 0.15). Positive noise pushes the surface up; negative noise pushes it down — creating hills and valleys." },
+    { "nodeId": "out", "text": "Terrain Out receives the combined density. The surface forms wherever the density crosses zero, which now varies by ±0.15 across the terrain instead of sitting flat at Y=64." }
   ]
 }
 ```
@@ -97,6 +114,17 @@ Mountains need a steep vertical profile — sharp peaks, flat base. `CurveMapper
 6. Wrap the whole thing in **YSampled** (SampleDistance `4`) for performance.
 7. Connect `YSampled` → `Terrain Out`.
 
+Use this starter mountain curve first, then adjust only the middle points:
+
+```curve
+Mountain cliff profile - broad base, steep wall, flatter top
+[[0,-1],[0.18,-0.98],[0.36,-0.78],[0.5,-0.12],[0.58,0.7],[0.68,0.96],[0.82,1],[1,1]]
+```
+
+- Raise the point near `0.58` for harsher cliffs.
+- Pull the point near `0.82` down if the plateau feels too flat.
+- Keep the first third low so the mountain has a readable base.
+
 ```nodegraph
 {
   "height": 240,
@@ -120,7 +148,7 @@ Mountains need a steep vertical profile — sharp peaks, flat base. `CurveMapper
     { "from": "ys",  "to": "out", "label": "density" }
   ],
   "steps": [
-    { "nodeId": "bh",  "text": "BaseHeight outputs 0 at Y=64. Above is positive (solid), below is negative (air). On its own this gives a flat plane — it's just an anchor for the shape." },
+    { "nodeId": "bh",  "text": "BaseHeight marks the vertical anchor by crossing zero at Y=64. On its own it gives you the flat reference plane that later curve and noise stages build from." },
     { "nodeId": "cf",  "text": "CurveMapper remaps the BaseHeight value using a drawn curve. A gentle S-curve creates a sharp cliff band: the terrain rises steeply through a narrow Y range instead of smoothly. Steepen the curve middle section to make cliffs more vertical." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds horizontal variation so the mountain isn't a perfectly uniform ridge. Low Scale (0.005) gives broad variation — individual peaks and saddles. Increase the Constant Value on the Multiplier to make peaks taller." },
     { "nodeId": "sum", "text": "Sum combines the curve-shaped height profile with the noise variation. The CurveMapper controls the overall vertical shape; the noise gives it organic peaks and ridges." },
@@ -155,6 +183,18 @@ Use `YValue` fed through a `CurveMapper` to bias the noise — positive in a tar
 4. Add **Sum** — connect `SimplexNoise3D` and `CurveMapper` into it.
 5. Connect `Sum` → `Terrain Out`.
 
+The height-bias curve is what stops this from becoming random floating blobs:
+
+```curve
+Floating island height band - strongest in the middle, fades above and below
+[[0,-1],[0.16,-0.95],[0.32,-0.55],[0.46,0.28],[0.58,0.92],[0.7,0.32],[0.84,-0.55],[1,-1]]
+```
+
+Read it like this:
+- Negative ends mean "no island mass" outside the band.
+- The high middle keeps the densest part of the island around your target height.
+- A wider peak creates chunkier islands; a narrow peak creates thinner floating shelves.
+
 ```nodegraph
 {
   "height": 220,
@@ -170,6 +210,13 @@ Use `YValue` fed through a `CurveMapper` to bias the noise — positive in a tar
     { "from": "yv",  "to": "cm"  },
     { "from": "cm",  "to": "sum", "label": "height bias" },
     { "from": "sum", "to": "out", "label": "density" }
+  ],
+  "steps": [
+    { "nodeId": "sn3",  "text": "SimplexNoise3D varies in all three dimensions — X, Y, and Z. This lets it create overhangs, arches, and masses that float free of any horizontal surface. Without a height bias, these masses appear at random altitudes throughout the world." },
+    { "nodeId": "yv",   "text": "YValue outputs the raw Y coordinate at the current sample point. On its own it is just a number, but feeding it into CurveMapper lets you convert the vertical position into any density value you choose." },
+    { "nodeId": "cm",   "text": "CurveMapper converts raw Y into a height bias value. The curve is positive between Y=40 and Y=120 and negative outside — so this node outputs a bonus that adds solid mass in that band and subtracts it elsewhere. Widen the positive region for a taller island band; narrow it for thinner shelves." },
+    { "nodeId": "sum",  "text": "Sum adds the 3D noise and the height bias together: density = noise + heightBias. Inside the target band, heightBias is positive — it tips borderline-negative noise values into positive, creating solid mass. Outside the band, heightBias is strongly negative — it suppresses the noise, preventing islands from forming there." },
+    { "nodeId": "out",  "text": "Terrain Out receives the final density. Floating masses appear wherever noise + heightBias > 0. The curve shape is what constrains them to the target altitude band rather than scattering randomly through the world." }
   ]
 }
 ```
@@ -239,6 +286,17 @@ Caves that punch through the surface look wrong. Use `YValue` + `CurveMapper` to
 3. Add **Multiplier** — connect `Inverter` output as one input and `CurveMapper` output as the other. This scales the cave mask to zero above the cutoff height.
 4. Feed the `Multiplier` output into `Min` instead of the raw `Inverter`.
 
+Use this fade curve for the height mask before refining it:
+
+```curve
+Cave fade mask - full strength underground, fades near the surface
+[[0,1],[0.46,1],[0.62,0.92],[0.76,0.45],[0.9,0.08],[1,0]]
+```
+
+- Keep the flat top if you want caves to stay strong deep underground.
+- Soften the drop if you want a gradual cave ceiling.
+- Make the drop steeper if surface holes are still appearing.
+
 ```nodegraph
 {
   "height": 260,
@@ -260,6 +318,16 @@ Caves that punch through the surface look wrong. Use `YValue` + `CurveMapper` to
     { "from": "cm",   "to": "mul", "label": "height weight" },
     { "from": "mul",  "to": "min", "label": "masked caves" },
     { "from": "min",  "to": "out", "label": "density" }
+  ],
+  "steps": [
+    { "nodeId": "terr", "text": "Your existing terrain density from Step 2 or 3. This is the solid ground that caves will carve through. The Min node downstream only removes solid blocks — it cannot create them — so the terrain must come in here." },
+    { "nodeId": "cn",   "text": "A second SimplexNoise3D node used exclusively for cave shapes. Its output is in [−1, 1]; high values mark where cave passages should be. This node has no effect on the surface — it only drives the cave mask downstream." },
+    { "nodeId": "inv",  "text": "Inverter multiplies the cave noise by −1, flipping its sign. Zones where noise was positive (intended cave space) become negative. This is the core carving signal: negative density = air." },
+    { "nodeId": "yv",   "text": "YValue outputs the current sample's Y coordinate. This feeds into CurveMapper so the cave mask can vary by altitude — full strength underground, fading to zero near and above the surface." },
+    { "nodeId": "cm",   "text": "CurveMapper converts Y into a weight in [0, 1]. The curve outputs 1.0 deep underground and ramps to 0 near the surface. This weight gate is what stops caves from punching holes through the top of the terrain." },
+    { "nodeId": "mul",  "text": "Multiplier combines the inverted cave noise with the height weight: maskedCave = invertedNoise × heightWeight. Underground (weight = 1) the full cave signal passes through. Near the surface (weight → 0) the carving signal approaches zero — caves fade out cleanly without a sharp cutoff." },
+    { "nodeId": "min",  "text": "Min picks the lower density at every point. Terrain is positive (solid) where no cave exists. The masked cave signal is negative where a cave should form. Min outputs that negative value — a hole in the ground. Both must be positive for a block to remain solid." },
+    { "nodeId": "out",  "text": "Terrain Out receives the height-limited carved density. Caves exist only underground; the surface is intact. Move the CurveMapper ramp earlier (lower Y) to push caves deeper, or later to allow them closer to the surface." }
   ]
 }
 ```

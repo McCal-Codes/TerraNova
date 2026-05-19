@@ -1,27 +1,37 @@
-# Tutorial: Building a Sky Islands Biome from Scratch
+# Walkthrough: Building a Sky Islands Biome from Scratch
+
+<!-- walkthrough -->
 
 > **Difficulty:** Intermediate
 > **Time:** 30-45 minutes
 > **What you'll learn:** Density function composition, material layering, prop scattering, and how all the pieces of a V2 biome fit together.
 > **End result:** A floating archipelago of islands at varying heights with grass-topped terrain, trees, crystals, and a dreamy atmosphere.
 >
-> **Format note:** All JSON in this tutorial uses **Hytale-native format** — the same format exported by Hytale's in-game editor. `$NodeId` UUIDs are omitted for readability (Hytale generates these automatically), but every other field matches what the server expects.
+> **Format note:** All JSON in this walkthrough uses **Hytale-native format** — the same format exported by Hytale's in-game editor. `$NodeId` UUIDs are omitted for readability (Hytale generates these automatically), but every other field matches what the server expects.
+
+> **Source status:** This walkthrough is a teaching reconstruction in Hytale-native JSON, not a 1:1 transcription of one audited biome asset. I have not found a clean source-biome match in the current biome folder that I can call authoritative for this exact graph.
+
+If this is your first full biome:
+- use the walkthrough mode in the docs pane
+- finish one step before reading the next
+- validate the preview after each terrain change
+- skip the prop sections on the first pass if you only want the island shape working
 
 ---
 
 ## Table of Contents
 
-1. [Overview — What We're Building](#step-0--overview--what-were-building)
+1. [Overview — What We're Building](#step-0--overview-what-were-building)
 2. [Create the Asset Pack Structure](#step-1--create-the-asset-pack-structure)
-3. [World Structure — Biome Selection Noise](#step-2--world-structure--biome-selection-noise)
-4. [Terrain Foundation — The Height Formula](#step-3--terrain-foundation--the-height-formula)
-5. [Island Shapes — Cell Noise Isolation](#step-4--island-shapes--cell-noise-isolation)
-6. [Height Variation — Making Islands Float at Different Levels](#step-5--height-variation--making-islands-float-at-different-levels)
-7. [Organic Edges — Gradient Warping](#step-6--organic-edges--gradient-warping)
+3. [World Structure — Biome Selection Noise](#step-2--world-structure-biome-selection-noise)
+4. [Terrain Foundation — The Height Formula](#step-3--terrain-foundation-the-height-formula)
+5. [Island Shapes — Cell Noise Isolation](#step-4--island-shapes-cell-noise-isolation)
+6. [Height Variation — Making Islands Float at Different Levels](#step-5--height-variation-making-islands-float-at-different-levels)
+7. [Organic Edges — Gradient Warping](#step-6--organic-edges-gradient-warping)
 8. [Putting the Terrain Together](#step-7--putting-the-terrain-together)
-9. [Materials — Grass, Dirt, and Stone](#step-8--materials--grass-dirt-and-stone)
-10. [Props — Trees on the Islands](#step-9--props--trees-on-the-islands)
-11. [Props — Crystal Formations](#step-10--props--crystal-formations)
+9. [Materials — Grass, Dirt, and Stone](#step-8--materials-grass-dirt-and-stone)
+10. [Props — Trees on the Islands](#step-9--props-trees-on-the-islands)
+11. [Props — Crystal Formations](#step-10--props-crystal-formations)
 12. [Environment and Tint](#step-11--environment-and-tint)
 13. [The Complete Biome JSON](#step-12--the-complete-biome-json)
 14. [Experimenting Further](#step-13--experimenting-further)
@@ -32,7 +42,14 @@
 
 ## Step 0 — Overview: What We're Building
 
-In Hytale's World Generation V2, terrain is defined by **density functions** — mathematical trees that take a 3D coordinate `(x, y, z)` and return a number. Positive = solid block, negative = air. By composing noise generators, math operations, and coordinate lookups, you can sculpt any terrain shape imaginable.
+In Hytale's World Generation V2, terrain is defined by **density functions** — mathematical trees that take a 3D coordinate `(x, y, z)` and return a number. Positive = solid block, negative = air.
+
+If that sounds abstract, use this simpler mental model:
+- positive = land exists here
+- negative = empty space
+- your graph's job is to decide where land should exist
+
+By composing noise generators, math operations, and coordinate lookups, you can sculpt any terrain shape imaginable.
 
 For Sky Islands, we need to solve three problems:
 
@@ -50,7 +67,7 @@ Here's the mental model:
   ~~                ~~
 ```
 
-Each island is an isolated floating landmass. Let's build it.
+Each island is an isolated floating landmass. We will build it in layers: footprint first, then height, then edge shaping, then materials and props.
 
 ---
 
@@ -282,6 +299,17 @@ So islands float between Y=70 and Y=150, with most clustered around Y=110.
 
 This is equivalent to a `LinearRemap` from `[-1, 1]` to `[70, 150]`. Hytale's native format doesn't have `LinearRemap` so we build it manually with `AmplitudeConstant` + `Sum` + `Constant`. In TerraNova's node graph you can use either approach.
 
+If you want to preview the vertical island band in the curve view, use a simple bell-like shape like this:
+
+```curve
+Sky island height band - dense in the middle, thin near the limits
+[[0,-1],[0.16,-0.92],[0.34,-0.4],[0.5,0.86],[0.66,-0.18],[0.82,-0.82],[1,-1]]
+```
+
+- Widen the positive middle if you want chunkier islands.
+- Sharpen the drop after the peak if the islands look too puffy.
+- Keep both ends negative so stray floating fragments do not appear outside the band.
+
 **About `Scale: 333`:** This means the noise varies over ~333 blocks. Nearby islands get similar heights, distant ones differ.
 
 > **In TerraNova:** Add a `SimplexNoise2D` node (Scale: 333, Seed: "height_variation", Octaves: 2). Connect it into an `AmplitudeConstant` node (Value: 40). Then wire that into a `Sum` node alongside a `Constant` node (Value: 110). The heatmap shows the height map — lighter = higher islands.
@@ -485,6 +513,11 @@ In Hytale-native JSON, the full terrain density:
    Vertical density profile — thick solid core, tapers at bottom
    [[0,1],[0.2,1],[0.4,0.9],[0.6,0.6],[0.8,0.2],[1,0]]
    ```
+
+   Start with that curve unchanged, then make only one adjustment at a time:
+   - Raise the point near `0.6` if islands feel too thin in the middle.
+   - Lower the point near `0.8` if the undersides look too round.
+   - Keep the rightmost point at `0` so the island still resolves cleanly into air.
 
    ```bounds
    {"min": -15, "max": 0, "label": "Vertical thickness — 15 blocks below island surface is solid"}
@@ -1291,7 +1324,7 @@ Create a new biome file (e.g., `StormIslandsBiome.json`) and split the noise ran
 |------|-------------|----------|
 | `Mix` | Interpolates between two inputs using a factor | Smooth transitions between terrain types |
 | `CurveMapper` | Applies a manual curve (`[{ In: x, Out: y }]` points) to reshape values | Fine-tune island edge falloff profiles |
-| `SimplexRidgeNoise2D` | Ridge noise (inverted simplex) | Mountain ridges on island surfaces |
+| `Pow` | Raises the input to an exponent while preserving sign | Sharpen island masks or make cliff falloffs more dramatic |
 | `Normalizer` | Remaps value from one range (`FromMin`/`FromMax`) to another (`ToMin`/`ToMax`) | Converting noise ranges for specific uses |
 | `Exported` / `Imported` | Name a density for reuse elsewhere in the biome | Share terrain calculations between materials and props |
 | `SimpleHorizontal` | Applies a material within a Y range | Height-based material bands (e.g., snow above Y=140) |

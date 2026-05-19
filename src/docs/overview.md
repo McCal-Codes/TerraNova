@@ -13,11 +13,21 @@ This documentation covers everything from opening the app for the first time to 
 | **[Getting Started](./getting-started.md)** | Launching the app, editor layout, keyboard shortcuts |
 | **[Walkthroughs](./walkthroughs/README.md)** | Step-by-step tutorials -- follow along in the editor |
 | **[Guides](./guides/README.md)** | Concept deep-dives -- terrain generation, biomes, node patterns |
-| **[Templates](./templates/README.md)** | Starter worlds and doc templates for contributors |
+| **[Doc Templates](./templates/README.md)** | Writing templates for guides and walkthrough contributors |
 | **[Glossary](./glossary/README.md)** | Definitions for every node type and term |
 | **[Reference](./reference/README.md)** | Complete technical listings for nodes, JSON schemas, commands |
 | **[Troubleshooting](./troubleshooting.md)** | Common problems and how to fix them |
 | **[Contributing](./contributing.md)** | How to add guides, fixes, and improvements |
+
+---
+
+## Which Section Should You Use?
+
+- **Walkthroughs** are for doing. Open one when you want to build something step by step inside TerraNova.
+- **Guides** are for understanding. Open one when you want the reasoning, patterns, and tradeoffs behind a system.
+- **Reference** is for lookup. Open it when you already know what you want and need exact fields, node behavior, or format details.
+
+If a page mostly tells you "click this, then add this node, then generate," it belongs in **Walkthroughs**. If it explains why curves, biomes, or materials work the way they do, it belongs in **Guides**. If it is mainly facts, options, or schema, it belongs in **Reference**.
 
 ---
 
@@ -27,11 +37,18 @@ A special and sincere thank you to **Nylaro**, whose public Hytale WorldGen V2 g
 
 The understanding of biome structure, density graphs, material providers, prop placement, and the overall WorldGen V2 architecture in these docs traces directly back to that work. It was an act of genuine generosity to the community, and it is deeply appreciated.
 
+## Thank You, Arisilde
+
+A second major thank you to **Arisilde**, whose *Hytale WorldGen V2 Notes* provided the beginner-accessible foundations for the noise parameter explanations, curve intuition, and troubleshooting content throughout these docs.
+
+Where Nylaro's guide covered the system's architecture, Arisilde's work filled in the "why does this feel confusing" layer — explaining coordinate conventions, the visual mental model of how noise becomes terrain, how curve In/Out values actually relate to world height, seed reuse pitfalls, and common troubleshooting patterns. That work made it significantly easier to write documentation that is actually approachable to visual learners. It is deeply appreciated.
+
 ---
 
 ## Contributors
 
-- **Nylaro** -- original WorldGen V2 guide
+- **Nylaro** -- original WorldGen V2 guide; biome structure, density, material providers, props, environment
+- **Arisilde** -- beginner terrain generation guide; noise parameters, curve intuition, seed behavior, troubleshooting
 - **TerraNova contributors** -- editor development, documentation expansion, and template work
 - **The Hytale community** -- questions, feedback, and testing that shaped what needed explaining
 
@@ -45,6 +62,6 @@ Want to help improve this documentation?
 - Add a walkthrough for a workflow you know well
 - Fix an error, update an outdated node name, or improve an explanation
 
-Use the doc templates in the [Templates](./templates/README.md) section as a starting point. See [Contributing](./contributing.md) for the full process.
+Use the doc templates in the [Doc Templates](./templates/README.md) section as a starting point. See [Contributing](./contributing.md) for the full process.
 
 > Please only submit content you own or have permission to share.

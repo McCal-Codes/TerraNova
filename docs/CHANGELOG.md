@@ -2,7 +2,30 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystems-Development/TerraNova) are documented in this file.
 
-## [0.1.7-pre.2] — 2026-03-18
+## [0.1.7-pre.3] — 2026-04-26 — Docs Panel and Worldgen Alignment
+
+### Documentation
+
+- **Documentation panel workflow** — Added in-app documentation navigation with full-text search, breadcrumbs, back/forward history, recent documents, reading progress, scroll restoration, and keyboard shortcuts (`Ctrl+K`, `Alt+Left`, `Alt+Right`)
+- **Try in Editor snippets** — Docs snippets can now be copied as JSON, copied as TerraNova graph clipboard data, or opened directly in the editor when the current context supports it
+- **Richer docs rendering** — Added syntax highlighting, Mermaid diagrams, node-graph documentation blocks, in-doc find, walkthrough progress, experimental callouts, and configurable reading width/font/code wrapping
+- **Hytale V2 field name alignment** — Updated Clamp node documentation to use native Hytale V2 field names (`WallA`, `WallB`) instead of generic names (`Min`, `Max`) for closer alignment with Hytale prerelease specifications
+- **Docs integrity coverage** — Added tests and utilities for documentation integrity, doc graph parsing, generated tables of contents, related-doc backlinks, and snippet graph conversion
+
+### Changed
+
+- **Translation maps refactoring** — Streamlined translation maps for maintainability and verified them with round-trip coverage
+- **Code splitting** — Added `codemirror` and markdown-related dependencies to Vite `manualChunks` for better bundle isolation
+- **Release metadata** — Synced app, Tauri, and Cargo package versions to `0.1.7-pre.3`
+- **Dependency updates** — Added `@types/node` as a direct dev dependency for Node.js type definitions
+
+### Bug Fixes
+
+- Fixed localStorage type casting without validation in `uiStore.ts`
+- Fixed unclear history truncation logic by extracting it into a dedicated `truncateHistory` helper
+- Fixed markdown, test, and Hytale noise files that had whitespace issues caught by `git diff --check`
+
+## [0.1.7-pre.2] — 2026-03-20 — QOL, Docs, and Properties Pass
 
 ### Features
 
@@ -35,26 +58,7 @@ All notable changes to [TerraNova](https://github.com/HyperSystems-Development/T
 - Fixed snippet placement not showing an error if something went wrong
 - Fixed several unhandled promise rejections in clipboard writes and node deletion
 
-## [0.1.7-pre.3] — 2026-03-20 — QOL, Docs, and Properties Pass
-
-### Documentation
-
-- **Terrain types guide** — New `docs/reference/terrain-types.md` with 12 terrain recipes as copyable `snippet:` blocks (Plains, Rolling Hills, Mountains, Mesas, Floating Islands, Caves, Depth-Faded Caves, Warped Terrain, Warped Caves, Sand Dunes, Archipelago, Complex Layered); each snippet includes terrain name and difficulty badge
-- **Curves reference** — New `docs/reference/curves.md` explaining all curve types (Manual, SmoothStep, Sigmoid, InverseLerp, SquareBump, and the full computed preset list) with `curve:` inline previews for each
-- **Graph reading guide** — New `docs/reference/reading-the-graph.md` explaining the visual language of the node graph: handle colors, edge routing, root node designation, and category color coding
-- **Reference index** — Updated `docs/reference/index.md` to link all three new reference pages
-- **Docs panel snippet blocks** — Added `snippet:` markdown fence to the docs panel renderer: renders a labelled, difficulty-badged, copyable JSON block for terrain recipes
-- **Getting started overhaul** — Rewrote `docs/getting-started.md` with step-by-step first-session flow and links to tutorials
-- **Sky Islands walkthrough** — Added `curve:` fence blocks and prose improvements to `docs/tutorials/sky-islands-walkthrough.md`
-- **Em-dash cleanup** — Replaced all em-dashes in rendered docs with colons or parentheses so screen readers and the docs panel render them consistently
-
-### Quality of Life
-
-- **Terrain curve presets** — Curve canvas now has a second "Terrain:" preset row with 10 terrain-specific presets (Sharp Peak, Plateau, Cliff Edge, Cave Arch, Terrace, Island Falloff, Beach Shore, Ridge Sharpen, Overhang, Gentle Hills)
-- **Docs panel performance** — `selectedSlugRef` pattern prevents unnecessary re-creation of `mdComponents` on every slug change; link click handler no longer takes a stale closure over the current slug
-- **Richer template descriptions** — All 6 bundled templates now have descriptive tags (difficulty, key features, node count) shown in the new project dialog
-
-## [0.1.7-pre.1] — 2026-03-16
+## [0.1.7-pre.0] — 2026-03-16
 
 ### Documentation
 
@@ -67,7 +71,7 @@ All notable changes to [TerraNova](https://github.com/HyperSystems-Development/T
 
 ---
 
-## [1.5.9 McCal's QoL] - 2026-03-14
+## [1.5.9] — 2026-03-14 — McCal's QoL
 
 ### Features
 
@@ -91,7 +95,7 @@ All notable changes to [TerraNova](https://github.com/HyperSystems-Development/T
 - **Stable hook order on empty loads** — Editors preserve hook order when loading from empty state to avoid render crashes
 - **Tint export stability** — Edited tint bands now round-trip with stable delimiter IDs and consistent export fields
 
-### Potential bugs / known limitations
+### Known Limitations
 
 - **Graph mode disabled** — Weather/environment graph routes (Hytale-native provider graph) remain disabled in this release
 - **Dev HMR adjustments** — React Fast Refresh was temporarily disabled in development to avoid HMR issues; hot-reload behavior may differ until refactors are applied
@@ -354,6 +358,10 @@ Built over 85 commits (Feb 6–13, 2026) in the private TerraNovaDev repository 
 
 ---
 
+[0.1.7-pre.3]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.7-pre.3
+[0.1.7-pre.2]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.7-pre.2
+[0.1.7-pre.0]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.7-pre.0
+[1.5.9]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v1.5.9
 [0.1.5]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.5
 [0.1.4]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.4
 [0.1.3]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.3
@@ -368,24 +376,3 @@ Built over 85 commits (Feb 6–13, 2026) in the private TerraNovaDev repository 
 [#8]: https://github.com/HyperSystems-Development/TerraNova/pull/8
 [#10]: https://github.com/HyperSystems-Development/TerraNova/pull/10
 [#12]: https://github.com/HyperSystems-Development/TerraNova/pull/12
-[#13]: https://github.com/HyperSystems-Development/TerraNova/pull/13
-[#16]: https://github.com/HyperSystems-Development/TerraNova/pull/16
-[#17]: https://github.com/HyperSystems-Development/TerraNova/pull/17
-[#20]: https://github.com/HyperSystems-Development/TerraNova/pull/20
-[#21]: https://github.com/HyperSystems-Development/TerraNova/issues/21
-[#22]: https://github.com/HyperSystems-Development/TerraNova/issues/22
-[#25]: https://github.com/HyperSystems-Development/TerraNova/issues/25
-[#28]: https://github.com/HyperSystems-Development/TerraNova/issues/28
-[#29]: https://github.com/HyperSystems-Development/TerraNova/issues/29
-[#30]: https://github.com/HyperSystems-Development/TerraNova/issues/30
-[#31]: https://github.com/HyperSystems-Development/TerraNova/pull/31
-[#32]: https://github.com/HyperSystems-Development/TerraNova/pull/32
-[#34]: https://github.com/HyperSystems-Development/TerraNova/pull/34
-[#35]: https://github.com/HyperSystems-Development/TerraNova/pull/35
-[#36]: https://github.com/HyperSystems-Development/TerraNova/pull/36
-[#37]: https://github.com/HyperSystems-Development/TerraNova/pull/37
-[#41]: https://github.com/HyperSystems-Development/TerraNova/pull/41
-[#42]: https://github.com/HyperSystems-Development/TerraNova/pull/42
-[#44]: https://github.com/HyperSystems-Development/TerraNova/issues/44
-[#46]: https://github.com/HyperSystems-Development/TerraNova/pull/46
-[#47]: https://github.com/HyperSystems-Development/TerraNova/pull/47

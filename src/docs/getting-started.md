@@ -2,6 +2,11 @@
 
 This page covers everything you need to know to go from launching the app to having a working world.
 
+If you are new, do these three things first:
+1. Open [Quickstart: Build Your First Pack](./walkthroughs/quickstart.md).
+2. Make one terrain edit and watch the preview change.
+3. Come back here when you need the editor layout or shortcut reference.
+
 ---
 
 ## Launching the App
@@ -148,3 +153,4 @@ Toggle inline node previews — small thumbnails on each node — with **T**.
 - **[Walkthrough: Terrain and Caves](./walkthroughs/terrain-and-caves.md)** — shape hills, mountains, and carve cave systems
 - **[Guide: Understanding Basic Terrain](./guides/understanding-basic-terrain-generation.md)** — how density and noise work together
 - **[Glossary](./glossary/README.md)** — definitions for every node type and term
+- **[Exporting](./reference/exporting.md)** — deploy to Hytale, export SVG diagrams, and understand the node-to-JSON type mapping

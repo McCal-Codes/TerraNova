@@ -2,30 +2,27 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystems-Development/TerraNova) are documented in this file.
 
-## [0.1.7-pre.3] — 2026-04-26 — Docs Panel and Worldgen Alignment
+## Unreleased
 
-### Documentation
+### Features
 
-- **Documentation panel workflow** — Added in-app documentation navigation with full-text search, breadcrumbs, back/forward history, recent documents, reading progress, scroll restoration, and keyboard shortcuts (`Ctrl+K`, `Alt+Left`, `Alt+Right`)
-- **Try in Editor snippets** — Docs snippets can now be copied as JSON, copied as TerraNova graph clipboard data, or opened directly in the editor when the current context supports it
-- **Richer docs rendering** — Added syntax highlighting, Mermaid diagrams, node-graph documentation blocks, in-doc find, walkthrough progress, experimental callouts, and configurable reading width/font/code wrapping
-- **Hytale V2 field name alignment** — Updated Clamp node documentation to use native Hytale V2 field names (`WallA`, `WallB`) instead of generic names (`Min`, `Max`) for closer alignment with Hytale prerelease specifications
-- **Docs integrity coverage** — Added tests and utilities for documentation integrity, doc graph parsing, generated tables of contents, related-doc backlinks, and snippet graph conversion
-
-### Changed
-
-- **Translation maps refactoring** — Streamlined translation maps for maintainability and verified them with round-trip coverage
-- **Code splitting** — Added `codemirror` and markdown-related dependencies to Vite `manualChunks` for better bundle isolation
-- **Release metadata** — Synced app, Tauri, and Cargo package versions to `0.1.7-pre.3`
-- **Dependency updates** — Added `@types/node` as a direct dev dependency for Node.js type definitions
+- **Hytale release asset sync** — Pointing TerraNova at the installed **release** `latest` folder (or its `Assets.zip`) extracts game assets into the local cache; pre-release remains available as an alternate channel in Settings
+- **Canvas annotation import** — Biome and density imports merge Hytale `$NodeEditorMetadata` comments and frames onto the graph after auto-layout; export writes native lowercase keys with PascalCase fallback
+- **Editor metadata preservation** — `$WorkspaceID`, `$Links`, and `$FloatingNodes` from imported files are kept across save and export when not edited on the canvas
+- **Block icons from synced cache** — Material fields show PNGs from `Common/Icons/ItemsGenerated` after sync (desktop app), with bundled icons as fallback
+- **Editor QoL** — Improved quick add and node search (prefixed types), toolbar actions, and canvas status strip
 
 ### Bug Fixes
 
-- Fixed localStorage type casting without validation in `uiStore.ts`
-- Fixed unclear history truncation logic by extracting it into a dedicated `truncateHistory` helper
-- Fixed markdown, test, and Hytale noise files that had whitespace issues caught by `git diff --check`
+- **Material:Constant fields** — Prefixed material nodes no longer resolve to Tint `Constant` schema fields; `Material` shows the correct block ID editor
+- **Material export shape** — Constant material leaves export as `{ Solid, Fluid: "", SolidBottomUp: false }` to match release biomes
 
-## [0.1.7-pre.2] — 2026-03-20 — QOL, Docs, and Properties Pass
+### Documentation
+
+- **AGENTS.md** — Agent memory for recurring preferences (release-first assets, verification gates, no unsolicited commits)
+- **Hytale asset guide** — Environments tutorial updated for release `Assets.zip` layout and sync defaults
+
+## [0.1.7-pre.2] — 2026-03-18
 
 ### Features
 

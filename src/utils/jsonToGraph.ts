@@ -1,5 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
 import { HYTALE_ARRAY_TO_NAMED } from "./translationMaps";
+import { getSchemaCategory } from "@/schema/schemaLoader";
+import { AssetCategory } from "@/schema/types";
 
 interface V2Asset {
   Type?: string;
@@ -89,6 +91,8 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   SubPattern: "Pattern",
   PositionProvider: "Position",
   Positions: "Position",
+  PropDistribution: "PropDistribution",
+  PropDistributions: "PropDistribution",
   VectorProvider: "Vector",
   MaterialProvider: "Material",
   Scanner: "Scanner",
@@ -104,7 +108,7 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   Top: "Assignment",
   Bottom: "Assignment",
   // Layer sub-assets within SpaceAndDepth
-  Layers: "Material",
+  Layers: "Layer",
   Material: "Material",
   Materials: "Material",
   ThicknessFunctionXZ: "",
@@ -136,6 +140,7 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   Props: "Prop",
   Assignments: "Assignment",
   // Density fields (no prefix — bare density type)
+  // Condition: resolved in resolveNodeType (density vs Condition:* schema)
   FieldFunction: "",
   Density: "",
   SolidityFunction: "",
@@ -143,14 +148,75 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   Pipeline: "",
 };
 
+const SCHEMA_CATEGORY_PREFIX: Partial<Record<AssetCategory, string>> = {
+  [AssetCategory.Curve]: "Curve",
+  [AssetCategory.MaterialProvider]: "Material",
+  [AssetCategory.Pattern]: "Pattern",
+  [AssetCategory.PositionProvider]: "Position",
+  [AssetCategory.Prop]: "Prop",
+  [AssetCategory.Scanner]: "Scanner",
+  [AssetCategory.Assignment]: "Assignment",
+  [AssetCategory.VectorProvider]: "Vector",
+  [AssetCategory.EnvironmentProvider]: "Environment",
+  [AssetCategory.TintProvider]: "Tint",
+  [AssetCategory.BlockMask]: "BlockMask",
+  [AssetCategory.Directionality]: "Directionality",
+  [AssetCategory.PropDistribution]: "PropDistribution",
+  [AssetCategory.Condition]: "Condition",
+  [AssetCategory.Layer]: "Layer",
+  [AssetCategory.PointGenerator]: "PointGenerator",
+  [AssetCategory.Terrain]: "Terrain",
+  [AssetCategory.CaveGenerator]: "CaveGenerator",
+  [AssetCategory.Generator]: "Generator",
+  [AssetCategory.Biome]: "Biome",
+  [AssetCategory.WorldStructure]: "WorldStructure",
+};
+
+const NON_DENSITY_BARE_SCHEMA_TYPES = new Set([
+  "AlwaysTrueCondition",
+  "AndCondition",
+  "EqualsCondition",
+  "GreaterThanCondition",
+  "NotCondition",
+  "OrCondition",
+  "SmallerThanCondition",
+  "ConstantThickness",
+  "NoiseThickness",
+  "RangeThickness",
+  "WeightedThickness",
+  "BiomeAsset",
+  "DAOTerrain",
+  "HytaleGenerator",
+  "NoiseRange",
+  "WorldStructureAsset",
+  "WorldStructureNoiseRange",
+]);
+
 /**
  * Resolve the display type name for a node.
  * Density types use bare names; other categories get "Category:Type" prefixes.
  */
+function isConditionSchemaType(assetType: string): boolean {
+  // Bare condition types resolve as Density in the bundle; prefixed lookup is authoritative.
+  if (getSchemaCategory(`Condition:${assetType}`) === AssetCategory.Condition) {
+    return true;
+  }
+  return getSchemaCategory(assetType) === AssetCategory.Condition;
+}
+
 function resolveNodeType(assetType: string, parentFieldName?: string): string {
-  if (!parentFieldName) return assetType;
-  const prefix = FIELD_CATEGORY_PREFIX[parentFieldName];
+  if (assetType.includes(":")) return assetType;
+  let prefix = parentFieldName ? FIELD_CATEGORY_PREFIX[parentFieldName] : null;
+  // Prop Conditional.Condition holds density; material graphs use Condition:* children.
+  if (parentFieldName === "Condition") {
+    prefix = isConditionSchemaType(assetType) ? "Condition" : "";
+  }
   if (prefix) return `${prefix}:${assetType}`;
+  const schemaCategory = NON_DENSITY_BARE_SCHEMA_TYPES.has(assetType)
+    ? getSchemaCategory(assetType)
+    : null;
+  const schemaPrefix = schemaCategory ? SCHEMA_CATEGORY_PREFIX[schemaCategory] : null;
+  if (schemaPrefix) return `${schemaPrefix}:${assetType}`;
   return assetType;
 }
 

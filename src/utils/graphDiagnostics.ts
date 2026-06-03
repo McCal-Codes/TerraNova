@@ -85,7 +85,9 @@ export type GraphDiagnosticCode =
   | "biome-tint-missing-ref-name"
   | "biome-tint-unknown-ref"
   | "biome-name-missing"
-  | "legacy-node";
+  | "legacy-node"
+  | "prop-conditional-lossy-export"
+  | "material-block-unknown";
 
 export interface GraphDiagnostic {
   nodeId: string | null;
@@ -253,6 +255,20 @@ export function analyzeGraph(
     }
   }
 
+  // 2a. Prop Conditional export is lossy (Hytale has no prop Conditional)
+  for (const node of nodes) {
+    const typeKey = node.type ?? getNodeType(node);
+    if (typeKey === "Prop:Conditional" || (getNodeType(node) === "Conditional" && typeKey.startsWith("Prop:"))) {
+      diagnostics.push({
+        nodeId: node.id,
+        message:
+          "Prop Conditional exports only TrueInput to Hytale — FalseInput and the condition are dropped at export",
+        severity: "warning",
+        code: "prop-conditional-lossy-export",
+      });
+    }
+  }
+
   // 2b. Legacy node warnings
   for (const node of nodes) {
     const type = getNodeType(node);
@@ -405,18 +421,19 @@ export function analyzeGraph(
 
   // 8. Field constraint violations (bridge per-field validation into graph diagnostics)
   for (const node of nodes) {
-    const type = getNodeType(node);
-    const constraints = getConstraints(type);
+    const typeKey = node.type ?? getNodeType(node);
+    const constraints = getConstraints(typeKey);
     if (!constraints) continue;
 
     const fields = getNodeFields(node);
     const issues = validateFields(fields, constraints);
     for (const issue of issues) {
-      const isMissingImportName = type === "Imported" && issue.field === "Name";
+      const isMissingImportName =
+        getImportedAssetKind(node) !== null && issue.field === "Name";
       const constraint = constraints[issue.field];
       diagnostics.push({
         nodeId: node.id,
-        message: `${type}.${issue.field}: ${issue.message}`,
+        message: `${typeKey}.${issue.field}: ${issue.message}`,
         severity: issue.severity,
         code: isMissingImportName ? "import-missing-name" : "field-constraint",
         field: issue.field,
@@ -430,7 +447,40 @@ export function analyzeGraph(
     }
   }
 
-  // 8b. Imported asset reference validation
+  // 8b. Material Constant block ID validation (release uses block ids, not Materials/*.json)
+  for (const node of nodes) {
+    const typeKey = node.type ?? "";
+    const isMaterialConstant =
+      typeKey === "Material:Constant"
+      || (getNodeType(node) === "Constant" && typeKey.startsWith("Material:"));
+    if (!isMaterialConstant) continue;
+
+    const fields = getNodeFields(node);
+    let blockId = "";
+    const rawMaterial = fields.Material;
+    if (typeof rawMaterial === "string") {
+      blockId = rawMaterial.trim();
+    } else if (rawMaterial && typeof rawMaterial === "object") {
+      const solid = (rawMaterial as Record<string, unknown>).Solid;
+      if (typeof solid === "string") blockId = solid.trim();
+    }
+    if (!blockId || blockId === "Empty" || blockId === "Air") continue;
+
+    const knownMaterials = knownAssetSets.material;
+    if (knownMaterials.size === 0) continue;
+    if (!knownMaterials.has(normalizeKnownName(blockId))) {
+      diagnostics.push({
+        nodeId: node.id,
+        message: `Material Constant references unknown block "${blockId}" (not in project assets or synced block icons)`,
+        severity: "warning",
+        code: "material-block-unknown",
+        field: "Material",
+        meta: { assetKind: "material", importName: blockId },
+      });
+    }
+  }
+
+  // 8c. Imported asset reference validation
   for (const node of nodes) {
     const assetKind = getImportedAssetKind(node);
     if (!assetKind) continue;
@@ -439,7 +489,18 @@ export function analyzeGraph(
     const importName = typeof fields.Name === "string" ? fields.Name.trim() : "";
     const knownNames = knownAssetSets[assetKind];
 
-    if (!importName || knownNames.size === 0) continue;
+    if (!importName) {
+      diagnostics.push({
+        nodeId: node.id,
+        message: `${getAssetKindLabel(assetKind)} Imported is missing a Name reference`,
+        severity: "warning",
+        code: "import-missing-name",
+        field: "Name",
+        meta: { assetKind },
+      });
+      continue;
+    }
+    if (knownNames.size === 0) continue;
     if (knownNames.has(normalizeKnownName(importName))) continue;
 
     diagnostics.push({
@@ -452,7 +513,7 @@ export function analyzeGraph(
     });
   }
 
-  // 8c. Environment:DensityDelimited delimiter validation
+  // 8d. Environment:DensityDelimited delimiter validation
   for (const node of nodes) {
     if (!isEnvironmentDensityDelimitedNode(node)) continue;
     const fields = getNodeFields(node);

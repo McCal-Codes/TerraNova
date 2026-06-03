@@ -1,6 +1,5 @@
 import { homeDir, join } from "@tauri-apps/api/path";
 import { pathExists } from "./ipc";
-import { isTauriRuntime } from "./platform";
 
 type OS = "windows" | "macos" | "linux";
 
@@ -94,23 +93,23 @@ export async function resolveDefaultReleaseAssetsPath(): Promise<string> {
  * Common folder path.
  */
 export async function resolveDefaultCommonAssetsPath(): Promise<string> {
+  // Prefer installed release (user's active game) before pre-release.
+  const releaseRoot = await resolveDefaultReleaseAssetsPath();
+  const releaseZip = await join(releaseRoot, "Assets.zip");
+  if (await pathExists(releaseZip).catch(() => false)) {
+    return releaseZip;
+  }
+
+  const releaseCommon = await join(releaseRoot, "Common");
+  if (await pathExists(releaseCommon).catch(() => false)) {
+    return releaseCommon;
+  }
+
   const preReleaseZip = await resolveDefaultPreReleaseAssetsPath();
   if (await pathExists(preReleaseZip).catch(() => false)) {
     return preReleaseZip;
   }
 
-  const releaseRoot = await resolveDefaultReleaseAssetsPath();
-  const { os } = await hytaleDataRoot();
-  const releaseZip = await joinPath(os, releaseRoot, "Assets.zip");
-  if (await pathExists(releaseZip).catch(() => false)) {
-    return releaseZip;
-  }
-
-  const releaseCommon = await joinPath(os, releaseRoot, "Common");
-  if (await pathExists(releaseCommon).catch(() => false)) {
-    return releaseCommon;
-  }
-
-  const { home } = await hytaleDataRoot();
-  return joinPath(os, home, "Desktop", "Assets", "Common");
+  const home = await homeDir();
+  return join(home, "Desktop", "Assets", "Common");
 }

@@ -7,6 +7,7 @@ import { useUIStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useUpdateStore } from "@/stores/updateStore";
 import { downloadAndInstall, restartToUpdate } from "@/utils/updater";
+import { isTauriRuntime } from "@/utils/platform";
 import { useStore } from "@xyflow/react";
 import { getAppVersion } from "@/utils/fetchReleases";
 
@@ -34,7 +35,17 @@ export function StatusBar() {
   // App version
   const [appVersion, setAppVersion] = useState<string>("");
   useEffect(() => {
-    void getAppVersion().then(setAppVersion);
+    if (!isTauriRuntime()) {
+      setAppVersion("browser");
+      return;
+    }
+
+    void getVersion()
+      .then(setAppVersion)
+      .catch((e) => {
+        console.warn("Failed to get app version:", e);
+        setAppVersion("");
+      });
   }, []);
 
   // Update state

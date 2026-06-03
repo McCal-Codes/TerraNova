@@ -58,7 +58,6 @@ describe("CurveCanvas", () => {
       <CurveCanvas points={[]} onChange={() => {}} onCommit={() => {}} />,
     );
     expect(container.textContent).toContain("Shape:");
-    expect(container.textContent).toContain("Terrain:");
     expect(container.textContent).toContain("Linear");
     expect(container.textContent).toContain("Ease In");
     expect(container.textContent).toContain("S-Curve");

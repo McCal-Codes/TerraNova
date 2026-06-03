@@ -34,18 +34,17 @@ export function V2LayerEditor(props: { sadNodeId: string; layers: MaterialLayer[
   const v2Layers = layers.filter((l) => l.layerIndex != null);
 
   const layerNodeIds = useMemo(() => {
-    const map = new Map<number, string>();
+    const next = new Map<number, string>();
     if (section) {
       for (const e of section.edges) {
-        const handle = e.targetHandle ?? "";
-        if (e.target === sadNodeId && /^Layers\[\d+\]$/.test(handle)) {
-          const match = /\[(\d+)\]/.exec(handle);
-          if (match) map.set(parseInt(match[1]), e.source);
+        if (e.target === sadNodeId && /^Layers\[\d+\]$/.test(e.targetHandle ?? "")) {
+          const idx = parseInt(/\[(\d+)\]/.exec(e.targetHandle!)![1]);
+          next.set(idx, e.source);
         }
       }
     }
-    return map;
-  }, [section, sadNodeId]);
+    return next;
+  }, [sadNodeId, section]);
 
   const handleAddLayer = useCallback(() => {
     addMaterialLayer(sadNodeId, "ConstantThickness");

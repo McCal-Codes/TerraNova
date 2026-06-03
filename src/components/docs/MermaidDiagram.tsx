@@ -30,7 +30,9 @@ export function MermaidDiagram({ code }: { code: string }) {
 
     return () => {
       cancelled = true;
-      container.innerHTML = "";
+      if (container) {
+        container.innerHTML = "";
+      }
     };
   }, [code, id]);
 

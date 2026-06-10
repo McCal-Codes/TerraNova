@@ -15,7 +15,7 @@ This guide is for testers installing **0.1.8-alpha.1** (closed alpha) from [McCa
 | **macOS** | `.dmg` (Apple Silicon and Intel builds when published) | App is not Apple-notarized yet — see [Gatekeeper](#macos-gatekeeper) |
 | **Linux** | `.AppImage` (x86_64) | `chmod +x TerraNova_*.AppImage`; FUSE may be required on some distros |
 
-**Updates:** `v0.1.8-alpha.1` ships signed updater metadata. In-app update works once you install from the published **prerelease** on [Releases](https://github.com/McCal-Codes/TerraNova/releases). Until you are on that build, download installers manually.
+**Updates:** `v0.1.8-alpha.1` ships signed updater metadata. In-app update works once you install from a **published** (not draft) prerelease on [Releases](https://github.com/McCal-Codes/TerraNova/releases) — the app checks `releases/latest/download/latest.json`. Settings → General → **Check for updates**, or wait for the automatic check ~3s after launch.
 
 ## First-run checklist
 

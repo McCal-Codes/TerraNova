@@ -1,4 +1,4 @@
-import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, syncHytaleAssets, type AssetStalenessInfo, type HytaleAssetSyncResult } from "@/utils/ipc";
+import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, pathExists, syncHytaleAssets, type AssetStalenessInfo, type HytaleAssetSyncResult } from "@/utils/ipc";
 import { clearBlockIconCache } from "@/utils/blockIconUrl";
 import { clearBlockTextureColorCache } from "@/utils/hytaleBlockAssets/sampleBlockTextureColors";
 import { clearHytaleBlockAssetCache } from "@/utils/hytaleBlockAssets";
@@ -6,6 +6,7 @@ import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolder
 import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
 import { clearRuntimeDensityExportCache } from "@/utils/densityExportRegistry";
 import { invalidatePrefabPathCatalog } from "@/utils/hytaleBlockAssets/prefabPathCatalogCache";
+import { resolveDefaultCommonAssetsPath } from "@/utils/hytaleDefaultPaths";
 import { isTauriRuntime } from "@/utils/platform";
 
 export interface RunHytaleAssetSyncParams {
@@ -37,9 +38,27 @@ export function assertHytaleAssetSyncReady(params: RunHytaleAssetSyncParams): vo
   if (!params.sourcePath.trim()) {
     throw new Error("Choose a Hytale asset source path first.");
   }
-  if (params.commonOverlayEnabled && !params.commonOverlayPath?.trim()) {
-    throw new Error("Choose a Common asset overlay path or turn it off.");
+}
+
+/** Resolve Common overlay path: explicit setting → installed Assets.zip/Common → source folder. */
+export async function resolveCommonOverlayPathForSync(
+  sourcePath: string,
+  explicitPath?: string | null,
+): Promise<string | null> {
+  const trimmed = explicitPath?.trim();
+  if (trimmed) return trimmed;
+
+  try {
+    const defaultPath = await resolveDefaultCommonAssetsPath();
+    if (defaultPath.trim() && (await pathExists(defaultPath).catch(() => false))) {
+      return defaultPath.trim();
+    }
+  } catch {
+    // fall through to source path
   }
+
+  const source = sourcePath.trim();
+  return source || null;
 }
 
 export async function runHytaleAssetSync(
@@ -47,9 +66,16 @@ export async function runHytaleAssetSync(
 ): Promise<RunHytaleAssetSyncOutcome> {
   assertHytaleAssetSyncReady(params);
 
+  const commonOverlayPath = params.commonOverlayEnabled
+    ? await resolveCommonOverlayPathForSync(params.sourcePath, params.commonOverlayPath)
+    : null;
+  if (params.commonOverlayEnabled && !commonOverlayPath) {
+    throw new Error("Choose a Common asset overlay path or turn it off.");
+  }
+
   const result = await syncHytaleAssets(
     params.sourcePath,
-    params.commonOverlayEnabled ? params.commonOverlayPath ?? null : null,
+    commonOverlayPath,
   );
   clearHytaleAssetCaches();
 

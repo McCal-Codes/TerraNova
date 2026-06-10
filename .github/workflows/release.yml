@@ -22,8 +22,10 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - id: v
+        shell: bash
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
+          node scripts/validate-release-tag.mjs "$TAG" >/dev/null
           VERSION="${TAG#v}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"

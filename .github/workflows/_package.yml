@@ -107,6 +107,7 @@ jobs:
       - name: Prepare release notes
         if: inputs.publish
         id: release_notes
+        shell: bash
         run: |
           BODY=$(node scripts/release-notes.mjs "${{ inputs.version }}")
           {
@@ -148,6 +149,7 @@ jobs:
 
       - name: Build only (no release upload)
         if: ${{ !inputs.publish }}
+        shell: bash
         run: |
           if [ -n "${{ matrix.rust_target }}" ]; then
             pnpm tauri build --no-sign --target "${{ matrix.rust_target }}"
@@ -157,6 +159,7 @@ jobs:
 
       - name: Fix AppImage symlinks and repackage
         if: matrix.platform == 'ubuntu-22.04' && inputs.publish
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ inputs.sign && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
@@ -225,9 +228,35 @@ jobs:
 
       - name: Verify macOS code signature
         if: runner.os == 'macOS'
+        shell: bash
         run: |
           APP_PATH=$(find src-tauri/target -name "TerraNova.app" -type d | head -1)
           if [ -n "$APP_PATH" ]; then
             codesign -dvv "$APP_PATH" 2>&1
             codesign --verify --deep --strict "$APP_PATH" 2>&1 || echo "Warning: Signature verification had issues"
+          fi
+
+  finalize:
+    if: inputs.publish
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Apply GitHub prerelease flags (never mark alpha/beta/rc as Latest)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          META=$(node scripts/validate-release-tag.mjs "$TAG")
+          IS_PRERELEASE=$(node -p "JSON.parse(process.argv[1]).isPrerelease" "$META")
+          MAKE_LATEST=$(node -p "JSON.parse(process.argv[1]).makeLatest" "$META")
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            gh release edit "$TAG" --prerelease=true --latest=false
+            echo "Prerelease $TAG: prerelease=true, latest=false (GitHub tagging best practice)"
+          else
+            gh release edit "$TAG" --prerelease=false --latest="$MAKE_LATEST"
+            echo "Stable $TAG: prerelease=false, latest=$MAKE_LATEST"
           fi

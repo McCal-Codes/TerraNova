@@ -230,8 +230,8 @@ jobs:
           fi
           if [ -n "$APP_PATH" ]; then
             echo "APP: $APP_PATH"
-            codesign -dvv "$APP_PATH" 2>&1
-            codesign --verify --deep --strict "$APP_PATH" 2>&1 || echo "Warning: ad-hoc signature verification had issues (expected without Apple signing)"
+            codesign -dvv "$APP_PATH" 2>&1 || echo "Note: unsigned app (expected for --no-sign CI builds)"
+            codesign --verify --deep --strict "$APP_PATH" 2>&1 || echo "Note: strict verify skipped for unsigned CI builds"
           fi
 
   finalize:

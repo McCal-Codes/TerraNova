@@ -241,20 +241,23 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Apply GitHub prerelease flags (never mark alpha/beta/rc as Latest)
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Publish release and set GitHub flags for in-app updater
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag }}
-          VERSION: ${{ inputs.version }}
         run: |
           META=$(node scripts/validate-release-tag.mjs "$TAG")
           IS_PRERELEASE=$(node -p "JSON.parse(process.argv[1]).isPrerelease" "$META")
           MAKE_LATEST=$(node -p "JSON.parse(process.argv[1]).makeLatest" "$META")
           if [ "$IS_PRERELEASE" = "true" ]; then
-            gh release edit "$TAG" --prerelease=true --latest=false
-            echo "Prerelease $TAG: prerelease=true, latest=false (GitHub tagging best practice)"
+            # Prerelease + Latest so /releases/latest/download/latest.json resolves (Tauri updater).
+            # Still prerelease=true on the Releases page; publish draft so assets are public.
+            gh release edit "$TAG" --draft=false --prerelease=true --latest=true
+            echo "Prerelease $TAG: published, prerelease=true, latest=true (updater endpoint)"
           else
-            gh release edit "$TAG" --prerelease=false --latest="$MAKE_LATEST"
-            echo "Stable $TAG: prerelease=false, latest=$MAKE_LATEST"
+            gh release edit "$TAG" --draft=false --prerelease=false --latest="$MAKE_LATEST"
+            echo "Stable $TAG: published, prerelease=false, latest=$MAKE_LATEST"
           fi

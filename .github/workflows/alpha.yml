@@ -74,7 +74,7 @@ jobs:
           echo "  1. Run with publish=false to verify all platform builds."
           echo "  2. Re-run with publish=true for a draft prerelease."
           echo "  3. Paste docs/CHANGELOG.md [${{ inputs.version }}] sections into the release body."
-          echo "  4. Keep sign=false until TAURI_SIGNING_* secrets and tauri.conf.json pubkey are configured."
+          echo "  4. Use sign=true when TAURI_SIGNING_* secrets and tauri.conf.json pubkey are configured."
 
   package:
     needs: gate

@@ -7,7 +7,12 @@ let pendingUpdate: Update | null = null;
 
 export async function checkForUpdates(manual = false): Promise<void> {
   const store = useUpdateStore.getState();
-  if (store.status !== "idle") return;
+  if (!manual && store.status !== "idle") return;
+  if (manual && store.status === "checking") return;
+  if (manual && store.status !== "idle") {
+    pendingUpdate = null;
+    store.reset();
+  }
 
   store.setStatus("checking");
   try {
@@ -26,10 +31,16 @@ export async function checkForUpdates(manual = false): Promise<void> {
         useToastStore.getState().addToast("You're on the latest version", "success");
       }
     }
-  } catch {
-    store.setStatus("idle");
+  } catch (err) {
+    console.error("Update check failed:", err);
+    store.reset();
+    pendingUpdate = null;
     if (manual) {
-      useToastStore.getState().addToast("Could not check for updates", "error");
+      const detail =
+        err instanceof Error && err.message.trim().length > 0
+          ? err.message
+          : "Could not reach the update server";
+      useToastStore.getState().addToast(`Update check failed: ${detail}`, "error");
     }
   }
 }

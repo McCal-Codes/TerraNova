@@ -16,6 +16,11 @@ on:
         required: false
         type: boolean
         default: true
+      sign:
+        description: Sign updater artifacts (requires valid TAURI_SIGNING_* secrets)
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -99,8 +104,8 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build and release
-        if: inputs.publish
+      - name: Build and release (signed)
+        if: inputs.publish && inputs.sign
         uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -115,6 +120,19 @@ jobs:
           prerelease: true
           args: ${{ matrix.rust_target != '' && format('--target {0}', matrix.rust_target) || '' }}
 
+      - name: Build and release (unsigned)
+        if: inputs.publish && !inputs.sign
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          includeUpdaterJson: false
+          tagName: ${{ inputs.tag }}
+          releaseName: 'TerraNova ${{ inputs.tag }}'
+          releaseDraft: true
+          prerelease: true
+          args: ${{ matrix.rust_target != '' && format('--no-sign --target {0}', matrix.rust_target) || '--no-sign' }}
+
       - name: Build only (no release upload)
         if: ${{ !inputs.publish }}
         run: |
@@ -128,8 +146,8 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04' && inputs.publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ inputs.sign && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ inputs.sign && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
         run: |
           APPIMAGE=$(find src-tauri/target -type f -path '*/bundle/appimage/*.AppImage' \
             ! -name '*.sig' -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-)

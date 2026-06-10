@@ -32,4 +32,5 @@ jobs:
       version: ${{ needs.resolve.outputs.version }}
       tag: ${{ needs.resolve.outputs.tag }}
       publish: true
+      sign: true
     secrets: inherit

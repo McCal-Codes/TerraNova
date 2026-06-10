@@ -5,10 +5,10 @@
   "Description": "Executes TerraNova Bridge queued console commands from bridge/pending-commands.log",
   "Authors": [
     {
-      "Name": "HyperSystems-Development"
+      "Name": "McCal-Codes"
     }
   ],
-  "Website": "https://github.com/HyperSystemsDev/TerraNova",
+  "Website": "https://github.com/McCal-Codes/TerraNova",
   "Main": "dev.hypersystems.terranova.bridge.TerraNovaBridgePlugin",
   "ServerVersion": "*",
   "Dependencies": {},

@@ -170,17 +170,23 @@ pub fn suggest_mod_pack_path(
         }
     }
 
-    const PREFERRED: &[&str] = &["McCal:Autmn Forest", "McCal:Volume Lab"];
-    for id in PREFERRED {
-        if enabled_mod_ids.iter().any(|e| e == id) {
-            let folder = mod_id_to_folder(id);
-            if let Some(p) = packs.iter().find(|p| p.folder_name == folder) {
-                return Some(p.path.clone());
-            }
+    for id in enabled_mod_ids {
+        let folder = mod_id_to_folder(id);
+        if folder == super::mod_packs::TERRANOVA_BRIDGE_MOD_FOLDER {
+            continue;
+        }
+        if let Some(p) = packs
+            .iter()
+            .find(|p| p.folder_name == folder && p.has_worldgen)
+        {
+            return Some(p.path.clone());
         }
     }
 
-    None
+    packs
+        .iter()
+        .find(|p| p.has_worldgen && !p.is_bridge_pack)
+        .map(|p| p.path.clone())
 }
 
 #[cfg(test)]

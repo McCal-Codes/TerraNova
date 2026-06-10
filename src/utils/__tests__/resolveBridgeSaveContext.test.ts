@@ -34,4 +34,10 @@ describe("resolveBridgeDiscoveryHints", () => {
     expect(hints.saveName).toBe("Alpha");
     expect(hints.modPackPath).toContain("PackA");
   });
+
+  it("returns empty hints when no path or prior save is known", () => {
+    const hints = resolveBridgeDiscoveryHints("", null);
+    expect(hints.saveName).toBeUndefined();
+    expect(hints.saveRoot).toBeUndefined();
+  });
 });

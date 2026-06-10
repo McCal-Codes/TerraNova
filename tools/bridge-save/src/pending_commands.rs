@@ -68,10 +68,13 @@ pub fn chunk_regen_commands(center_x: i32, center_z: i32, radius: u32) -> (Vec<S
 
 /// Pointer file so the JVM plugin finds the active save while the sidecar runs.
 pub fn write_active_save_pointer(save_root: &Path) -> std::io::Result<()> {
-    let appdata = std::env::var("APPDATA")
-        .or_else(|_| std::env::var("HOME"))
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::NotFound, e))?;
-    let user_data = Path::new(&appdata).join("Hytale").join("UserData");
+    use crate::save_roots::hytale_user_data_root;
+    let user_data = hytale_user_data_root().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Hytale UserData folder not found",
+        )
+    })?;
     std::fs::create_dir_all(&user_data)?;
     let pointer = user_data.join("bridge-active-save.txt");
     std::fs::write(pointer, save_root.display().to_string())

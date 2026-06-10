@@ -11,8 +11,8 @@ import type { DirectoryEntryData } from "@/utils/ipc";
 import {
   deriveHytaleModIdentity,
   isUnderDirectory,
-  resolveWorldgenV1ExportModsRoot,
 } from "@/utils/hytaleModPaths";
+import { resolveDefaultExportModsRoot } from "@/utils/hytaleSavePaths";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import { normalizeMaterialSectionNodeTypes } from "@/utils/materialSectionNodes";
 import { sanitizeGraphNodesAndEdges } from "@/utils/sanitizeGraphNodes";
@@ -513,7 +513,7 @@ export async function exportAssetPack(): Promise<void> {
 
     const exportPath = useSettingsStore.getState().exportPath;
     const defaultExportDir =
-      exportPath ?? (await resolveWorldgenV1ExportModsRoot().catch(() => undefined));
+      exportPath ?? (await resolveDefaultExportModsRoot().catch(() => undefined));
     const targetDir = await open({
       directory: true,
       defaultPath: defaultExportDir,
@@ -685,11 +685,11 @@ export async function exportAssetPack(): Promise<void> {
     if (missingBiomeRefs.length > 0) {
       addToast(`WorldStructure references biomes with no matching file: ${missingBiomeRefs.join(", ")}`, "error");
     }
-    const saveModsRoot = await resolveWorldgenV1ExportModsRoot().catch(() => null);
+    const saveModsRoot = await resolveDefaultExportModsRoot().catch(() => null);
     if (saveModsRoot && isUnderDirectory(modRoot, saveModsRoot)) {
       useBridgeStore.getState().setServerModPath(modRoot);
       addToast(
-        `Separate test mod installed under Worldgen V1. Bridge path set to ${modFolderName}. Enable the mod on this world, then Sync & Reload.`,
+        `Test mod installed under your save's mods folder. Bridge path set to ${modFolderName}. Enable the mod on this world, then Sync & Reload.`,
         "info",
       );
     } else {

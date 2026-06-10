@@ -5,7 +5,7 @@ use crate::bridge::discover::{self, BridgeDiscovery};
 use crate::bridge::live_player;
 use crate::bridge::types::*;
 use crate::io::path_scope;
-use bridge_save::BridgeDebugSnapshot;
+use bridge_save::{self, BridgeDebugSnapshot};
 
 #[tauri::command]
 pub async fn bridge_debug_snapshot(
@@ -16,11 +16,11 @@ pub async fn bridge_debug_snapshot(
     port: Option<u16>,
     state: tauri::State<'_, BridgeState>,
 ) -> Result<BridgeDebugSnapshot, String> {
-    let save = save_name.unwrap_or_else(|| "Worldgen V1".to_string());
+    let save = save_name.unwrap_or_default();
     let host = host.unwrap_or_else(|| "127.0.0.1".to_string());
     let port = port.unwrap_or(7854);
     let (save_root_path, _, _, _) =
-        discover::resolve_save_root(&save, save_root.as_deref(), mod_pack_path.as_deref());
+        bridge_save::resolve_save_root(&save, save_root.as_deref(), mod_pack_path.as_deref());
     let port_open = discover::is_port_open(&host, port);
     let sidecar_root = if let Ok(client) = state.get_client().await {
         client
@@ -47,7 +47,7 @@ pub async fn bridge_discover(
     host: Option<String>,
     port: Option<u16>,
 ) -> Result<BridgeDiscovery, String> {
-    let save = save_name.unwrap_or_else(|| "Worldgen V1".to_string());
+    let save = save_name.unwrap_or_default();
     let host = host.unwrap_or_else(|| "127.0.0.1".to_string());
     let port = port.unwrap_or(7854);
     Ok(discover::discover_bridge(

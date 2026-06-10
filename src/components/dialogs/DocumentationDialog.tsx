@@ -21,7 +21,7 @@ const DOCS: DocEntry[] = [
   {
     id: "sky-islands",
     title: "Sky Islands Tutorial",
-    path: "docs/tutorials/SKY_ISLANDS_WALKTHROUGH.md",
+    path: "src/docs/walkthroughs/sky-islands.md",
     description: "Step-by-step guide to building a floating islands biome",
     category: "tutorial",
   },
@@ -33,18 +33,11 @@ const DOCS: DocEntry[] = [
     category: "reference",
   },
   {
-    id: "about",
-    title: "About TerraNova",
-    path: "docs/planning/ABOUT.md",
-    description: "What TerraNova is and how it fits with other tools",
-    category: "about",
-  },
-  {
-    id: "ai-transparency",
-    title: "AI Transparency",
-    path: "docs/AI_TRANSPARENCY.md",
-    description: "Information about AI usage in this project",
-    category: "about",
+    id: "getting-started",
+    title: "Getting Started Guide",
+    path: "docs/getting-started.md",
+    description: "Installation, first project, and core workflows",
+    category: "guide",
   },
 ];
 

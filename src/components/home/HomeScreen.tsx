@@ -1,11 +1,22 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback } from "react";
+import { matchesKeybinding } from "@/config/keybindings";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { useProjectStore } from "@/stores/projectStore";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { listDirectory } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
+const CreatePackWizardDialog = lazy(() =>
+  import("@/components/dialogs/CreatePackWizardDialog").then((m) => ({ default: m.CreatePackWizardDialog })),
+);
 import { WhatsNewDialog, useWhatsNew } from "@/components/dialogs/WhatsNewDialog";
+import { OnboardingDialog, isOnboardingComplete } from "@/components/dialogs/OnboardingDialog";
+import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
+import type { HomeLearnSlug } from "@/components/home/HomeLearnDialog";
+
+const HomeLearnDialog = lazy(() =>
+  import("@/components/home/HomeLearnDialog").then((m) => ({ default: m.HomeLearnDialog })),
+);
 import { HomeSidebar, type SidebarTab } from "./HomeSidebar";
 import { HomeTab } from "./HomeTab";
 import { TemplatesTab } from "./TemplatesTab";
@@ -14,15 +25,26 @@ import { RecentTab } from "./RecentTab";
 export function HomeScreen() {
   const [activeTab, setActiveTab] = useState<SidebarTab>("home");
   const [showNewProject, setShowNewProject] = useState(false);
+  const [showCreatePack, setShowCreatePack] = useState(false);
   const [defaultTemplate, setDefaultTemplate] = useState<string | undefined>();
   const { openAssetPack } = useTauriIO();
   const removeProject = useRecentProjectsStore((s) => s.removeProject);
   const { shouldShow: showWhatsNew, dismiss: dismissWhatsNew } = useWhatsNew();
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(() => !isOnboardingComplete());
+  const [showSettings, setShowSettings] = useState(false);
+  const [showLearn, setShowLearn] = useState(false);
+  const [learnSlug, setLearnSlug] = useState<HomeLearnSlug>("walkthroughs/quickstart");
+
+  const openLearn = useCallback((slug: HomeLearnSlug) => {
+    setLearnSlug(slug);
+    setShowLearn(true);
+  }, []);
 
   useEffect(() => {
+    if (onboardingOpen) return;
     if (showWhatsNew) setWhatsNewOpen(true);
-  }, [showWhatsNew]);
+  }, [showWhatsNew, onboardingOpen]);
 
   function handleCloseWhatsNew(suppress: boolean) {
     dismissWhatsNew(suppress);
@@ -55,9 +77,12 @@ export function HomeScreen() {
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
 
-      if (e.key === "n") {
+      if (matchesKeybinding("newProject", e)) {
         e.preventDefault();
         handleNewProject();
+      } else if (matchesKeybinding("createPack", e)) {
+        e.preventDefault();
+        setShowCreatePack(true);
       } else if (e.key === "o") {
         e.preventDefault();
         openAssetPack();
@@ -74,6 +99,7 @@ export function HomeScreen() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onNewProject={handleNewProject}
+        onCreatePack={() => setShowCreatePack(true)}
         onOpenProject={openAssetPack}
       />
 
@@ -84,6 +110,7 @@ export function HomeScreen() {
             onRemoveProject={removeProject}
             onSelectTemplate={handleSelectTemplate}
             onSwitchTab={(tab) => setActiveTab(tab as SidebarTab)}
+            onOpenLearn={() => openLearn("walkthroughs/quickstart")}
           />
         )}
         {activeTab === "templates" && (
@@ -99,7 +126,29 @@ export function HomeScreen() {
         onClose={() => setShowNewProject(false)}
         defaultTemplate={defaultTemplate}
       />
-      <WhatsNewDialog open={whatsNewOpen} onClose={handleCloseWhatsNew} />
+      {showCreatePack && (
+        <Suspense fallback={null}>
+          <CreatePackWizardDialog open onClose={() => setShowCreatePack(false)} />
+        </Suspense>
+      )}
+      <OnboardingDialog
+        open={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+        onOpenCreatePack={() => setShowCreatePack(true)}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenLearn={openLearn}
+      />
+      <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
+      {showLearn && (
+        <Suspense fallback={null}>
+          <HomeLearnDialog
+            open
+            onClose={() => setShowLearn(false)}
+            initialSlug={learnSlug}
+          />
+        </Suspense>
+      )}
+      <WhatsNewDialog open={whatsNewOpen && !onboardingOpen} onClose={handleCloseWhatsNew} />
     </div>
   );
 }

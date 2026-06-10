@@ -5,3 +5,4 @@ Set-Location $Root
 git config core.hooksPath .githooks
 Write-Host "Git hooks path set to .githooks for this repository."
 Write-Host "Commits must use: McCal <business@mcc-cal.com>"
+Write-Host "prepare-commit-msg strips Cursor/Copilot Co-authored-by trailers."

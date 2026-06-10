@@ -13,10 +13,10 @@ on:
         type: boolean
         default: false
       sign:
-        description: 'Sign updater artifacts (requires TAURI_SIGNING_* secrets; leave false for manual-download alpha)'
+        description: 'Sign updater artifacts (requires TAURI_SIGNING_* secrets on McCal-Codes/TerraNova)'
         required: false
         type: boolean
-        default: false
+        default: true
 
 jobs:
   gate:

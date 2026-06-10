@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Edge, Node } from "@xyflow/react";
 import { graphToJson, graphToJsonMulti } from "../graphToJson";
@@ -8,8 +9,10 @@ import { normalizeMaterialSectionNodeTypes } from "../materialSectionNodes";
 import { hytaleToInternalBiome } from "../hytaleToInternal";
 import { sanitizeGraphNodesAndEdges } from "../sanitizeGraphNodes";
 
-const AUTUMN_BONES =
-  "C:/Users/wolft/AppData/Roaming/Hytale/UserData/Saves/Worldgen V1/mods/McCal.Autmn Forest/Server/HytaleGenerator/Biomes/Autmn Forest Bones.json";
+const FOREST_HILLS_BIOME = join(
+  process.cwd(),
+  "templates/forest-hills/Server/HytaleGenerator/Biomes/ForestHillsBiome.json",
+);
 
 function graphSection(
   asset: Record<string, unknown>,
@@ -151,15 +154,15 @@ describe("biome save simulation", () => {
     ).not.toThrow();
   });
 
-  it("saves Autmn Forest Bones (all sections) without throwing", () => {
-    const raw = readFileSync(AUTUMN_BONES, "utf8");
+  it("saves bundled forest-hills biome (all sections) without throwing", () => {
+    const raw = readFileSync(FOREST_HILLS_BIOME, "utf8");
     const hytaleWrapper = JSON.parse(raw) as Record<string, unknown>;
     const { wrapper } = hytaleToInternalBiome(hytaleWrapper);
     expect(() => simulateBiomeSave(wrapper)).not.toThrow();
   });
 
   it("tolerates sparse node arrays in MaterialProvider section", () => {
-    const raw = readFileSync(AUTUMN_BONES, "utf8");
+    const raw = readFileSync(FOREST_HILLS_BIOME, "utf8");
     const hytaleWrapper = JSON.parse(raw) as Record<string, unknown>;
     const { wrapper } = hytaleToInternalBiome(hytaleWrapper);
     const sections = buildSectionsFromInternalWrapper(wrapper);

@@ -65,14 +65,9 @@ struct PersistedConfig {
 }
 
 fn default_save_root() -> PathBuf {
-    if let Ok(appdata) = std::env::var("APPDATA") {
-        return PathBuf::from(appdata)
-            .join("Hytale")
-            .join("UserData")
-            .join("Saves")
-            .join("Worldgen V1");
-    }
-    PathBuf::from(".")
+    bridge_save::pick_default_save()
+        .map(|(p, _)| p)
+        .unwrap_or_else(|| PathBuf::from("."))
 }
 
 fn bridge_config_path(save_root: &Path) -> PathBuf {
@@ -286,7 +281,7 @@ async fn main() {
     let save_root = cli.save.unwrap_or_else(default_save_root);
     if !save_root.exists() {
         eprintln!("Save folder not found: {}", save_root.display());
-        eprintln!("Use --save \"...\\UserData\\Saves\\Worldgen V1\"");
+        eprintln!("Use --save \"...\\UserData\\Saves\\YourWorldName\"");
         std::process::exit(1);
     }
 

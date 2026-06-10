@@ -1,7 +1,7 @@
-import { WORLDGEN_V1_SAVE_NAME } from "@/utils/hytaleModPaths";
+import { getLastBridgeSaveName } from "@/utils/hytaleSavePaths";
 
 export interface BridgeSaveContext {
-  /** Full path to save folder, e.g. .../Saves/Worldgen V1 */
+  /** Full path to save folder, e.g. .../Saves/MyWorld */
   saveRoot: string;
   saveName: string;
   /** Mod pack root (Server/ lives here) when resolved from a path */
@@ -21,7 +21,7 @@ function normalize(p: string): string {
 
 /**
  * Infer Hytale embedded-save + mod pack from a pack root or project path.
- * Example: .../Saves/Worldgen V1/mods/McCal.Volume Lab
+ * Example: .../Saves/MyWorld/mods/Author.Pack
  */
 export function resolveBridgeSaveContextFromPath(
   path: string | null | undefined,
@@ -43,12 +43,11 @@ export function resolveBridgeSaveContextFromPath(
   return { saveRoot, saveName, modPackPath, modPackFolder };
 }
 
-/** Pick save/mod context from Bridge mod path, else open project, else default save name. */
+/** Pick save/mod context from Bridge mod path, open project, or last discovered save. */
 export function resolveBridgeDiscoveryHints(
   serverModPath: string,
   projectPath: string | null,
-  fallbackSaveName: string = WORLDGEN_V1_SAVE_NAME,
-): { saveRoot?: string; saveName: string; modPackPath?: string } {
+): { saveRoot?: string; saveName?: string; modPackPath?: string } {
   const fromMod =
     resolveBridgeSaveContextFromPath(serverModPath) ??
     resolveBridgeSaveContextFromPath(projectPath);
@@ -61,7 +60,12 @@ export function resolveBridgeDiscoveryHints(
     };
   }
 
-  return { saveName: fallbackSaveName };
+  const lastSave = getLastBridgeSaveName();
+  if (lastSave) {
+    return { saveName: lastSave };
+  }
+
+  return {};
 }
 
 /** If the opened project is a mod pack folder, use it as Bridge server mod path. */

@@ -22,10 +22,13 @@ import { resolveBridgeDiscoveryHints } from "@/utils/resolveBridgeSaveContext";
 import { usePreviewStore } from "@/stores/previewStore";
 import {
   deriveTerraNovaModFolderName,
-  resolveSaveModPackRootByFolder,
-  resolveSaveModsRoot,
   TERRANOVA_BRIDGE_MOD_FOLDER,
 } from "@/utils/hytaleModPaths";
+import {
+  resolveDefaultSaveModsBrowseRoot,
+  resolveSaveModPackRootByFolder,
+  setLastBridgeSaveName,
+} from "@/utils/hytaleSavePaths";
 import { linkModPackToBridge, openSaveModPackByPath } from "@/utils/saveModWorkflow";
 import { BridgeDebugPanel } from "@/components/bridge/BridgeDebugPanel";
 
@@ -119,6 +122,9 @@ export function BridgeDialog() {
         port: portNum,
       });
       store.setDiscovery(result, false);
+      if (result.saveName) {
+        setLastBridgeSaveName(result.saveName);
+      }
       const suggested =
         result.suggestedModPackPath ?? result.bridgeModPackPath;
       if (!config.serverModPath && suggested) {
@@ -163,7 +169,7 @@ export function BridgeDialog() {
         useProjectStore.getState().projectPath,
       );
       useBridgeStore.getState().setDiscovery(
-        { portOpen: false, saveName: hints.saveName, error: String(err) },
+        { portOpen: false, saveName: hints.saveName ?? "", error: String(err) },
         false,
       );
     }
@@ -304,7 +310,7 @@ export function BridgeDialog() {
   }
 
   async function handleBrowseModPath() {
-    const defaultPath = await resolveSaveModsRoot().catch(() => undefined);
+    const defaultPath = await resolveDefaultSaveModsBrowseRoot();
     const selected = await open({
       directory: true,
       title: "Select mod pack root (folder containing Server/)",
@@ -328,6 +334,8 @@ export function BridgeDialog() {
       const path = await openSaveModPackByPath(pack.path, openFile);
       setServerModPath(path);
     } catch (err) {
+      const message = String(err);
+      if (message.includes("cancelled")) return;
       useBridgeStore.getState().setLastError(`Could not open mod pack: ${err}`);
     }
   }
@@ -337,7 +345,16 @@ export function BridgeDialog() {
   async function applyTestModPackPath() {
     if (!testModFolder) return;
     try {
-      const saveName = discovery?.saveName ?? resolveBridgeDiscoveryHints(serverModPath, useProjectStore.getState().projectPath).saveName;
+      const saveName =
+        discovery?.saveName ??
+        resolveBridgeDiscoveryHints(serverModPath, useProjectStore.getState().projectPath)
+          .saveName;
+      if (!saveName) {
+        useBridgeStore.getState().setLastError(
+          "No Hytale save known yet — open Bridge after creating a world, or pick a mod pack path.",
+        );
+        return;
+      }
       const path = await resolveSaveModPackRootByFolder(testModFolder, saveName);
       setServerModPath(path);
       useBridgeStore.getState().setServerModPath(path);
@@ -704,7 +721,7 @@ export function BridgeDialog() {
                 type="text"
                 value={serverModPath}
                 onChange={(e) => setServerModPath(e.target.value)}
-                placeholder="e.g. ...\Saves\Worldgen V1\mods\McCal.Volume Lab"
+                placeholder="e.g. ...\Saves\MyWorld\mods\Author.PackName"
                 className="flex-1 px-2 py-1.5 text-sm bg-tn-bg border border-tn-border rounded focus:border-tn-accent outline-none text-tn-text-muted"
               />
               <button

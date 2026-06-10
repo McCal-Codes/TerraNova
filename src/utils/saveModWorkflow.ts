@@ -1,9 +1,7 @@
 import { useBridgeStore } from "@/stores/bridgeStore";
-import { useProjectStore } from "@/stores/projectStore";
-import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { usePreviewStore } from "@/stores/previewStore";
-import { listDirectory } from "@/utils/ipc";
-import mapDirEntry from "@/utils/mapDirEntry";
+import { confirmOpenPackWithAlphaBackup } from "@/utils/openPackWithAlphaGuard";
+import { openProjectAtPath } from "@/utils/openProjectAtPath";
 
 /** Set Bridge server mod path to a pack root (contains Server/). */
 export function linkModPackToBridge(packRoot: string): string {
@@ -19,11 +17,13 @@ export async function openSaveModPackByPath(
   openFile?: (filePath: string) => Promise<void>,
   starterRelative?: string,
 ): Promise<string> {
+  const ok = await confirmOpenPackWithAlphaBackup(packRoot);
+  if (!ok) {
+    throw new Error("Pack open cancelled");
+  }
+
   linkModPackToBridge(packRoot);
-  useProjectStore.getState().setProjectPath(packRoot);
-  const entries = await listDirectory(packRoot);
-  useProjectStore.getState().setDirectoryTree(entries.map(mapDirEntry));
-  useRecentProjectsStore.getState().addProject(packRoot);
+  await openProjectAtPath(packRoot);
 
   if (openFile && starterRelative) {
     const sep = packRoot.includes("\\") ? "\\" : "/";

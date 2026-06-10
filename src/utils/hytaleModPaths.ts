@@ -15,7 +15,7 @@ function detectOsFromNavigator(): OS {
   return "linux";
 }
 
-function fallbackJoin(os: OS, ...parts: string[]): string {
+export function fallbackJoin(os: OS, ...parts: string[]): string {
   const separator = os === "windows" ? "\\" : "/";
   return parts
     .filter((part) => part.length > 0)
@@ -26,11 +26,11 @@ function fallbackJoin(os: OS, ...parts: string[]): string {
     .join(separator);
 }
 
-async function joinPath(os: OS, ...parts: string[]): Promise<string> {
+export async function joinPath(os: OS, ...parts: string[]): Promise<string> {
   return isTauriRuntime() ? join(...parts) : fallbackJoin(os, ...parts);
 }
 
-async function hytaleDataRoot(): Promise<{ root: string; os: OS }> {
+export async function hytaleDataRoot(): Promise<{ root: string; os: OS }> {
   if (!isTauriRuntime()) {
     const os = detectOsFromNavigator();
     const root =
@@ -55,74 +55,8 @@ async function hytaleDataRoot(): Promise<{ root: string; os: OS }> {
   return { root, os };
 }
 
-/** Embedded save used for worldgen iteration (per-save mods folder, not global UserData/Mods). */
-export const WORLDGEN_V1_SAVE_NAME = "Worldgen V1";
-
 /** Always created under each save's mods/ folder for Bridge sync (enable in Hytale world settings). */
 export const TERRANOVA_BRIDGE_MOD_FOLDER = "TerraNova.Bridge";
-
-/** Mod pack folder names under Saves/Worldgen V1/mods that contain Server/HytaleGenerator (verified 2026-06). */
-export const WORLDGEN_V1_WORLDGEN_MOD_FOLDERS = {
-  volumeLab: "McCal.Volume Lab",
-  autmnForest: "McCal.Autmn Forest",
-} as const;
-
-export type WorldgenV1ModPackId = keyof typeof WORLDGEN_V1_WORLDGEN_MOD_FOLDERS;
-
-export interface BridgeModPackPreset {
-  id: WorldgenV1ModPackId;
-  label: string;
-  folderName: string;
-  /** Example biome path inside the pack for sync sanity checks. */
-  exampleBiomeRelative: string;
-}
-
-export const WORLDGEN_V1_BRIDGE_PRESETS: BridgeModPackPreset[] = [
-  {
-    id: "volumeLab",
-    label: "McCal — Volume Lab",
-    folderName: WORLDGEN_V1_WORLDGEN_MOD_FOLDERS.volumeLab,
-    exampleBiomeRelative: "Server/HytaleGenerator/Biomes/Volume Lab Island.json",
-  },
-  {
-    id: "autmnForest",
-    label: "McCal — Autmn Forest",
-    folderName: WORLDGEN_V1_WORLDGEN_MOD_FOLDERS.autmnForest,
-    exampleBiomeRelative: "Server/HytaleGenerator/Biomes/Autmn Forest.json",
-  },
-];
-
-/**
- * Per-save mods directory (world-specific), e.g.
- * %APPDATA%\\Hytale\\UserData\\Saves\\Worldgen V1\\mods
- */
-export async function resolveSaveModsRoot(saveName: string = WORLDGEN_V1_SAVE_NAME): Promise<string> {
-  const { root, os } = await hytaleDataRoot();
-  return joinPath(os, root, "UserData", "Saves", saveName, "mods");
-}
-
-/** Bridge serverModPath must be a single pack root (contains Server/), not the parent mods/ folder. */
-export async function resolveSaveModPackRoot(
-  packId: WorldgenV1ModPackId,
-  saveName: string = WORLDGEN_V1_SAVE_NAME,
-): Promise<string> {
-  const modsRoot = await resolveSaveModsRoot(saveName);
-  const folder = WORLDGEN_V1_WORLDGEN_MOD_FOLDERS[packId];
-  const { os } = await hytaleDataRoot();
-  return joinPath(os, modsRoot, folder);
-}
-
-/**
- * Default Bridge target for this workspace: Worldgen V1 → McCal.Volume Lab.
- * Falls back to empty string when not on Windows/Tauri (user must browse).
- */
-export async function resolveDefaultBridgeServerModPath(): Promise<string> {
-  try {
-    return await resolveSaveModPackRoot("volumeLab");
-  } catch {
-    return "";
-  }
-}
 
 /** Hytale mod folder name for a TerraNova export (Group.Name), matching exportAssetPack. */
 export function deriveTerraNovaModFolderName(
@@ -162,21 +96,6 @@ export function deriveHytaleModIdentity(
     modName: dot >= 0 ? modFolderName.slice(dot + 1) : modFolderName,
     modFolderName,
   };
-}
-
-/** Bridge serverModPath for a pack folder sitting under a save's mods directory. */
-export async function resolveSaveModPackRootByFolder(
-  folderName: string,
-  saveName: string = WORLDGEN_V1_SAVE_NAME,
-): Promise<string> {
-  const modsRoot = await resolveSaveModsRoot(saveName);
-  const { os } = await hytaleDataRoot();
-  return joinPath(os, modsRoot, folderName);
-}
-
-/** Where to export a new test mod for Worldgen V1 (pick this folder in Export Asset Pack). */
-export async function resolveWorldgenV1ExportModsRoot(): Promise<string> {
-  return resolveSaveModsRoot(WORLDGEN_V1_SAVE_NAME);
 }
 
 export function isUnderDirectory(child: string, parent: string): boolean {

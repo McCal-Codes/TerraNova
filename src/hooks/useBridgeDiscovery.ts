@@ -8,6 +8,7 @@ import {
   modPackPathFromProject,
   resolveBridgeDiscoveryHints,
 } from "@/utils/resolveBridgeSaveContext";
+import { setLastBridgeSaveName } from "@/utils/hytaleSavePaths";
 import { tryBridgeAutoConnect } from "@/utils/bridgeAutoConnect";
 import {
   applyLivePlayerToPreview,
@@ -64,6 +65,9 @@ export function useBridgeDiscovery() {
         if (cancelled) return;
 
         store.setDiscovery(result, false);
+        if (result.saveName) {
+          setLastBridgeSaveName(result.saveName);
+        }
 
         const suggested =
           result.suggestedModPackPath ?? result.bridgeModPackPath;
@@ -91,7 +95,7 @@ export function useBridgeDiscovery() {
         store.setDiscovery(
           {
             portOpen: false,
-            saveName: hints.saveName,
+            saveName: hints.saveName ?? "",
             modPackPath: hints.modPackPath,
             modPackFolder: hints.modPackPath?.split(/[/\\]/).pop(),
             error: String(err),

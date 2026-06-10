@@ -1,13 +1,13 @@
 # TerraNova
 
-[![Latest Release](https://img.shields.io/github/v/release/HyperSystems-Development/TerraNova?label=version)](https://github.com/HyperSystems-Development/TerraNova/releases)
+[![Latest Release](https://img.shields.io/github/v/release/McCal-Codes/TerraNova?label=version)](https://github.com/McCal-Codes/TerraNova/releases)
 [![License](https://img.shields.io/badge/license-LGPL--2.1-green)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?logo=discord&logoColor=white)](https://discord.gg/NHPzsjkQeu)
-[![GitHub Stars](https://img.shields.io/github/stars/HyperSystems-Development/TerraNova?style=social)](https://github.com/HyperSystems-Development/TerraNova)
+[![GitHub Stars](https://img.shields.io/github/stars/McCal-Codes/TerraNova?style=social)](https://github.com/McCal-Codes/TerraNova)
 
 **Offline design studio for Hytale World Generation V2.** Visual node editor, live terrain preview, and validated JSON export — no server required.
 
-**[Releases](https://github.com/HyperSystems-Development/TerraNova/releases)** | **[Discord](https://discord.gg/NHPzsjkQeu)**
+**[Releases](https://github.com/McCal-Codes/TerraNova/releases)** | **[Discord](https://discord.gg/NHPzsjkQeu)**
 
 ![TerraNova](docs/images/header.webp)
 
@@ -39,7 +39,7 @@
 
 **Hytale Asset Sync** — Sync from your installed game (defaults to the **release** `latest` folder or `Assets.zip` on Windows). TerraNova extracts `Common/` and `Server/` from the zip when the game ships assets that way. Progress tracking, cancellation, staleness detection, and block icons from `Common/Icons/ItemsGenerated` after sync.
 
-**Bridge Integration** — Connect to a running Hytale server and push exported asset packs directly. Design offline, deploy in one click.
+**Bridge Integration** — Connect to a running Hytale server with TerraNova Bridge and sync the **currently open** project file into your server mod folder (`Ctrl+B`). Export the full pack first, then use bridge for iterative file sync.
 
 **Full V2 Coverage** — 68+ density types, 14+ material providers, 19 curves, plus patterns, positions, props, scanners, vectors, environments, assignments, tints, block masks, and world structures. Includes MultiMix, Queue, Offset, Framework nodes, and other recent V2 additions.
 
@@ -49,10 +49,10 @@
 
 ## Quick Start
 
-1. Download the latest release from [Releases](https://github.com/HyperSystems-Development/TerraNova/releases)
+1. Download the latest release from [Releases](https://github.com/McCal-Codes/TerraNova/releases)
 2. Open TerraNova, pick a template or start from scratch
 3. Design your worldgen using the node editor and live preview
-4. Export and drop the JSON files in your server's `mods/` folder
+4. Use **File → Export Asset Pack** (`Ctrl+Shift+E`) to write a `{Group}.{Name}/Server/HytaleGenerator/...` tree, then install that pack on your Hytale server (see [Exporting](src/docs/reference/exporting.md))
 
 <details>
 <summary><strong>macOS: App Won't Open / "Unverified Developer"</strong></summary>
@@ -179,7 +179,7 @@ TerraNova includes accessibility features to support users with different needs:
 <details>
 <summary><strong>Prerequisites & setup</strong></summary>
 
-**Requirements:** [Node.js](https://nodejs.org/) 20+, [pnpm](https://pnpm.io/) 9+, [Rust](https://rustup.rs/) 1.77+
+**Requirements:** [Node.js](https://nodejs.org/) 22, [pnpm](https://pnpm.io/) 10 (see `packageManager` in `package.json`), [Rust](https://rustup.rs/) 1.77+. On Windows, install Visual Studio C++ Build Tools for Tauri. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full gate suite.
 
 ```bash
 # Install frontend dependencies
@@ -189,7 +189,7 @@ pnpm install
 pnpm tauri dev
 ```
 
-For block icons and asset validation against real game data, sync once in **Settings → Assets** using your Hytale **release** install path (see [Environments & Weather guide](docs/tutorials/environments-weather-guide.md#importing-from-hytale-assets)).
+For block icons and asset validation against real game data, sync once in **Settings → Assets** using your Hytale **release** install path (see [Importing from Hytale assets](src/docs/guides/world/environments-and-weather.md#importing-from-hytale-assets)).
 
 ### Build
 
@@ -231,19 +231,13 @@ TerraNova/
 
 ## Links
 
-- [Releases](https://github.com/HyperSystems-Development/TerraNova/releases) — Downloads
+- [Releases](https://github.com/McCal-Codes/TerraNova/releases) — Downloads
 - [Discord](https://discord.gg/NHPzsjkQeu) — Support & community
-- [Issues](https://github.com/HyperSystems-Development/TerraNova/issues) — Bug reports & features
-- [HyperSystems-Development](https://github.com/HyperSystems-Development) — Organization
+- [Issues](https://github.com/McCal-Codes/TerraNova/issues) — Bug reports & features
+- [McCal-Codes](https://github.com/McCal-Codes) — Organization
 
 ## License
 
 [LGPL-2.1](LICENSE)
 
-## Built with AI
-
-TerraNova is developed with assistance from AI tooling. We believe in being upfront about how this project is built — read the full breakdown in our [AI Transparency & Usage Disclaimer](docs/AI_TRANSPARENCY.md).
-
----
-
-Part of the **HyperSystems** suite: [HyperPerms](https://github.com/HyperSystems-Development/HyperPerms) | [HyperHomes](https://github.com/HyperSystems-Development/HyperHomes) | [HyperFactions](https://github.com/HyperSystems-Development/HyperFactions) | [TerraNova](https://github.com/HyperSystems-Development/TerraNova)
+Closed-beta testers: see [docs/BETA_TESTING.md](docs/BETA_TESTING.md) for platform install notes and the first-run checklist.

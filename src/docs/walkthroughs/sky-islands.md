@@ -1352,4 +1352,4 @@ Create a new biome file (e.g., `StormIslandsBiome.json`) and split the noise ran
 
 ---
 
-*Built with [TerraNova](https://github.com/HyperSystems-Development/TerraNova) by [HyperSystems-Development](https://github.com/HyperSystems-Development)*
+*Built with [TerraNova](https://github.com/McCal-Codes/TerraNova) by [McCal-Codes](https://github.com/McCal-Codes)*

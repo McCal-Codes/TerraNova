@@ -1,4 +1,5 @@
 import { getVersion } from "@tauri-apps/api/app";
+import { GITHUB_RELEASES_API } from "@/constants/github";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -101,8 +102,7 @@ function parseItems(content: string): { label: string; description: string }[] {
 
 // ── Fetcher ────────────────────────────────────────────────────────────────────
 
-const RELEASES_URL =
-  "https://api.github.com/repos/HyperSystems-Development/TerraNova/releases?per_page=100";
+const RELEASES_URL = GITHUB_RELEASES_API;
 
 interface GitHubRelease {
   tag_name: string;

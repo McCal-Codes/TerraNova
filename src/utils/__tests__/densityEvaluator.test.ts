@@ -768,11 +768,12 @@ function evalWithOptions(nodes: Node[], edges: Edge[], rootNodeId?: string, opti
 /* ── BaseHeight ──────────────────────────────────────────────────── */
 
 describe("BaseHeight", () => {
-  it("returns base Y value when Distance is false", () => {
+  it("returns terrain density (baseY - y) when Distance is false", () => {
     const nodes = [makeNode("bh", "BaseHeight", { BaseHeightName: "Base", Distance: false })];
     const result = evalWithOptions(nodes, [], "bh", { contentFields: { Base: 100 } });
+    // Y_LEVEL = 64, baseY = 100 → density 36 everywhere at this slice
     for (let i = 0; i < result.values.length; i++) {
-      expect(result.values[i]).toBe(100);
+      expect(result.values[i]).toBe(36);
     }
   });
 
@@ -789,7 +790,45 @@ describe("BaseHeight", () => {
     const nodes = [makeNode("bh", "BaseHeight", { BaseHeightName: "Base", Distance: false })];
     const result = evalSingle(nodes, []);
     for (let i = 0; i < result.values.length; i++) {
-      expect(result.values[i]).toBe(100);
+      expect(result.values[i]).toBe(100 - Y_LEVEL);
+    }
+  });
+});
+
+describe("CurveMapper", () => {
+  it("applies inline Manual curve when no Curve edge is connected", () => {
+    const nodes = [
+      makeNode("cm", "CurveMapper", {
+        Curve: {
+          Type: "Manual",
+          Points: [[0, 0], [100, 1]],
+        },
+      }),
+      makeNode("yv", "YValue"),
+    ];
+    const edges = [makeEdge("yv", "cm", "Input")];
+    const result = evalSingle(nodes, edges, "cm");
+    // Y_LEVEL = 64 → curve maps 64 on [0,100] → 0.64
+    for (let i = 0; i < result.values.length; i++) {
+      expect(result.values[i]).toBeCloseTo(0.64, 4);
+    }
+  });
+
+  it("maps BaseHeight distance through connected Manual curve", () => {
+    const manualPoints = [[-50, 0], [0, 0.5], [50, 1]];
+    const nodes = [
+      makeNode("bh", "BaseHeight", { BaseHeightName: "Base", Distance: true }),
+      makeNode("cm", "CurveMapper"),
+      makeNode("curve", "Curve:Manual", { Points: manualPoints }),
+    ];
+    const edges = [
+      makeEdge("bh", "cm", "Input"),
+      makeEdge("curve", "cm", "Curve"),
+    ];
+    const result = evalWithOptions(nodes, edges, "cm", { contentFields: { Base: 100 } });
+    // y - baseY = -36 at Y_LEVEL 64; curve on [-50,50] → 0.14
+    for (let i = 0; i < result.values.length; i++) {
+      expect(result.values[i]).toBeCloseTo(0.14, 2);
     }
   });
 });
@@ -1162,9 +1201,9 @@ describe("getEvalStatus", () => {
     expect(getEvalStatus("HeightAboveSurface")).toBe(EvalStatus.Approximated);
   });
 
-  it("returns Unsupported for context-dependent types", () => {
-    expect(getEvalStatus("Pipeline")).toBe(EvalStatus.Unsupported);
-    expect(getEvalStatus("SurfaceDensity")).toBe(EvalStatus.Unsupported);
+  it("returns Approximated for terrain-specific pipeline types", () => {
+    expect(getEvalStatus("Pipeline")).toBe(EvalStatus.Approximated);
+    expect(getEvalStatus("SurfaceDensity")).toBe(EvalStatus.Approximated);
   });
 });
 

@@ -47,6 +47,17 @@ function getStoredJson<T>(key: string, fallback: T): T {
   }
 }
 
+function getStoredPreviewHour(): number {
+  try {
+    const v = localStorage.getItem("tn-atmospherePreviewHour");
+    if (v === null) return 12;
+    const hour = Number.parseInt(v, 10);
+    return Number.isFinite(hour) && hour >= 0 && hour <= 23 ? hour : 12;
+  } catch {
+    return 12;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Accordion sidebar types & defaults
 // ---------------------------------------------------------------------------
@@ -109,6 +120,7 @@ function persistBookmarks(bookmarks: Map<number, Bookmark>) {
 }
 
 export type RightPanelMode = "properties" | "docs";
+export type AtmosphereEditorUIMode = "simple" | "advanced";
 
 export interface UIState {
   showGrid: boolean;
@@ -119,6 +131,10 @@ export interface UIState {
   rightPanelVisible: boolean;
   rightPanelMode: RightPanelMode;
   compactAssetInspector: boolean;
+  syncAtmospherePreview: boolean;
+  atmosphereEditorUIMode: AtmosphereEditorUIMode;
+  atmospherePreviewHour: number;
+  requestedDocSlug: string | null;
   helpMode: boolean;
 
   // Props deletion confirmation preference
@@ -140,6 +156,10 @@ export interface UIState {
   toggleLeftPanel: () => void;
   toggleRightPanel: () => void;
   toggleAssetInspectorCompact: () => void;
+  toggleSyncAtmospherePreview: () => void;
+  setAtmosphereEditorUIMode: (mode: AtmosphereEditorUIMode) => void;
+  setAtmospherePreviewHour: (hour: number) => void;
+  setRequestedDocSlug: (slug: string | null) => void;
   toggleHelpMode: () => void;
   setRightPanelMode: (mode: RightPanelMode) => void;
 
@@ -167,6 +187,10 @@ export const useUIStore = create<UIState>((set, get) => ({
   leftPanelVisible: getStoredBool("tn-leftPanel", true),
   rightPanelVisible: getStoredBool("tn-rightPanel", true),
   compactAssetInspector: getStoredBool("tn-compactAssetInspector", false),
+  syncAtmospherePreview: getStoredBool("tn-syncAtmospherePreview", false),
+  atmosphereEditorUIMode: getStoredString("tn-atmosphereEditorUIMode", "simple", ["simple", "advanced"]),
+  atmospherePreviewHour: getStoredPreviewHour(),
+  requestedDocSlug: null,
   helpMode: false,
   rightPanelMode: getStoredString("tn-rightPanelMode", "properties", ["properties", "docs"]),
   suppressPropDeleteConfirm: getStoredBool("tn-suppressPropDeleteConfirm", false),
@@ -213,6 +237,21 @@ export const useUIStore = create<UIState>((set, get) => ({
     persist("tn-compactAssetInspector", next);
     set({ compactAssetInspector: next });
   },
+  toggleSyncAtmospherePreview: () => {
+    const next = !get().syncAtmospherePreview;
+    persist("tn-syncAtmospherePreview", next);
+    set({ syncAtmospherePreview: next });
+  },
+  setAtmosphereEditorUIMode: (mode) => {
+    persist("tn-atmosphereEditorUIMode", mode);
+    set({ atmosphereEditorUIMode: mode });
+  },
+  setAtmospherePreviewHour: (hour) => {
+    const clamped = Math.max(0, Math.min(23, Math.round(hour)));
+    persist("tn-atmospherePreviewHour", String(clamped));
+    set({ atmospherePreviewHour: clamped });
+  },
+  setRequestedDocSlug: (slug) => set((s) => (s.requestedDocSlug === slug ? s : { requestedDocSlug: slug })),
   toggleHelpMode: () => set({ helpMode: !get().helpMode }),
 
   setSuppressPropDeleteConfirm: (value) => {

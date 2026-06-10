@@ -22,7 +22,7 @@ vi.mock("@/stores/toastStore", () => ({
   },
 }));
 
-import { exportCanvasAsPNG, exportPreviewCanvas } from "../exportPreview";
+import { compositeHeatmapCanvases, exportCanvasAsPNG, exportPreviewCanvas } from "../exportPreview";
 
 function makeBlob(contents: string): Blob {
   return {
@@ -85,6 +85,37 @@ describe("exportPreview", () => {
       "Exported PNG to C:/exports/preview.png",
       "success",
     );
+  });
+
+  it("applies pan/zoom transform when compositing heatmap canvases", () => {
+    const calls: { method: string; args: number[] }[] = [];
+    const base = {
+      width: 4,
+      height: 4,
+    } as HTMLCanvasElement;
+    const overlay = {
+      width: 8,
+      height: 8,
+    } as HTMLCanvasElement;
+    const ctx = {
+      save: () => calls.push({ method: "save", args: [] }),
+      restore: () => calls.push({ method: "restore", args: [] }),
+      translate: (...args: number[]) => calls.push({ method: "translate", args }),
+      scale: (...args: number[]) => calls.push({ method: "scale", args }),
+      drawImage: (...args: number[]) => calls.push({ method: "drawImage", args }),
+    };
+    const out = {
+      width: 0,
+      height: 0,
+      getContext: () => ctx,
+    } as unknown as HTMLCanvasElement;
+    const createElementSpy = vi.spyOn(document, "createElement").mockReturnValue(out);
+
+    compositeHeatmapCanvases(base, overlay, 100, 100, { scale: 2, offsetX: 10, offsetY: -5 });
+
+    expect(calls.some((c) => c.method === "translate" && c.args[0] === 60 && c.args[1] === 45)).toBe(true);
+    expect(calls.some((c) => c.method === "scale" && c.args[0] === 2 && c.args[1] === 2)).toBe(true);
+    createElementSpy.mockRestore();
   });
 
   it("shows an error toast when the canvas cannot produce an image blob", async () => {

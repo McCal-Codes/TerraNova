@@ -64,8 +64,8 @@ Legend: `[x]` = shipped, `[ ]` = not started, `[~]` = partial / in progress
 
 - [ ] **Biome-level issue navigation** — clicking a biome-level issue jumps to that section, not just graph nodes.
 - [ ] **One-click auto-fixes** for safe diagnostics (delimiter sorting, missing defaults, simple ref cleanup).
-- [ ] **Project-wide legacy node scanner** — scan all `.json` files in the pack for legacy node types, show a collapsible "Project-wide" breakdown in the validation panel. Per-file open-and-fix only (no bulk replace).
-- [ ] **Amber dot badge** on file tree entries that have legacy node hits.
+- [x] **Project-wide legacy node scanner** — scan all `.json` files in the pack for legacy node types, show a collapsible "Project-wide" breakdown in the validation panel. Per-file open-and-fix only (no bulk replace).
+- [x] **Amber dot badge** on file tree entries that have legacy node hits.
 
 ---
 
@@ -77,9 +77,9 @@ Legend: `[x]` = shipped, `[ ]` = not started, `[~]` = partial / in progress
 - [ ] **Drag-and-drop timeline for weather types** in the forecast editor.
 - [ ] **Weather preset browser** — import/export named weather patterns.
 - [ ] **TintProvider density parameters editable** from the AtmosphereTab tint section without requiring node graph access (see mccal_todo.md for detail).
-- [ ] **Weather forecast hour buckets visible** in the AtmosphereTab so users can see the full day/night schedule at a glance.
-- [ ] **`EnvironmentProvider {}` empty object shows "uses server default" label** in the graph and AtmosphereTab instead of blank.
-- [ ] **Export environment name collision warning** — validate the sanitized `Env_*` filename doesn't already exist in the pack.
+- [x] **Weather forecast hour buckets visible** in the AtmosphereTab so users can see the full day/night schedule at a glance. Shipped via `BiomeAtmosphereForecastPanel` + **24-Hour Schedule** strip.
+- [x] **`EnvironmentProvider {}` empty object shows "uses server default" label** in the biome dashboard and AtmosphereTab (graph section omitted when `{}` has no `Type`). Shipped in 0.1.6 follow-up.
+- [x] **Export environment name collision warning** — Atmosphere tab export blocks when `Env_*` file already exists. Shipped in 0.1.6.
 
 ---
 

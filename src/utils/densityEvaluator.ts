@@ -5,6 +5,7 @@
 export {
   createEvaluationContext,
   evaluateDensityGrid,
+  enrichPreviewContentFields,
   getEvalStatus,
 } from "./density";
 

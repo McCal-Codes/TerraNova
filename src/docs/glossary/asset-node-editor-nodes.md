@@ -168,7 +168,7 @@ Applies a repeating striped material pattern.
 
 ## Curve Types
 
-Curves are a separate asset type used inside `CurveMapper` and as required inputs on `Ellipsoid` and `Plane`. They are not separate nodes — they are options selected in the properties panel. See [Curves Explained](../guides/world/curves-explained.md) for the full guide.
+Curves are used inside `CurveMapper` and as required inputs on `Ellipsoid` and `Plane`. In **Hytale JSON** they are nested inline under `"Curve": { … }`. In **TerraNova** you can either set an inline Manual curve on the node or connect a **Curve:Manual** node to the **Curve** port — export produces the same nested shape. See [Hytale CurveMapper Conventions](../reference/hytale-curvemapper-conventions.md) and [Curves Explained](../guides/world/curves-explained.md).
 
 | Curve | Effect |
 |-------|--------|

@@ -30,19 +30,22 @@ export const KEYBINDINGS: KeybindingDef[] = [
   { id: "paste",              defaultKey: "Ctrl+V",         label: "Paste",                      category: "Edit" },
   { id: "duplicate",          defaultKey: "Ctrl+D",         label: "Duplicate",                  category: "Edit" },
   { id: "group",              defaultKey: "Ctrl+G",         label: "Group",                      category: "Edit" },
+  { id: "frameSelection",     defaultKey: "Ctrl+Shift+F",   label: "Frame Selection",            category: "Edit" },
   { id: "autoLayoutAll",      defaultKey: "L",              label: "Auto Layout All",            category: "Edit" },
   { id: "autoLayoutSelected", defaultKey: "Shift+L",        label: "Auto Layout Selected",       category: "Edit" },
+  { id: "autoLayoutSelectedComfortable", defaultKey: "Alt+Shift+L", label: "Auto Layout Selected (Comfortable)", category: "Edit" },
   { id: "tidyUp",             defaultKey: "Ctrl+Shift+L",   label: "Tidy Up",                    category: "Edit" },
 
   // ── File ────────────────────────────────────────────────────
   { id: "newProject",         defaultKey: "Ctrl+N",         label: "New Project",                category: "File" },
+  { id: "createPack",         defaultKey: "Ctrl+Shift+N",   label: "Create Pack (Wizard)",       category: "File" },
   { id: "openFile",           defaultKey: "Ctrl+O",         label: "Open Asset Pack",            category: "File" },
   { id: "save",               defaultKey: "Ctrl+S",         label: "Save",                       category: "File" },
   { id: "saveAs",             defaultKey: "Ctrl+Shift+S",   label: "Save As",                    category: "File" },
   { id: "closeProject",       defaultKey: "Ctrl+W",         label: "Close Project",              category: "File" },
   { id: "exportPack",         defaultKey: "Ctrl+Shift+E",   label: "Export Asset Pack",          category: "File" },
   { id: "exportJson",         defaultKey: "Ctrl+E",         label: "Export Current JSON",        category: "File" },
-  { id: "exportSvg",          defaultKey: "Ctrl+Shift+G",   label: "Export SVG",                 category: "File" },
+  { id: "exportSvg",          defaultKey: "Ctrl+Shift+G",   label: "Export Graph",               category: "File" },
   { id: "toggleInstantSave",  defaultKey: "Ctrl+Shift+I",   label: "Toggle Instant Save",        category: "File" },
 
   // ── View ────────────────────────────────────────────────────

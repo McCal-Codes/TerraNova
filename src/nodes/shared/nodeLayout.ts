@@ -9,6 +9,32 @@ export function handleTop(rowIndex: number): number {
   return rowIndex * ROW_H + ROW_H / 2;
 }
 
+/**
+ * Resolve the visual row for a handle when input/output counts differ.
+ * A lone output is centered among input rows so it does not share row 0 with
+ * the first input (avoids overlapping port labels on asymmetric nodes).
+ */
+export function resolveHandleRow(
+  index: number,
+  role: "input" | "output",
+  inputCount: number,
+  outputCount: number,
+): number {
+  if (role === "output" && outputCount === 1 && inputCount > 1) {
+    return Math.floor((inputCount - 1) / 2);
+  }
+  return index;
+}
+
+/** True when a port label adds info beyond generic Input/Output placeholders. */
+export function isPortLabelSignificant(label: string): boolean {
+  if (label === "Input" || label === "Output") return false;
+  if (/^Input \d+$/.test(label) || /^Output \d+$/.test(label)) return false;
+  if (/^Input [A-Z]$/.test(label)) return false;
+  if (/^Entry \d+$/.test(label)) return false;
+  return true;
+}
+
 /** Which side inputs appear on for a given flow direction */
 export function inputPosition(dir: FlowDirection): Position {
   return dir === "RL" ? Position.Right : Position.Left;

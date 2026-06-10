@@ -3,6 +3,14 @@ import { applyNodeChanges, applyEdgeChanges, addEdge } from "@xyflow/react";
 import { getDefaults } from "@/schema/defaults";
 import { alignNodes as alignNodesFn, distributeNodes as distributeNodesFn } from "@/utils/alignDistribute";
 import { NODE_WIDTH } from "@/constants";
+import {
+  AUTO_FRAME_PAD_LABEL,
+  buildFrameAroundNodes,
+  loosenNodesRelative,
+  LOOSEN_SCALE_DEFAULT,
+  nodesEligibleForFraming,
+} from "@/utils/annotationUtils";
+import { resolveAutoFrameSectionTitle } from "@/utils/importAnnotations";
 import { useSettingsStore } from "../settingsStore";
 import { usePreviewStore } from "../previewStore";
 import { emit } from "../storeEvents";
@@ -452,6 +460,53 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
         edges: [...remainingEdges, ...newEdges],
         selectedNodeId: groupId,
       }), "Group");
+      markDirty();
+    },
+
+    loosenSelection: (nodeIds) => {
+      if (nodeIds.length < 2) return;
+      const mutateAndCommit = getMutateAndCommit();
+      const { nodes } = get();
+      const idSet = new Set(nodeIds);
+      if (nodesEligibleForFraming(nodes.filter((n) => idSet.has(n.id))).length < 2) return;
+
+      mutateAndCommit(() => ({
+        nodes: loosenNodesRelative(nodes, nodeIds, { scale: LOOSEN_SCALE_DEFAULT }),
+      }), "Loosen selection");
+      markDirty();
+    },
+
+    frameSelection: (nodeIds, name = "", options = {}) => {
+      if (nodeIds.length === 0) return;
+      const mutateAndCommit = getMutateAndCommit();
+      const state = get();
+      const { nodes, activeBiomeSection } = state;
+      const idSet = new Set(nodeIds);
+      const shouldLoosen = options.loosen ?? true;
+      const pad = options.pad ?? (shouldLoosen ? AUTO_FRAME_PAD_LABEL : undefined);
+
+      let workingNodes = nodes;
+      if (shouldLoosen) {
+        workingNodes = loosenNodesRelative(nodes, nodeIds, {
+          scale: options.loosenScale ?? LOOSEN_SCALE_DEFAULT,
+        });
+      }
+
+      const graphNodes = nodesEligibleForFraming(workingNodes.filter((n) => idSet.has(n.id)));
+      if (graphNodes.length === 0) return;
+
+      const frameName = name
+        || (activeBiomeSection ? resolveAutoFrameSectionTitle(activeBiomeSection) : "");
+      const frame = buildFrameAroundNodes(graphNodes, frameName, { pad });
+      if (!frame) return;
+
+      mutateAndCommit(() => ({
+        nodes: [
+          frame,
+          ...workingNodes.map((n) => ({ ...n, selected: false })),
+        ],
+        selectedNodeId: frame.id,
+      }), shouldLoosen ? "Frame selection (spaced)" : "Frame selection");
       markDirty();
     },
 

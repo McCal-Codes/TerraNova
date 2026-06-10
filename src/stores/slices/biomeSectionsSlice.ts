@@ -1,6 +1,7 @@
 import { useUIStore } from "../uiStore";
 import { emit } from "../storeEvents";
 import { saveSession } from "@/utils/sessionPersist";
+import { normalizeMaterialSectionNodeTypes } from "@/utils/materialSectionNodes";
 import type {
   EditorState,
   SliceCreator,
@@ -57,10 +58,14 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
       // Load target section (including its history)
       const targetData = updated[target];
       if (targetData) {
+        const targetNodes =
+          target === "MaterialProvider"
+            ? normalizeMaterialSectionNodeTypes(structuredClone(targetData.nodes))
+            : structuredClone(targetData.nodes);
         set({
           biomeSections: updated,
           activeBiomeSection: target,
-          nodes: structuredClone(targetData.nodes),
+          nodes: targetNodes,
           edges: structuredClone(targetData.edges),
           outputNodeId: targetData.outputNodeId ?? null,
           selectedNodeId: null,

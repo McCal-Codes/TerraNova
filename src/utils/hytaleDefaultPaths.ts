@@ -1,5 +1,6 @@
 import { homeDir, join } from "@tauri-apps/api/path";
 import { pathExists } from "./ipc";
+import { isTauriRuntime } from "./platform";
 
 type OS = "windows" | "macos" | "linux";
 

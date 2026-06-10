@@ -76,6 +76,13 @@ const SCHEMA_CATEGORY_TO_IMPORT_CATEGORY: Partial<Record<AssetCategory, string>>
   [AssetCategory.WorldStructure]: "worldstructure",
 };
 
+/** Prop types that need prop-specific field transforms when imported without parent context. */
+const HYTALE_TYPE_IMPORT_CATEGORY: Record<string, string> = {
+  Column: "prop",
+  Prefab: "prop",
+  Box: "prop",
+};
+
 const NON_DENSITY_BARE_SCHEMA_TYPES = new Set([
   "AlwaysTrueCondition",
   "AndCondition",
@@ -203,6 +210,23 @@ export function parseNodeEditorMetadata(raw: Record<string, unknown>): {
   }
 
   return { nodePositions, hytaleComments, hytaleGroups };
+}
+
+/** McCal-style assignments often put $Comments/$Groups on the root without $NodeEditorMetadata. */
+function mergeRootEditorAnnotations(
+  json: Record<string, unknown>,
+  metadata: ImportMetadata,
+): void {
+  if ("$NodeEditorMetadata" in json) return;
+  const pseudo: Record<string, unknown> = {};
+  for (const key of ["$Comments", "$Groups", "$Nodes"] as const) {
+    if (key in json) pseudo[key] = json[key];
+  }
+  if (Object.keys(pseudo).length === 0) return;
+  const parsed = parseNodeEditorMetadata(pseudo);
+  metadata.hytaleComments = parsed.hytaleComments;
+  metadata.hytaleGroups = parsed.hytaleGroups;
+  metadata.nodePositions = { ...metadata.nodePositions, ...parsed.nodePositions };
 }
 
 // ---------------------------------------------------------------------------
@@ -428,20 +452,40 @@ function reversePrefabPropFields(asset: Record<string, unknown>): Record<string,
 
 function reverseColumnPropFields(asset: Record<string, unknown>): Record<string, unknown> {
   const result = { ...asset };
-  if ("ColumnBlocks" in result && Array.isArray(result.ColumnBlocks)) {
-    const blocks = result.ColumnBlocks as Record<string, unknown>[];
-    if (blocks.length > 0) {
-      const first = blocks[0];
-      result.Height = first.Y ?? 0;
-      const mat = first.Material;
-      if (mat && typeof mat === "object" && "Solid" in (mat as Record<string, unknown>)) {
-        result.Material = (mat as Record<string, unknown>).Solid;
-      } else {
-        result.Material = mat;
-      }
+  if (!("ColumnBlocks" in result) || !Array.isArray(result.ColumnBlocks)) {
+    return result;
+  }
+
+  const blocks = result.ColumnBlocks as Record<string, unknown>[];
+  if (blocks.length === 0) {
+    delete result.ColumnBlocks;
+    return result;
+  }
+
+  if (blocks.length === 1) {
+    const first = blocks[0];
+    result.Height = first.Y ?? 0;
+    const mat = first.Material;
+    if (mat && typeof mat === "object" && "Solid" in (mat as Record<string, unknown>)) {
+      result.Material = (mat as Record<string, unknown>).Solid;
+    } else {
+      result.Material = mat;
     }
     delete result.ColumnBlocks;
+    return result;
   }
+
+  // Multi-block stacks must round-trip as ColumnBlocks (Height/Material only holds one block).
+  result.ColumnBlocks = blocks.map((block) => {
+    const { $NodeId: _, ...rest } = block;
+    if (rest.Material && typeof rest.Material === "object") {
+      const { $NodeId: _m, ...mat } = rest.Material as Record<string, unknown>;
+      return { ...rest, Material: mat };
+    }
+    return rest;
+  });
+  delete result.Height;
+  delete result.Material;
   return result;
 }
 
@@ -945,6 +989,7 @@ function transformNodeToInternal(
   // Determine category for field transforms
   const category = ctx.category ??
     (nodeId ? inferCategoryFromNodeId(nodeId) : undefined) ??
+    HYTALE_TYPE_IMPORT_CATEGORY[hytaleType] ??
     inferCategoryFromType(hytaleType) ??
     (ctx.parentField ? inferCategoryFromParent(ctx.parentField) : "density");
 
@@ -1364,6 +1409,16 @@ function transformNodeToInternal(
     }
   }
 
+  // Per-node Hytale $Comment → TerraNova inspector note (not canvas comment nodes)
+  if (asset.$Comment && typeof asset.$Comment === "string") {
+    const comment = asset.$Comment as string;
+    const isConditionalTag =
+      hytaleType === "Mix" && /^Conditional\(Threshold=/.test(comment);
+    if (!isConditionalTag) {
+      output._comment = comment;
+    }
+  }
+
   return output;
 }
 
@@ -1452,6 +1507,8 @@ export function hytaleToInternal(
     metadata.nodePositions = parsed.nodePositions;
     metadata.hytaleComments = parsed.hytaleComments;
     metadata.hytaleGroups = parsed.hytaleGroups;
+  } else {
+    mergeRootEditorAnnotations(json, metadata);
   }
 
   const result = transformNodeToInternal(json, {}, metadata);

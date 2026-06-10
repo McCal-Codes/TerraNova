@@ -13,11 +13,9 @@ export function RootDock() {
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
   const editingContext = useEditorStore((s) => s.editingContext);
+  const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
   const { getTypeDisplayName } = useLanguage();
   const reactFlow = useReactFlow();
-
-  // Hide for non-graph editing contexts (world structure, settings, raw JSON)
-  if (editingContext && HIDDEN_CONTEXTS.has(editingContext)) return null;
 
   // Find the Root node in the graph
   const rootNode = nodes.find((n) => n.type === "Root");
@@ -46,6 +44,14 @@ export function RootDock() {
     e.stopPropagation();
     setCollapsed((c) => !c);
   }, []);
+
+  const hidden =
+    (editingContext != null && HIDDEN_CONTEXTS.has(editingContext))
+    || (editingContext === "Biome"
+      && activeBiomeSection != null
+      && activeBiomeSection !== "Terrain");
+
+  if (hidden) return null;
 
   // Collapsed: just a small circle tab on the right edge
   if (collapsed) {

@@ -241,6 +241,21 @@ export const randVecs3D = new Float32Array([
 // ── Side-channel for d1/d2 distances (used by CellWallDistance) ──
 export const lastVoronoiDistances = { d1: 0, d2: 0 };
 
+/** Winning cell hash from the most recent voronoi sample. */
+export let lastVoronoiCellHash = 0;
+
+/** Jittered feature point in the same coordinate space as the sample (x + vecX, …). */
+export const lastVoronoiCellCenter = { x: 0, y: 0, z: 0 };
+
+export function resetVoronoiSideChannel(): void {
+  lastVoronoiDistances.d1 = 0;
+  lastVoronoiDistances.d2 = 0;
+  lastVoronoiCellHash = 0;
+  lastVoronoiCellCenter.x = 0;
+  lastVoronoiCellCenter.y = 0;
+  lastVoronoiCellCenter.z = 0;
+}
+
 // ── Return type resolution ──
 
 function resolveReturn(
@@ -324,6 +339,9 @@ export function voronoiNoise2D(
         if (newDistance < distance0) {
           distance0 = newDistance;
           closestHash = hash;
+          lastVoronoiCellCenter.x = x + vecX;
+          lastVoronoiCellCenter.y = y + vecY;
+          lastVoronoiCellCenter.z = 0;
         }
 
         yPrimed = (yPrimed + PRIME_Y) | 0;
@@ -335,6 +353,7 @@ export function voronoiNoise2D(
     // Euclidean accumulates squared distances; apply sqrt before storing.
     lastVoronoiDistances.d1 = df === "Euclidean" ? Math.sqrt(distance0) : distance0;
     lastVoronoiDistances.d2 = df === "Euclidean" ? Math.sqrt(distance1) : distance1;
+    lastVoronoiCellHash = closestHash;
     return resolveReturn(df, rt, distance0, distance1, closestHash);
   };
 }
@@ -397,6 +416,9 @@ export function voronoiNoise3D(
           if (newDistance < distance0) {
             distance0 = newDistance;
             closestHash = hash;
+            lastVoronoiCellCenter.x = x + vecX;
+            lastVoronoiCellCenter.y = y + vecY;
+            lastVoronoiCellCenter.z = z + vecZ;
           }
 
           zPrimed = (zPrimed + PRIME_Z) | 0;
@@ -410,6 +432,7 @@ export function voronoiNoise3D(
     // Euclidean accumulates squared distances; apply sqrt before storing.
     lastVoronoiDistances.d1 = df === "Euclidean" ? Math.sqrt(distance0) : distance0;
     lastVoronoiDistances.d2 = df === "Euclidean" ? Math.sqrt(distance1) : distance1;
+    lastVoronoiCellHash = closestHash;
     return resolveReturn(df, rt, distance0, distance1, closestHash);
   };
 }

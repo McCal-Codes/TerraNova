@@ -33,6 +33,8 @@ import { getMutateAndCommit } from "@/stores/slices/historySlice";
 import { useToastStore } from "@/stores/toastStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { ChromeIconButton } from "@/components/ui/editorChrome";
+import { useUIStore } from "@/stores/uiStore";
 
 // ── Inline node pill ─────────────────────────────────────────────────────────
 // Category colours match DocNodeGraph's CATEGORY_COLORS palette.
@@ -309,6 +311,7 @@ const SLUG_TITLE_OVERRIDES: Record<string, string> = {
   "guides/terrain/terrain-composition-expert":               "Terrain Composition",
   "guides/terrain/terrain-experimental":                     "Experimental Terrain",
   "guides/terrain/terrain-math-explained":                   "Terrain Math",
+  "guides/terrain/2d-preview-topographic-context":           "2D Preview & Topo Maps",
   // Guides/world
   "guides/world/biome-system":                               "Biome System",
   "guides/world/node-combinations":                          "Node Combinations",
@@ -1242,6 +1245,8 @@ export function DocsPanel() {
   const selectedSlugRef = useRef<string | null>(null);
   const addToast = useToastStore((s) => s.addToast);
   const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
+  const requestedDocSlug = useUIStore((s) => s.requestedDocSlug);
+  const setRequestedDocSlug = useUIStore((s) => s.setRequestedDocSlug);
 
   const writeTextToClipboard = useCallback(async (text: string): Promise<boolean> => {
     try {
@@ -1551,6 +1556,18 @@ export function DocsPanel() {
       loadDoc(target);
     }
   }, [selectedSlug, entries, loadDoc]);
+
+  // Deep-link from in-app help buttons (preview, environment editor, etc.)
+  const requestedDocSlugRef = useRef(requestedDocSlug);
+  requestedDocSlugRef.current = requestedDocSlug;
+  useEffect(() => {
+    const slug = requestedDocSlugRef.current;
+    if (!slug || entries.length === 0) return;
+    if (entriesBySlug.has(slug)) {
+      void loadDoc(slug);
+    }
+    setRequestedDocSlug(null);
+  }, [requestedDocSlug, entries.length, entriesBySlug, loadDoc, setRequestedDocSlug, selectedSlug]);
 
   // Build full-text index + backlinks for quick search and related docs
   useEffect(() => {
@@ -2215,12 +2232,13 @@ export function DocsPanel() {
           sidebarCollapsed ? "hidden" : "w-64 min-w-[220px]"
         }`}
       >
-        <div className="border-b border-tn-border px-3 py-2 flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 border-b border-tn-border px-2 py-1.5">
           {!showSettings && (
-            <div className="relative flex-1">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tn-text-muted/60" aria-hidden />
               <input
                 ref={searchInputRef}
-                className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 pr-6 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
+                className="h-7 w-full rounded-md border border-tn-border bg-tn-bg pl-7 pr-7 text-[12px] text-tn-text focus:border-tn-accent focus:outline-none"
                 placeholder="Search docs…"
                 title="Search docs (Ctrl+K)"
                 value={filter}
@@ -2265,23 +2283,24 @@ export function DocsPanel() {
               )}
             </div>
           )}
-          {showSettings && <span className="flex-1 text-xs font-semibold text-tn-text-muted uppercase tracking-wide pl-1">Settings</span>}
-          <button
-            type="button"
-            className={`flex items-center justify-center w-6 h-6 shrink-0 rounded focus:outline-none transition-colors ${showSettings ? "text-tn-accent bg-tn-accent/15" : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"}`}
+          {showSettings && (
+            <span className="flex-1 pl-1 text-[11px] font-semibold uppercase tracking-wide text-tn-text-muted">
+              Settings
+            </span>
+          )}
+          <ChromeIconButton
+            size="sm"
+            label="Docs settings"
+            active={showSettings}
             onClick={() => setShowSettings((v) => !v)}
-            title="Docs settings"
-          >
-            <Settings className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            className="flex items-center justify-center w-6 h-6 shrink-0 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none"
+            icon={<Settings className="h-3.5 w-3.5" strokeWidth={2} />}
+          />
+          <ChromeIconButton
+            size="sm"
+            label="Hide docs tree"
             onClick={() => toggleSidebarCollapsed()}
-            title="Hide docs tree"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+            icon={<ChevronLeft className="h-4 w-4" strokeWidth={2} />}
+          />
         </div>
 
         {showSettings ? (
@@ -2599,35 +2618,28 @@ export function DocsPanel() {
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 {sidebarCollapsed && (
-                  <button
-                    type="button"
-                    className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none"
+                  <ChromeIconButton
+                    size="sm"
+                    label="Show docs tree"
                     onClick={() => toggleSidebarCollapsed()}
-                    title="Show docs tree"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+                    icon={<ChevronRight className="h-4 w-4" strokeWidth={2} />}
+                  />
                 )}
-                {/* Back / Forward -- visually grouped with a subtle separator from the Nav toggle */}
-                <div className="flex items-center gap-0.5 border border-tn-border rounded px-0.5">
-                  <button
-                    type="button"
-                    className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none disabled:opacity-30"
+                <div className="inline-flex items-center gap-0.5 rounded-md border border-tn-border/70 bg-tn-bg/40 p-0.5">
+                  <ChromeIconButton
+                    size="sm"
+                    label="Back (Alt+←)"
                     onClick={navBack}
                     disabled={navIndex <= 0}
-                    title="Back (Alt+←)"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none disabled:opacity-30"
+                    icon={<ChevronLeft className="h-4 w-4" strokeWidth={2} />}
+                  />
+                  <ChromeIconButton
+                    size="sm"
+                    label="Forward (Alt+→)"
                     onClick={navForward}
                     disabled={navIndex >= navHistory.length - 1}
-                    title="Forward (Alt+→)"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+                    icon={<ChevronRight className="h-4 w-4" strokeWidth={2} />}
+                  />
                 </div>
                 <div className="flex items-center gap-1 text-sm min-w-0">
                   {breadcrumbsFromSlug(selectedSlug).map((crumb, i, arr) => (
@@ -2665,14 +2677,16 @@ export function DocsPanel() {
                     <div className="max-w-[220px] truncate text-sm font-medium text-tn-text">{selectedEntry.title}</div>
                   </div>
                 )}
-                <button
-                  type="button"
-                  title="Find in page (Ctrl+F)"
-                  onClick={() => { setFindActive((v) => !v); requestAnimationFrame(() => findInputRef.current?.focus()); }}
-                  className={`flex items-center justify-center w-6 h-6 rounded border transition-colors ${findActive ? "border-tn-accent/60 bg-tn-accent/15 text-tn-accent" : "border-tn-border text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"}`}
-                >
-                  <Search className="h-3.5 w-3.5" />
-                </button>
+                <ChromeIconButton
+                  size="sm"
+                  label="Find in page (Ctrl+F)"
+                  active={findActive}
+                  onClick={() => {
+                    setFindActive((v) => !v);
+                    requestAnimationFrame(() => findInputRef.current?.focus());
+                  }}
+                  icon={<Search className="h-3.5 w-3.5" strokeWidth={2} />}
+                />
                 {walkthroughSteps.length > 0 && (
                   <button
                     className="rounded border border-tn-border bg-tn-panel px-3 py-1 text-sm text-tn-text hover:bg-tn-panel/80"

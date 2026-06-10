@@ -57,11 +57,13 @@ export function useBridge() {
   }, []);
 
   const reloadWorldgen = useCallback(async (): Promise<BridgeResponse | null> => {
-    const { setLastError } = useBridgeStore.getState();
+    const { setLastError, setLastNotice } = useBridgeStore.getState();
     setLastError(null);
+    setLastNotice(null);
     try {
       const res = await bridgeReloadWorldgen();
       if (!res.success) setLastError(res.message);
+      else setLastNotice(res.message);
       return res;
     } catch (err) {
       setLastError(`Reload failed: ${err}`);
@@ -71,11 +73,13 @@ export function useBridge() {
 
   const regenerateChunks = useCallback(
     async (x: number, z: number, radius: number): Promise<BridgeResponse | null> => {
-      const { setLastError } = useBridgeStore.getState();
+      const { setLastError, setLastNotice } = useBridgeStore.getState();
       setLastError(null);
+      setLastNotice(null);
       try {
         const res = await bridgeRegenerateChunks(x, z, radius);
         if (!res.success) setLastError(res.message);
+        else setLastNotice(res.message);
         return res;
       } catch (err) {
         setLastError(`Regen failed: ${err}`);
@@ -87,11 +91,13 @@ export function useBridge() {
 
   const teleport = useCallback(
     async (playerName: string, x: number, y: number, z: number): Promise<BridgeResponse | null> => {
-      const { setLastError } = useBridgeStore.getState();
+      const { setLastError, setLastNotice } = useBridgeStore.getState();
       setLastError(null);
+      setLastNotice(null);
       try {
         const res = await bridgeTeleport(playerName, x, y, z);
         if (!res.success) setLastError(res.message);
+        else setLastNotice(res.message);
         return res;
       } catch (err) {
         setLastError(`Teleport failed: ${err}`);
@@ -113,9 +119,10 @@ export function useBridge() {
   }, []);
 
   const syncAndReload = useCallback(async (): Promise<BridgeResponse | null> => {
-    const { serverModPath, setLastError } = useBridgeStore.getState();
+    const { serverModPath, setLastError, setLastNotice } = useBridgeStore.getState();
     const { currentFile, projectPath } = useProjectStore.getState();
     setLastError(null);
+    setLastNotice(null);
 
     if (!currentFile || !projectPath || !serverModPath) {
       setLastError("No file open, no project path, or no server mod path configured");
@@ -130,6 +137,7 @@ export function useBridge() {
     try {
       const res = await bridgeSyncFile(currentFile, serverModPath, relativePath);
       if (!res.success) setLastError(res.message);
+      else setLastNotice(res.message);
       return res;
     } catch (err) {
       setLastError(`Sync failed: ${err}`);

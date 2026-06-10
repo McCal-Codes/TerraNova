@@ -59,6 +59,31 @@ describe("jsonToGraph", () => {
     }));
   });
 
+  it("prefixes material Conditional TrueInput/FalseInput children as Material:* nodes", () => {
+    const json = {
+      Type: "Conditional",
+      Threshold: 0.58,
+      Condition: { Type: "SimplexNoise2D", Frequency: 0.01, Seed: "A" },
+      TrueInput: { Type: "Constant", Material: "Rock_Lime_Cobble" },
+      FalseInput: {
+        Type: "Conditional",
+        Threshold: 0.66,
+        Condition: { Type: "SimplexNoise2D", Frequency: 0.02, Seed: "B" },
+        TrueInput: { Type: "Constant", Material: "Soil_Dirt" },
+        FalseInput: { Type: "Imported", Name: "MyPack.Material" },
+      },
+    };
+
+    const { nodes } = jsonToGraph(json, 0, 0, "mat", "MaterialProvider");
+    const types = nodes.map((n) => n.type).sort();
+
+    expect(types).toContain("Material:Conditional");
+    expect(types).toContain("Material:Constant");
+    expect(types).toContain("Material:Imported");
+    expect(types.filter((t) => t === "Constant")).toHaveLength(0);
+    expect(types.filter((t) => t === "Imported")).toHaveLength(0);
+  });
+
   it("produces nodes + edges from nested assets", () => {
     const json = {
       Type: "Clamp",
@@ -394,5 +419,36 @@ describe("jsonToGraph edge creation (handle audit)", () => {
     expect(nodes.some((n) => n.type === "Pattern:Floor")).toBe(true);
     expect(nodes.some((n) => n.type === "BlockMask:All")).toBe(true);
     expect(nodes.some((n) => n.type === "Directionality:Uniform")).toBe(true);
+  });
+
+  it("prefixes disconnected Manual curve roots as Curve:Manual", () => {
+    const json = {
+      Type: "Sum",
+      Inputs: [{ Type: "Constant", Value: 1 }],
+      $DisconnectedTrees: [{ Type: "Manual", Points: [] }],
+    };
+    const { nodes } = jsonToGraph(json);
+    const manual = nodes.find((n) => (n.data as Record<string, unknown>).type === "Manual");
+    expect(manual?.type).toBe("Curve:Manual");
+  });
+
+  it("keeps density Mix bare when nested under Curves[]", () => {
+    const json = {
+      Type: "Sum",
+      Curves: [
+        { Type: "Manual", Points: [] },
+        {
+          Type: "Mix",
+          Inputs: [
+            { Type: "Constant", Value: 0 },
+            { Type: "Constant", Value: 1 },
+            { Type: "Constant", Value: 0.5 },
+          ],
+        },
+      ],
+    };
+    const { nodes } = jsonToGraph(json);
+    const mix = nodes.find((n) => (n.data as Record<string, unknown>).type === "Mix");
+    expect(mix?.type).toBe("Mix");
   });
 });

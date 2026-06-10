@@ -1,16 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
 import { EvalStatus } from "@/schema/types";
 
-const UNSUPPORTED_TYPES = new Set([
-  "SurfaceDensity",
-  "TerrainBoolean",
-  "TerrainMask",
-  "BeardDensity",
-  "ColumnDensity",
-  "CaveDensity",
-  "DistanceToBiomeEdge",
-  "Pipeline",
-]);
+const UNSUPPORTED_TYPES = new Set<string>([]);
 
 const APPROXIMATED_TYPES = new Set([
   "PositionsCellNoise",
@@ -21,6 +12,14 @@ const APPROXIMATED_TYPES = new Set([
   "Shell",
   "Terrain",
   "HeightAboveSurface",
+  "TerrainBoolean",
+  "Pipeline",
+  "SurfaceDensity",
+  "TerrainMask",
+  "BeardDensity",
+  "ColumnDensity",
+  "CaveDensity",
+  "DistanceToBiomeEdge",
 ]);
 
 export function getEvalStatus(type: string): EvalStatus {

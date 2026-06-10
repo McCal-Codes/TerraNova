@@ -1,25 +1,28 @@
 import type { AtmosphereSettings } from "@/stores/previewStore";
-import { listDirectory, readAssetFile, type DirectoryEntryData } from "@/utils/ipc";
+import { listDirectory, readAssetFile } from "@/utils/ipc";
+import {
+  buildAtmosphereSettings,
+  FALLBACK_ATMOSPHERE_SETTINGS,
+} from "@/utils/atmosphere/atmosphereSettings";
+import {
+  clearAtmosphereAssetIndexCache,
+  getAssetIndex,
+  loadEnvironmentWithParents,
+  type AtmosphereAssetDeps,
+} from "@/utils/atmosphere/environmentParents";
+import { selectForecastWeatherId } from "@/utils/atmosphere/forecastSelection";
+import {
+  asRecord,
+  normalizeAssetName,
+  normalizeHour,
+  toFiniteNumber,
+  type JsonRecord,
+} from "@/utils/atmosphere/jsonUtils";
+
+export { normalizeColorToken } from "@/utils/atmosphere/colorTracks";
+export { selectForecastWeatherId } from "@/utils/atmosphere/forecastSelection";
 
 const DEFAULT_HOUR = 12;
-const HOURS_PER_DAY = 24;
-
-const FALLBACK_ATMOSPHERE_SETTINGS: AtmosphereSettings = {
-  skyHorizon: "#8fd8f8",
-  skyZenith: "#077ddd",
-  sunsetColor: "#ffb951",
-  sunGlowColor: "#ffffff",
-  cloudDensity: 0.3,
-  fogColor: "#8fd8f8",
-  fogNear: -96,
-  fogFar: 1024,
-  ambientColor: "#6080a0",
-  sunColor: "#ffffff",
-  waterTint: "#1983d9",
-  sunAngle: 60,
-};
-
-type JsonRecord = Record<string, unknown>;
 
 export interface ResolveBiomeAtmosphereInput {
   biomeConfig: unknown;
@@ -42,49 +45,6 @@ export interface ResolveBiomeAtmosphereMetadata {
 export interface ResolveBiomeAtmosphereResult {
   settings: AtmosphereSettings;
   metadata: ResolveBiomeAtmosphereMetadata;
-}
-
-interface ResolveBiomeAtmosphereDeps {
-  listDirectoryFn: typeof listDirectory;
-  readAssetFileFn: typeof readAssetFile;
-}
-
-interface AssetIndex {
-  environmentPaths: Map<string, string>;
-  weatherPaths: Map<string, string>;
-}
-
-interface LoadedEnvironment {
-  mergedEnvironment: JsonRecord | null;
-  requestedPath: string | null;
-  warnings: string[];
-}
-
-interface HourValue<T> {
-  hour: number;
-  value: T;
-}
-
-const assetIndexCache = new Map<string, Promise<AssetIndex>>();
-
-function asRecord(value: unknown): JsonRecord | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return value as JsonRecord;
-}
-
-function toFiniteNumber(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  return value;
-}
-
-function normalizeHour(hour: number): number {
-  const normalized = hour % HOURS_PER_DAY;
-  return normalized < 0 ? normalized + HOURS_PER_DAY : normalized;
-}
-
-function hourDistance(a: number, b: number): number {
-  const diff = Math.abs(a - b);
-  return Math.min(diff, HOURS_PER_DAY - diff);
 }
 
 function trimTrailingSeparators(path: string): string {
@@ -157,87 +117,8 @@ function buildServerRootCandidates(
   return candidates;
 }
 
-function collectJsonFilePaths(entries: DirectoryEntryData[]): string[] {
-  const result: string[] = [];
-  const stack = [...entries];
-  while (stack.length > 0) {
-    const entry = stack.pop();
-    if (!entry) continue;
-    if (entry.is_dir) {
-      if (Array.isArray(entry.children)) {
-        for (const child of entry.children) {
-          stack.push(child);
-        }
-      }
-      continue;
-    }
-    if (entry.path.toLowerCase().endsWith(".json")) {
-      result.push(entry.path);
-    }
-  }
-  return result;
-}
-
-function fileStem(path: string): string {
-  const normalized = path.replace(/\\/g, "/");
-  const fileName = normalized.slice(normalized.lastIndexOf("/") + 1);
-  return fileName.replace(/\.json$/i, "");
-}
-
-function createAssetNameIndex(paths: string[]): Map<string, string> {
-  const sortedPaths = [...paths].sort((a, b) => a.localeCompare(b));
-  const index = new Map<string, string>();
-  for (const path of sortedPaths) {
-    const key = fileStem(path).toLowerCase();
-    if (!index.has(key)) {
-      index.set(key, path);
-    }
-  }
-  return index;
-}
-
-async function buildAssetIndex(
-  serverRoot: string,
-  deps: ResolveBiomeAtmosphereDeps,
-): Promise<AssetIndex> {
-  const environmentsDir = joinPath(serverRoot, "Environments");
-  const weathersDir = joinPath(serverRoot, "Weathers");
-  const [environmentEntries, weatherEntries] = await Promise.all([
-    deps.listDirectoryFn(environmentsDir),
-    deps.listDirectoryFn(weathersDir),
-  ]);
-  return {
-    environmentPaths: createAssetNameIndex(collectJsonFilePaths(environmentEntries)),
-    weatherPaths: createAssetNameIndex(collectJsonFilePaths(weatherEntries)),
-  };
-}
-
-async function getAssetIndex(
-  serverRoot: string,
-  deps: ResolveBiomeAtmosphereDeps,
-): Promise<AssetIndex> {
-  const key = serverRoot.toLowerCase();
-  if (!assetIndexCache.has(key)) {
-    const pending = buildAssetIndex(serverRoot, deps).catch((error) => {
-      assetIndexCache.delete(key);
-      throw error;
-    });
-    assetIndexCache.set(key, pending);
-  }
-  return assetIndexCache.get(key)!;
-}
-
 export function clearResolveBiomeAtmosphereCache(): void {
-  assetIndexCache.clear();
-}
-
-function normalizeAssetName(name: unknown): string | null {
-  if (typeof name !== "string") return null;
-  const trimmed = name.trim();
-  if (!trimmed) return null;
-  const withoutExtension = trimmed.replace(/\.json$/i, "");
-  if (withoutExtension.toLowerCase() === "default") return "Default";
-  return withoutExtension;
+  clearAtmosphereAssetIndexCache();
 }
 
 function getRangeMidpoint(range: unknown): number | null {
@@ -319,298 +200,6 @@ export function pickEnvironmentNameFromProvider(provider: unknown): string | nul
   return pickEnvironmentFromDelimiters(providerObj.Delimiters);
 }
 
-function deepMergeRecords(base: JsonRecord, override: JsonRecord): JsonRecord {
-  const merged: JsonRecord = { ...base };
-  for (const [key, value] of Object.entries(override)) {
-    const baseValue = merged[key];
-    const baseObj = asRecord(baseValue);
-    const valueObj = asRecord(value);
-    if (baseObj && valueObj) {
-      merged[key] = deepMergeRecords(baseObj, valueObj);
-    } else {
-      merged[key] = value;
-    }
-  }
-  return merged;
-}
-
-async function loadEnvironmentWithParents(
-  environmentName: string,
-  assetIndex: AssetIndex,
-  deps: ResolveBiomeAtmosphereDeps,
-): Promise<LoadedEnvironment> {
-  const warnings: string[] = [];
-  const requestedPath = assetIndex.environmentPaths.get(environmentName.toLowerCase()) ?? null;
-  if (!requestedPath) {
-    warnings.push(`Environment "${environmentName}" was not found in Server/Environments.`);
-    return { mergedEnvironment: null, requestedPath: null, warnings };
-  }
-
-  const chain: JsonRecord[] = [];
-  const visited = new Set<string>();
-  let currentEnvironment: string | null = environmentName;
-
-  while (currentEnvironment) {
-    const key = currentEnvironment.toLowerCase();
-    if (visited.has(key)) {
-      warnings.push(`Environment parent cycle detected at "${currentEnvironment}".`);
-      break;
-    }
-    visited.add(key);
-
-    const envPath = assetIndex.environmentPaths.get(key);
-    if (!envPath) {
-      warnings.push(`Environment "${currentEnvironment}" was not found in Server/Environments.`);
-      break;
-    }
-
-    const rawEnv = await deps.readAssetFileFn(envPath);
-    const env = asRecord(rawEnv);
-    if (!env) {
-      warnings.push(`Environment file "${envPath}" is not a JSON object.`);
-      break;
-    }
-
-    chain.unshift(env);
-    currentEnvironment = normalizeAssetName(env.Parent);
-  }
-
-  if (chain.length === 0) {
-    return { mergedEnvironment: null, requestedPath, warnings };
-  }
-
-  const mergedEnvironment = chain.reduce<JsonRecord>((acc, env) => deepMergeRecords(acc, env), {});
-  return { mergedEnvironment, requestedPath, warnings };
-}
-
-function pickClosestHourBucket(
-  buckets: Array<{ hour: number; options: unknown }>,
-  hour: number,
-): unknown {
-  if (buckets.length === 0) return null;
-  const normalized = normalizeHour(hour);
-
-  let bestBucket = buckets[0];
-  let bestDistance = hourDistance(normalized, bestBucket.hour);
-  for (let i = 1; i < buckets.length; i++) {
-    const candidate = buckets[i];
-    const distance = hourDistance(normalized, candidate.hour);
-    if (distance < bestDistance) {
-      bestBucket = candidate;
-      bestDistance = distance;
-    }
-  }
-
-  return bestBucket.options;
-}
-
-export function selectForecastWeatherId(weatherForecasts: unknown, hour: number): string | null {
-  const forecastObj = asRecord(weatherForecasts);
-  if (!forecastObj) return null;
-
-  const buckets = Object.entries(forecastObj)
-    .map(([hourKey, options]) => {
-      const parsedHour = Number(hourKey);
-      if (!Number.isFinite(parsedHour)) return null;
-      return {
-        hour: normalizeHour(parsedHour),
-        options,
-      };
-    })
-    .filter((bucket): bucket is { hour: number; options: unknown } => bucket !== null);
-
-  const selectedBucket = pickClosestHourBucket(buckets, hour);
-  if (!Array.isArray(selectedBucket)) return null;
-
-  let bestWeatherId: string | null = null;
-  let bestWeight = Number.NEGATIVE_INFINITY;
-
-  for (const option of selectedBucket) {
-    const optionObj = asRecord(option);
-    if (!optionObj) continue;
-    const weatherId = normalizeAssetName(optionObj.WeatherId ?? optionObj.Weather);
-    if (!weatherId) continue;
-
-    const weight = toFiniteNumber(optionObj.Weight) ?? 0;
-    if (weight > bestWeight) {
-      bestWeight = weight;
-      bestWeatherId = weatherId;
-    }
-  }
-
-  return bestWeatherId;
-}
-
-const HEX6_COLOR_RE = /^#([0-9a-fA-F]{6})$/;
-const HEX8_COLOR_RE = /^#([0-9a-fA-F]{8})$/;
-const RGBA_HEX_COLOR_RE = /^rgba\(\s*#([0-9a-fA-F]{6})(?:[0-9a-fA-F]{2})?\s*,\s*[0-9]*\.?[0-9]+\s*\)$/i;
-
-export function normalizeColorToken(color: unknown): string | null {
-  if (typeof color !== "string") return null;
-  const trimmed = color.trim();
-
-  const hex6 = HEX6_COLOR_RE.exec(trimmed);
-  if (hex6) return `#${hex6[1].toLowerCase()}`;
-
-  const hex8 = HEX8_COLOR_RE.exec(trimmed);
-  if (hex8) return `#${hex8[1].slice(0, 6).toLowerCase()}`;
-
-  const rgbaHex = RGBA_HEX_COLOR_RE.exec(trimmed);
-  if (rgbaHex) return `#${rgbaHex[1].toLowerCase()}`;
-
-  return null;
-}
-
-function parseHourlyValues<T>(
-  timeline: unknown,
-  valueExtractor: (entry: JsonRecord) => T | null,
-): Array<HourValue<T>> {
-  if (!Array.isArray(timeline)) return [];
-  const entries: Array<HourValue<T>> = [];
-  for (const rawEntry of timeline) {
-    const entry = asRecord(rawEntry);
-    if (!entry) continue;
-    const parsedHour = toFiniteNumber(entry.Hour);
-    if (parsedHour === null) continue;
-    const parsedValue = valueExtractor(entry);
-    if (parsedValue === null) continue;
-    entries.push({
-      hour: normalizeHour(parsedHour),
-      value: parsedValue,
-    });
-  }
-  return entries.sort((a, b) => a.hour - b.hour);
-}
-
-function sampleHourlyValue<T>(values: Array<HourValue<T>>, hour: number): T | null {
-  if (values.length === 0) return null;
-  const normalized = normalizeHour(hour);
-
-  let selected = values[values.length - 1].value;
-  for (const value of values) {
-    if (value.hour > normalized) break;
-    selected = value.value;
-  }
-  return selected;
-}
-
-function sampleColorTimeline(timeline: unknown, hour: number): string | null {
-  const rawColors = parseHourlyValues<string>(timeline, (entry) => {
-    if (typeof entry.Color !== "string") return null;
-    return entry.Color;
-  });
-  const sampledRaw = sampleHourlyValue(rawColors, hour);
-  return normalizeColorToken(sampledRaw);
-}
-
-function parseFogDistance(fogDistance: unknown): [number, number] | null {
-  if (!Array.isArray(fogDistance) || fogDistance.length < 2) return null;
-  const near = toFiniteNumber(fogDistance[0]);
-  const far = toFiniteNumber(fogDistance[1]);
-  if (near === null || far === null) return null;
-  return [near, far];
-}
-
-function clampByte(value: number): number {
-  if (value <= 0) return 0;
-  if (value >= 255) return 255;
-  return Math.round(value);
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-  const value = hex.slice(1);
-  return [
-    parseInt(value.slice(0, 2), 16),
-    parseInt(value.slice(2, 4), 16),
-    parseInt(value.slice(4, 6), 16),
-  ];
-}
-
-function rgbToHex(rgb: [number, number, number]): string {
-  const [r, g, b] = rgb.map(clampByte) as [number, number, number];
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-}
-
-function blendHexColors(a: string, b: string, t: number): string {
-  const clampedT = Math.max(0, Math.min(1, t));
-  const [ar, ag, ab] = hexToRgb(a);
-  const [br, bg, bb] = hexToRgb(b);
-  return rgbToHex([
-    ar + (br - ar) * clampedT,
-    ag + (bg - ag) * clampedT,
-    ab + (bb - ab) * clampedT,
-  ]);
-}
-
-function scaleHexColor(hex: string, scale: number): string {
-  const [r, g, b] = hexToRgb(hex);
-  return rgbToHex([r * scale, g * scale, b * scale]);
-}
-
-function deriveAmbientColor(
-  sunColor: string,
-  fogColor: string,
-  skyHorizon: string,
-): string {
-  const fogSkyMix = blendHexColors(fogColor, skyHorizon, 0.5);
-  const litMix = blendHexColors(fogSkyMix, sunColor, 0.35);
-  return scaleHexColor(litMix, 0.75);
-}
-
-function buildAtmosphereSettings(
-  environment: JsonRecord | null,
-  weather: JsonRecord | null,
-  hour: number,
-): AtmosphereSettings {
-  const skyHorizon =
-    sampleColorTimeline(weather?.SkyBottomColors, hour) ??
-    FALLBACK_ATMOSPHERE_SETTINGS.skyHorizon;
-  const skyZenith =
-    sampleColorTimeline(weather?.SkyTopColors, hour) ??
-    FALLBACK_ATMOSPHERE_SETTINGS.skyZenith;
-  const sunsetColor =
-    sampleColorTimeline(weather?.SkySunsetColors, hour) ??
-    FALLBACK_ATMOSPHERE_SETTINGS.sunsetColor;
-  const fogColor =
-    sampleColorTimeline(weather?.FogColors, hour) ??
-    skyHorizon;
-  const sunColor =
-    sampleColorTimeline(weather?.SunColors, hour) ??
-    FALLBACK_ATMOSPHERE_SETTINGS.sunColor;
-  const sunGlowColor =
-    sampleColorTimeline(weather?.SunGlowColors, hour) ??
-    sunColor;
-
-  const sunlightColor = sampleColorTimeline(weather?.SunlightColors, hour);
-  const ambientColor = sunlightColor ?? deriveAmbientColor(sunColor, fogColor, skyHorizon);
-
-  const waterTint =
-    sampleColorTimeline(weather?.WaterTints, hour) ??
-    normalizeColorToken(weather?.WaterTint) ??
-    normalizeColorToken(environment?.WaterTint) ??
-    FALLBACK_ATMOSPHERE_SETTINGS.waterTint;
-
-  const fogDistance = parseFogDistance(weather?.FogDistance);
-  const fogNear = fogDistance?.[0] ?? FALLBACK_ATMOSPHERE_SETTINGS.fogNear;
-  const fogFar = fogDistance?.[1] ?? FALLBACK_ATMOSPHERE_SETTINGS.fogFar;
-
-  return {
-    skyHorizon,
-    skyZenith,
-    sunsetColor,
-    sunGlowColor,
-    cloudDensity: FALLBACK_ATMOSPHERE_SETTINGS.cloudDensity,
-    fogColor,
-    fogNear,
-    fogFar,
-    ambientColor,
-    sunColor,
-    waterTint,
-    // Map sample hour to sun angle: hour 6=0°, 12=90°, 18=180°
-    sunAngle: ((hour - 6 + 24) % 24) * (180 / 24),
-  };
-}
-
 function fallbackResult(
   hour: number,
   warnings: string[],
@@ -633,9 +222,9 @@ function fallbackResult(
 
 export async function resolveBiomeAtmosphere(
   input: ResolveBiomeAtmosphereInput,
-  depsOverride: Partial<ResolveBiomeAtmosphereDeps> = {},
+  depsOverride: Partial<AtmosphereAssetDeps> = {},
 ): Promise<ResolveBiomeAtmosphereResult> {
-  const deps: ResolveBiomeAtmosphereDeps = {
+  const deps: AtmosphereAssetDeps = {
     listDirectoryFn: depsOverride.listDirectoryFn ?? listDirectory,
     readAssetFileFn: depsOverride.readAssetFileFn ?? readAssetFile,
   };

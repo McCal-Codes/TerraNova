@@ -1,7 +1,6 @@
 import { memo, useCallback, useRef, useState } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import { usePreviewStore } from "@/stores/previewStore";
-import { LayoutPresetPicker } from "./LayoutPresetPicker";
 import { EditorCanvas } from "./EditorCanvas";
 import { BiomeRangeEditor } from "./BiomeRangeEditor";
 import { BiomeSectionTabs } from "./BiomeSectionTabs";
@@ -12,8 +11,10 @@ import { JsonEditorView } from "./JsonEditorView";
 import { InstanceEditorView } from "./InstanceEditorView";
 import { PreviewPanel } from "../preview/PreviewPanel";
 import { ComparisonView } from "../preview/ComparisonView";
-import { DiagnosticsStrip } from "../preview/DiagnosticsStrip";
-import { PipelineIndicator } from "./PipelineIndicator";
+import { EditorContextBar } from "./EditorContextBar";
+import { EditorWorkspace } from "./EditorWorkspace";
+import { usePropEditingContext, useAutoSplitOnPropSection, usePropPreviewSectionDefaults } from "@/hooks/usePropEditingContext";
+import { usePreviewPropertiesLayout } from "@/hooks/usePreviewPropertiesLayout";
 
 const SplitView = memo(function SplitView() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -87,22 +88,24 @@ const DensityView = memo(function DensityView() {
 
   return (
     <div className="flex flex-col h-full">
-      <DiagnosticsStrip />
-      <PipelineIndicator />
-      <div className="flex-1 min-h-0 relative">
-        <LayoutPresetPicker />
+      <EditorContextBar />
+      <EditorWorkspace>
         {viewMode === "graph" && <EditorCanvas />}
         {viewMode === "preview" && <PreviewPanel />}
         {viewMode === "split" && <SplitView />}
         {viewMode === "compare" && <ComparisonView />}
         {viewMode === "json" && <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />}
-      </div>
+      </EditorWorkspace>
     </div>
   );
 });
 
 export function CenterPanel() {
   const editingContext = useEditorStore((s) => s.editingContext);
+  const { isPropContext, propSectionKey } = usePropEditingContext();
+  useAutoSplitOnPropSection(isPropContext);
+  usePropPreviewSectionDefaults(isPropContext, propSectionKey);
+  usePreviewPropertiesLayout();
 
   if (editingContext === "NoiseRange") {
     return <NoiseRangeView />;
@@ -181,17 +184,14 @@ const NoiseRangeView = memo(function NoiseRangeView() {
 
   return (
     <div className="flex flex-col h-full">
-      <DiagnosticsStrip />
-      <PipelineIndicator />
+      <EditorContextBar />
 
       {viewMode === "preview" ? (
-        <div className="flex-1 min-h-0 relative">
-          <LayoutPresetPicker />
+        <EditorWorkspace>
           <PreviewPanel />
-        </div>
+        </EditorWorkspace>
       ) : viewMode === "split" ? (
-        <div ref={containerRef} className="flex-1 min-h-0 flex flex-col relative">
-          <LayoutPresetPicker />
+        <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
           <div className="shrink-0" style={{ height: editorHeight }}>
             <BiomeRangeEditor />
           </div>
@@ -199,23 +199,20 @@ const NoiseRangeView = memo(function NoiseRangeView() {
             className="shrink-0 h-1 bg-tn-border hover:bg-tn-accent/50 cursor-row-resize transition-colors"
             onMouseDown={onDividerMouseDown}
           />
-          <div className="flex-1 min-h-0">
+          <EditorWorkspace>
             <SplitView />
-          </div>
+          </EditorWorkspace>
         </div>
       ) : viewMode === "compare" ? (
-        <div className="flex-1 min-h-0 relative">
-          <LayoutPresetPicker />
+        <EditorWorkspace>
           <ComparisonView />
-        </div>
+        </EditorWorkspace>
       ) : viewMode === "json" ? (
-        <div className="flex-1 min-h-0 relative">
-          <LayoutPresetPicker />
+        <EditorWorkspace>
           <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />
-        </div>
+        </EditorWorkspace>
       ) : (
-        <div ref={containerRef} className="flex-1 min-h-0 flex flex-col relative">
-          <LayoutPresetPicker />
+        <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
           <div className="shrink-0" style={{ height: editorHeight }}>
             <BiomeRangeEditor />
           </div>
@@ -223,9 +220,9 @@ const NoiseRangeView = memo(function NoiseRangeView() {
             className="shrink-0 h-1 bg-tn-border hover:bg-tn-accent/50 cursor-row-resize transition-colors"
             onMouseDown={onDividerMouseDown}
           />
-          <div className="flex-1 min-h-0">
+          <EditorWorkspace>
             <EditorCanvas />
-          </div>
+          </EditorWorkspace>
         </div>
       )}
     </div>
@@ -237,22 +234,22 @@ const BiomeView = memo(function BiomeView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
   const originalWrapper = useEditorStore((s) => s.originalWrapper);
   const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
+  const { isPropContext } = usePropEditingContext();
+  useAutoSplitOnPropSection(isPropContext);
 
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0 bg-tn-surface border-b border-tn-border overflow-x-auto">
         <BiomeSectionTabs />
       </div>
-      <DiagnosticsStrip />
-      <PipelineIndicator />
-      <div className="flex-1 min-h-0 relative">
-        <LayoutPresetPicker />
+      <EditorContextBar />
+      <EditorWorkspace>
         {viewMode === "graph" && <EditorCanvas />}
         {viewMode === "preview" && <PreviewPanel />}
         {viewMode === "split" && <SplitView />}
         {viewMode === "compare" && <ComparisonView />}
         {viewMode === "json" && <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />}
-      </div>
+      </EditorWorkspace>
     </div>
   );
 });

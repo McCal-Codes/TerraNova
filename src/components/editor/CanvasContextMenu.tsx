@@ -2,8 +2,6 @@ import { useReactFlow } from "@xyflow/react";
 import { ContextMenuOverlay, ContextMenuItem, ContextMenuSeparator } from "./ContextMenuPrimitives";
 import { useEditorStore } from "@/stores/editorStore";
 import { useUIStore } from "@/stores/uiStore";
-import { useToastStore } from "@/stores/toastStore";
-import { useSettingsStore } from "@/stores/settingsStore";
 import { makeAuthorNoteText } from "@/utils/annotationUtils";
 
 interface CanvasContextMenuProps {
@@ -42,6 +40,7 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
               data: { type: "comment", text: "", width: 240, height: 110 },
               draggable: true,
               selectable: true,
+              zIndex: 1,
             },
           ]);
           commitState("Add comment");
@@ -68,6 +67,7 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
               },
               draggable: true,
               selectable: true,
+              zIndex: 1,
             },
           ]);
           commitState("Add author note");
@@ -131,17 +131,8 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
         label="Auto Layout"
         onClick={async () => {
           onClose();
-          const { nodes, edges, setNodes, commitState } = useEditorStore.getState();
-          if (nodes.length === 0) return;
-          try {
-            const { autoLayout } = await import("@/utils/autoLayout");
-            const layouted = await autoLayout(nodes, edges, useSettingsStore.getState().flowDirection);
-            setNodes(layouted);
-            commitState("Auto layout");
-          } catch (err) {
-            if (import.meta.env.DEV) console.error("Auto layout failed:", err);
-            useToastStore.getState().addToast("Auto layout failed", "error");
-          }
+          const { handleAutoLayout } = await import("@/utils/layoutActions");
+          await handleAutoLayout(reactFlow);
         }}
       />
       <ContextMenuSeparator />

@@ -14,6 +14,7 @@ import { handleAutoLayout, handleAutoLayoutSelected, handleTidyUp } from "@/util
 interface GlobalShortcutCallbacks {
   onCloseProject: () => void;
   onNewProject: () => void;
+  onCreatePack?: () => void;
   onSettings: () => void;
   onExportSvg: () => void;
 }
@@ -25,6 +26,7 @@ interface GlobalShortcutCallbacks {
 export function useGlobalKeyboardShortcuts({
   onCloseProject,
   onNewProject,
+  onCreatePack,
   onSettings,
   onExportSvg,
 }: GlobalShortcutCallbacks) {
@@ -129,6 +131,13 @@ export function useGlobalKeyboardShortcuts({
         return;
       }
 
+      // Auto layout selected with extra spacing for labels / handoff
+      if (matchesKeybinding("autoLayoutSelectedComfortable", e)) {
+        e.preventDefault();
+        handleAutoLayoutSelected("comfortable");
+        return;
+      }
+
       // Tidy up
       if (matchesKeybinding("tidyUp", e)) {
         e.preventDefault();
@@ -160,6 +169,12 @@ export function useGlobalKeyboardShortcuts({
       if (matchesKeybinding("newProject", e)) {
         e.preventDefault();
         onNewProject();
+        return;
+      }
+
+      if (onCreatePack && matchesKeybinding("createPack", e)) {
+        e.preventDefault();
+        onCreatePack();
         return;
       }
 
@@ -310,5 +325,5 @@ export function useGlobalKeyboardShortcuts({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [openAssetPack, saveFile, saveFileAs, undo, redo, reactFlow, onCloseProject, onNewProject, onSettings, onExportSvg]);
+  }, [openAssetPack, saveFile, saveFileAs, undo, redo, reactFlow, onCloseProject, onNewProject, onCreatePack, onSettings, onExportSvg]);
 }

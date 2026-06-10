@@ -60,7 +60,22 @@ export function Toast() {
             <div className={`absolute inset-y-0 left-0 w-0.5 ${s.bar}`} />
             <div className="flex items-start gap-2.5 px-3.5 py-2.5 pl-4">
               <span className={`mt-px shrink-0 text-[13px] ${s.icon}`}>{ICONS[t.type]}</span>
-              <p className={`text-[12px] leading-relaxed ${s.text}`}>{t.message}</p>
+              <div className="min-w-0 flex-1">
+                <p className={`text-[12px] leading-relaxed ${s.text}`}>{t.message}</p>
+                {t.action && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      t.action?.onClick();
+                      removeToast(t.id);
+                    }}
+                    className={`mt-1.5 text-[11px] font-medium underline underline-offset-2 hover:opacity-80 ${s.icon}`}
+                  >
+                    {t.action.label}
+                  </button>
+                )}
+              </div>
             </div>
           </button>
         );

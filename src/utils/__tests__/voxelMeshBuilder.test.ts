@@ -203,15 +203,16 @@ describe("buildVoxelMeshes — color jitter", () => {
   it("different block positions produce different vertex colors", () => {
     const n = 4;
     const ys = 4;
-    const d = makeDensities(n, ys);
-    setSolid(d, 1, 1, 1, n);
-    setSolid(d, 2, 2, 2, n);
+    const d1 = makeDensities(n, ys);
+    setSolid(d1, 1, 1, 1, n);
+    const d2 = makeDensities(n, ys);
+    setSolid(d2, 2, 2, 2, n);
 
     const v1 = singleBlockVoxelData(1, 1, 1);
     const v2 = singleBlockVoxelData(2, 2, 2);
 
-    const m1 = buildVoxelMeshes(v1, d, n, ys, 1, 1, 1, 0, 0, 0);
-    const m2 = buildVoxelMeshes(v2, d, n, ys, 1, 1, 1, 0, 0, 0);
+    const m1 = buildVoxelMeshes(v1, d1, n, ys, 1, 1, 1, 0, 0, 0);
+    const m2 = buildVoxelMeshes(v2, d2, n, ys, 1, 1, 1, 0, 0, 0);
 
     // At least some vertex colors should differ (jitter is different)
     let anyDifferent = false;

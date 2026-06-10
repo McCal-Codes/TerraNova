@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "buildDate": "2026-02-14",
-  "sourceBuild": "2026.02.11-255364b8e",
+  "buildDate": "2026-06-05",
+  "sourceBuild": "Hytale release local Assets/Server/HytaleGenerator",
   "format": "terranova-bundle",
   "nodes": {
     "Abs": {
@@ -31,7 +31,7 @@
       "displayName": "Amplitude",
       "category": "Density",
       "subcategory": "ArithmeticCombinator",
-      "description": "Legacy Y-dependent multiplicative amplitude.",
+      "description": "Y-dependent multiplicative amplitude (superseded by AmplitudeConstant).",
       "fields": {
         "FunctionForY": {
           "type": "object",
@@ -60,7 +60,7 @@
       "displayName": "AmplitudeConstant",
       "category": "Density",
       "subcategory": "ArithmeticCombinator",
-      "description": "Legacy constant amplitude node.",
+      "description": "Constant amplitude multiplier for density graphs.",
       "fields": {},
       "inputs": [],
       "outputs": [
@@ -1586,7 +1586,7 @@
       "displayName": "OffsetConstant",
       "category": "Density",
       "subcategory": "ArithmeticCombinator",
-      "description": "Legacy constant offset node.",
+      "description": "Constant offset value for density graphs.",
       "fields": {},
       "inputs": [],
       "outputs": [
@@ -6925,6 +6925,29 @@
         {
           "id": "output",
           "handleType": "Condition",
+          "label": "output"
+        }
+      ]
+    },
+    "MaterialProvider:Constant": {
+      "nodeType": "Constant",
+      "displayName": "Constant",
+      "category": "MaterialProvider",
+      "subcategory": "",
+      "description": "Provides a constant block material.",
+      "fields": {
+        "Material": {
+          "type": "string",
+          "required": true,
+          "default": "Rock_Lime_Cobble",
+          "description": "Block id for the constant material."
+        }
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "handleType": "MaterialProvider",
           "label": "output"
         }
       ]

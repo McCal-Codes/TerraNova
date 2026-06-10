@@ -1,6 +1,6 @@
 export { createEvaluationContext } from "./evalContext";
 export type { DensityGridResult, EvaluationOptions, EvaluationContext, EvalCtx, NodeHandler } from "./evalContext";
-export { evaluateDensityGrid } from "./evaluateGrid";
+export { evaluateDensityGrid, enrichPreviewContentFields } from "./evaluateGrid";
 export { getEvalStatus, getNodeType, findDensityRoot, DENSITY_TYPES, UNSUPPORTED_TYPES } from "./evalTypes";
 export { mulberry32, hashSeed } from "./prng";
 export { voronoiNoise2D, voronoiNoise3D } from "./voronoiNoise";

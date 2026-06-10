@@ -3,25 +3,25 @@ import { useEditorStore } from "@/stores/editorStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useToastStore } from "@/stores/toastStore";
-
-const isAnnotation = (n: { type?: string }) => n.type === "comment" || n.type === "frame";
+import { isAnnotationNode, layerCanvasNodes } from "@/utils/annotationUtils";
+import type { LayoutSpacing } from "@/utils/autoLayout";
 
 export async function handleAutoLayout(reactFlow: ReactFlowInstance) {
   const { nodes, edges, setNodes, commitState } = useEditorStore.getState();
   if (nodes.length === 0) return;
   try {
-    const graphNodes = nodes.filter((n) => !isAnnotation(n));
-    const annotationNodes = nodes.filter(isAnnotation);
+    const graphNodes = nodes.filter((n) => !isAnnotationNode(n));
+    const annotationNodes = nodes.filter(isAnnotationNode);
     const { autoLayout } = await import("@/utils/autoLayout");
     const layouted = await autoLayout(
       graphNodes,
       edges,
       useSettingsStore.getState().flowDirection,
     );
-    setNodes([...layouted, ...annotationNodes]);
+    setNodes(layerCanvasNodes(layouted, annotationNodes));
     commitState("Auto layout");
     setTimeout(() => {
-      const fitNodes = useEditorStore.getState().nodes.filter((n) => !isAnnotation(n));
+      const fitNodes = useEditorStore.getState().nodes.filter((n) => !isAnnotationNode(n));
       reactFlow.fitView({ nodes: fitNodes, padding: 0.1, duration: 300 });
     }, 50);
   } catch (err) {
@@ -31,7 +31,7 @@ export async function handleAutoLayout(reactFlow: ReactFlowInstance) {
   }
 }
 
-export async function handleAutoLayoutSelected() {
+export async function handleAutoLayoutSelected(spacing: LayoutSpacing = "default") {
   const { nodes, edges, setNodes, commitState } = useEditorStore.getState();
   const selectedIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id));
   if (selectedIds.size < 2) return;
@@ -42,9 +42,10 @@ export async function handleAutoLayoutSelected() {
       edges,
       selectedIds,
       useSettingsStore.getState().flowDirection,
+      spacing,
     );
     setNodes(layouted);
-    commitState("Auto layout selected");
+    commitState(spacing === "comfortable" ? "Auto layout selected (comfortable)" : "Auto layout selected");
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("Auto layout selected failed:", err);
@@ -55,11 +56,11 @@ export async function handleAutoLayoutSelected() {
 export async function handleTidyUp() {
   const { nodes, setNodes, commitState } = useEditorStore.getState();
   if (nodes.length === 0) return;
-  const graphNodes = nodes.filter((n) => !isAnnotation(n));
-  const annotationNodes = nodes.filter(isAnnotation);
+  const graphNodes = nodes.filter((n) => !isAnnotationNode(n));
+  const annotationNodes = nodes.filter(isAnnotationNode);
   const { tidyUp } = await import("@/utils/autoLayout");
   const gridSize = useUIStore.getState().gridSize;
   const tidied = tidyUp(graphNodes, gridSize);
-  setNodes([...tidied, ...annotationNodes]);
+  setNodes(layerCanvasNodes(tidied, annotationNodes));
   commitState("Tidy up");
 }

@@ -527,6 +527,25 @@ Place this entry early in the `Props` array if subsequent props (such as reeds o
 
 ---
 
+---
+
+## TerraNova prop preview (split pane)
+
+When you edit a biome **Props[n]** section or a standalone prop file, TerraNova opens **split view**: the node graph stays in the canvas pane, and a dedicated **Prop preview** pane sits beside or below it (not the density heatmap).
+
+| Tab | What it shows |
+|-----|----------------|
+| **2D Placement** | Top-down scatter from your Positions graph (`SquareGrid2d`, `Mesh2D`, etc.) |
+| **3D Prefab** | Block-mesh preview of a prefab path — from a selected `Prop:Prefab` node, or browsed from synced Hytale assets |
+
+**Notes:**
+
+- `Prop:Imported` references another prop **definition** file (for example `AutumnForest_Grasses`), not a `.prefab.json` mesh. Use **2D Placement** for position graphs that only import prop bundles.
+- **3D Prefab** needs a `Path` on a `Prop:Prefab` node, or a path picked from the prefab list (project `Server/Prefabs` first, then synced `hytale-assets`).
+- Run **Sync Hytale Assets** in Settings if the prefab catalog is empty.
+
+---
+
 ## Common Mistakes
 
 ### Missing scanner

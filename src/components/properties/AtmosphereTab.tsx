@@ -2,7 +2,11 @@
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { usePreviewStore } from "@/stores/previewStore";
-import { writeTextFile, pathExists, listDirectory, listTemplateBiomes, type TemplateBiomeEntry } from "@/utils/ipc";
+import { useUIStore } from "@/stores/uiStore";
+import { writeTextFile, pathExists, listDirectory, listTemplateBiomes, readAssetFile, type TemplateBiomeEntry } from "@/utils/ipc";
+import { asRecord, type JsonRecord, isEmptyEnvironmentProvider } from "@/utils/atmosphere";
+import { AtmosphereHelpCard } from "@/components/editor/atmosphere/AtmosphereHelpCard";
+import { BiomeAtmosphereForecastPanel } from "./BiomeAtmosphereForecastPanel";
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import {
@@ -268,15 +272,11 @@ export function AtmosphereTab({
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
   const biomeSections = useEditorStore((s) => s.biomeSections);
   const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
-  const editingContext = useEditorStore((s) => s.editingContext);
   const setBiomeConfig = useEditorStore((s) => s.setBiomeConfig);
   const setBiomeSections = useEditorStore((s) => s.setBiomeSections);
   const setNodes = useEditorStore((s) => s.setNodes);
   const setEdges = useEditorStore((s) => s.setEdges);
   const setOutputNode = useEditorStore((s) => s.setOutputNode);
-  const setEditingContext = useEditorStore((s) => s.setEditingContext);
-  const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
-  const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
   const currentFile = useProjectStore((s) => s.currentFile);
@@ -284,8 +284,11 @@ export function AtmosphereTab({
   const setAtmosphereSettings = usePreviewStore((s) => s.setAtmosphereSettings);
   const storeAtm = usePreviewStore((s) => s.atmosphereSettings);
   const setTintColors = usePreviewStore((s) => s.setTintColors);
+  const previewHour = useUIStore((s) => s.atmospherePreviewHour);
+  const setAtmospherePreviewHour = useUIStore((s) => s.setAtmospherePreviewHour);
   const { openFile } = useTauriIO();
   const [weatherInfo, setWeatherInfo] = useState<ResolvedWeatherInfo>(INITIAL_WEATHER_INFO);
+  const [resolvedEnvironmentDoc, setResolvedEnvironmentDoc] = useState<JsonRecord | null>(null);
 
   const [atm, setAtm] = useState<AtmosphereState>(() => ({
     ...loadAtmosphere(),
@@ -334,9 +337,7 @@ export function AtmosphereTab({
     storeAtm.sunAngle,
   ]);
   const environmentProviderSignature = JSON.stringify(biomeConfig?.EnvironmentProvider ?? null);
-  const environmentProviderIsEmpty =
-    biomeConfig?.EnvironmentProvider !== undefined &&
-    Object.keys(biomeConfig.EnvironmentProvider as object).length === 0;
+  const environmentProviderIsEmpty = isEmptyEnvironmentProvider(biomeConfig?.EnvironmentProvider);
 
   const resolveAssetWeather = useCallback(
     async (requestedHour: number, applyToPreview: boolean): Promise<ResolveBiomeAtmosphereMetadata | null> => {
@@ -381,35 +382,31 @@ export function AtmosphereTab({
   );
 
   useEffect(() => {
+    if (!weatherInfo.environmentPath) {
+      setResolvedEnvironmentDoc(null);
+      return;
+    }
+
+    let active = true;
+    void readAssetFile(weatherInfo.environmentPath)
+      .then((raw) => {
+        if (!active) return;
+        setResolvedEnvironmentDoc(asRecord(raw));
+      })
+      .catch(() => {
+        if (!active) return;
+        setResolvedEnvironmentDoc(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [weatherInfo.environmentPath]);
+
+  useEffect(() => {
     if (!currentFile && !projectPath) return;
-    void resolveAssetWeather(weatherInfo.hour, false);
-  }, [environmentProviderSignature, currentFile, projectPath, resolveAssetWeather, weatherInfo.hour]);
-
-  const environmentGraphDisabled = true;
-  const tintGraphDisabled = true;
-  const canOpenEnvironmentGraph = Boolean(biomeSections?.EnvironmentProvider) && !environmentGraphDisabled;
-  const canOpenTintGraph = Boolean(biomeSections?.TintProvider) && !tintGraphDisabled;
-
-  const openBiomeSectionGraph = useCallback((sectionKey: "EnvironmentProvider" | "TintProvider") => {
-    const section = useEditorStore.getState().biomeSections?.[sectionKey];
-    if (!section) return;
-
-    if (editingContext !== "Biome") {
-      setEditingContext("Biome");
-    }
-    switchBiomeSection(sectionKey);
-    if (section.outputNodeId) {
-      setSelectedNodeId(section.outputNodeId);
-    }
-  }, [editingContext, setEditingContext, setSelectedNodeId, switchBiomeSection]);
-
-  const handleOpenEnvironmentGraph = useCallback(() => {
-    openBiomeSectionGraph("EnvironmentProvider");
-  }, [openBiomeSectionGraph]);
-
-  const handleOpenTintGraph = useCallback(() => {
-    openBiomeSectionGraph("TintProvider");
-  }, [openBiomeSectionGraph]);
+    void resolveAssetWeather(previewHour, false);
+  }, [environmentProviderSignature, currentFile, projectPath, previewHour, resolveAssetWeather]);
 
   const handleOpenEnvironmentFile = useCallback(() => {
     if (!weatherInfo.environmentPath) return;
@@ -425,12 +422,11 @@ export function AtmosphereTab({
   const [animating, setAnimating] = useState(false);
   const [animSpeed, setAnimSpeed] = useState(1); // hours per second
   const animIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const animHourRef = useRef<number>(weatherInfo.hour);
+  const animHourRef = useRef<number>(previewHour);
 
-  // Keep animHourRef in sync so the interval closure can advance it
   useEffect(() => {
-    animHourRef.current = weatherInfo.hour;
-  }, [weatherInfo.hour]);
+    animHourRef.current = previewHour;
+  }, [previewHour]);
 
   useEffect(() => {
     if (!animating) return;
@@ -446,13 +442,13 @@ export function AtmosphereTab({
         return updated;
       });
       setAtmosphereSettings({ ...usePreviewStore.getState().atmosphereSettings, sunAngle: angle });
-      setWeatherInfo((prev) => ({ ...prev, hour: next }));
+      setAtmospherePreviewHour(next);
       void resolveAssetWeather(next, true);
     }, ms);
     return () => {
       if (animIntervalRef.current) clearInterval(animIntervalRef.current);
     };
-  }, [animating, animSpeed, resolveAssetWeather, setAtmosphereSettings]);
+  }, [animating, animSpeed, resolveAssetWeather, setAtmosphereSettings, setAtmospherePreviewHour]);
 
   function syncStore(next: AtmosphereState) {
     setAtmosphereSettings({
@@ -642,7 +638,7 @@ export function AtmosphereTab({
   async function handleExport() {
     const name = sanitizeEnvironmentName(exportName);
     if (!name) return;
-    const metadata = await resolveAssetWeather(weatherInfo.hour, false);
+    const metadata = await resolveAssetWeather(previewHour, false);
     const parentEnvironmentName =
       metadata?.environmentName
       ?? weatherInfo.environmentName
@@ -701,7 +697,7 @@ export function AtmosphereTab({
         setDirty(true);
         commitState(`Set EnvironmentProvider to ${environmentName}`);
       }
-      void resolveAssetWeather(weatherInfo.hour, true);
+      void resolveAssetWeather(previewHour, true);
       setExportStatus("ok");
       setExportMsg(`Saved -> ${toServerRelativePath(filePath, serverRoot)} and applied ${environmentName}`);
     } catch (e) {
@@ -794,6 +790,7 @@ export function AtmosphereTab({
 
   return (
     <div className="flex flex-col p-3 gap-3" onBlur={onBlur}>
+      <AtmosphereHelpCard context="biome-atmosphere" defaultOpen={false} />
 
       <SectionCard label="Sky">
         <ColorPickerField
@@ -875,6 +872,10 @@ export function AtmosphereTab({
       </SectionCard>
 
       <SectionCard label="Weather">
+        <div className="flex items-center justify-between gap-2 text-[10px] text-tn-text-muted">
+          <span>{weatherStatusLabel}</span>
+          <span className="font-mono">{previewHour}:00</span>
+        </div>
         <WeatherInfoRow
           label="Environment"
           value={
@@ -882,7 +883,7 @@ export function AtmosphereTab({
             ?? (environmentProviderIsEmpty ? "uses server default" : "—")
           }
         />
-        <WeatherInfoRow label="Weather" value={weatherInfo.weatherId ?? "—"} />
+        <WeatherInfoRow label="Weather @ hour" value={weatherInfo.weatherId ?? "—"} />
         {weatherInfo.environmentPath && (
           <WeatherInfoRow
             label="Env file"
@@ -897,61 +898,21 @@ export function AtmosphereTab({
             onClick={handleOpenWeatherFile}
           />
         )}
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={handleOpenEnvironmentGraph}
-            disabled={!canOpenEnvironmentGraph}
-            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Environment Graph Disabled
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenEnvironmentFile}
-            disabled={!weatherInfo.environmentPath}
-            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Open Environment File
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenWeatherFile}
-            disabled={!weatherInfo.weatherPath}
-            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Open Weather File
-          </button>
-        </div>
-        <div className="flex items-center justify-between text-[10px] text-tn-text-muted">
-          <span>{weatherStatusLabel}</span>
-          <span className="font-mono">Hour {weatherInfo.hour}:00</span>
-        </div>
-        <SliderField
-          label="Sample Hour"
-          value={weatherInfo.hour}
-          min={0}
-          max={23}
-          step={1}
-          onChange={(v) => setWeatherInfo((prev) => ({ ...prev, hour: clampHour(v) }))}
-          onBlur={() => { void resolveAssetWeather(weatherInfo.hour, true); }}
+        <BiomeAtmosphereForecastPanel
+          environmentDoc={resolvedEnvironmentDoc}
+          environmentName={weatherInfo.environmentName}
+          currentFile={currentFile}
+          projectPath={projectPath}
+          onPreviewHourApplied={(hour) => { void resolveAssetWeather(hour, true); }}
         />
-        <div className="flex gap-1.5">
-          <button
-            onClick={() => { void resolveAssetWeather(weatherInfo.hour, true); }}
-            className="px-2 py-1 text-[10px] rounded border border-tn-accent text-tn-accent bg-tn-accent/10 hover:bg-tn-accent/20 transition-colors"
-            disabled={weatherInfo.status === "loading"}
-          >
-            Refresh from Assets
-          </button>
-          <button
-            onClick={() => { void resolveAssetWeather(weatherInfo.hour, false); }}
-            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-text-muted transition-colors"
-            disabled={weatherInfo.status === "loading"}
-          >
-            Re-read Metadata
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => { void resolveAssetWeather(previewHour, true); }}
+          className="w-full px-2 py-1.5 text-[10px] rounded border border-tn-accent text-tn-accent bg-tn-accent/10 hover:bg-tn-accent/20 transition-colors disabled:opacity-40"
+          disabled={weatherInfo.status === "loading"}
+        >
+          Refresh preview from assets
+        </button>
         {weatherInfo.error && (
           <p className="text-[10px] text-red-400 font-mono truncate" title={weatherInfo.error}>
             {weatherInfo.error}
@@ -964,60 +925,56 @@ export function AtmosphereTab({
             ))}
           </div>
         )}
-        {/* Time-of-day animation */}
-        <div className="flex items-center gap-1.5 pt-1 border-t border-tn-border/60">
-          <button
-            onClick={() => setAnimating((prev) => !prev)}
-            className={`px-2 py-1 text-[10px] rounded border transition-colors ${
-              animating
-                ? "border-red-400/60 text-red-300 bg-red-900/20 hover:bg-red-900/30"
-                : "border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-text-muted"
-            }`}
-          >
-            {animating ? "Stop" : "Animate"}
-          </button>
-          <div className="flex items-center gap-1 flex-1">
-            <span className="text-[10px] text-tn-text-muted shrink-0">Speed</span>
-            <input
-              type="range"
-              min={0.5}
-              max={6}
-              step={0.5}
-              value={animSpeed}
-              onChange={(e) => setAnimSpeed(parseFloat(e.target.value))}
-              className="flex-1 h-1 accent-tn-accent"
+        <details className="rounded border border-tn-border/50 bg-tn-panel/20 px-2 py-1.5">
+          <summary className="cursor-pointer text-[10px] font-medium text-tn-text-muted">
+            Preview tools (animate, sun angle)
+          </summary>
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setAnimating((prev) => !prev)}
+                className={`px-2 py-1 text-[10px] rounded border transition-colors ${
+                  animating
+                    ? "border-red-400/60 text-red-300 bg-red-900/20 hover:bg-red-900/30"
+                    : "border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-text-muted"
+                }`}
+              >
+                {animating ? "Stop" : "Animate day"}
+              </button>
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                <span className="shrink-0 text-[10px] text-tn-text-muted">Speed</span>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={6}
+                  step={0.5}
+                  value={animSpeed}
+                  onChange={(e) => setAnimSpeed(parseFloat(e.target.value))}
+                  className="h-1 min-w-0 flex-1 accent-tn-accent"
+                />
+                <span className="w-8 shrink-0 text-right text-[10px] tabular-nums text-tn-text-muted">{animSpeed}x</span>
+              </div>
+            </div>
+            <SliderField
+              label="Sun Angle"
+              value={atm.sunAngle}
+              min={0}
+              max={360}
+              step={5}
+              onChange={(v) => update("sunAngle", v)}
+              onBlur={() => {}}
             />
-            <span className="text-[10px] text-tn-text-muted w-8 text-right tabular-nums">{animSpeed}x</span>
           </div>
-        </div>
-        {/* Sun angle manual control */}
-        <SliderField
-          label="Sun Angle"
-          value={atm.sunAngle}
-          min={0}
-          max={360}
-          step={5}
-          onChange={(v) => update("sunAngle", v)}
-          onBlur={() => {}}
-        />
+        </details>
       </SectionCard>
 
       <SectionCard label="Tint">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-[10px] text-tn-text-muted">
-            {tintProviderType === "DensityDelimited"
-              ? `${tintBandColors.length} band${tintBandColors.length === 1 ? "" : "s"} in TintProvider`
-              : "Constant TintProvider"}
-          </div>
-          <button
-            type="button"
-            onClick={handleOpenTintGraph}
-            disabled={!canOpenTintGraph}
-            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Tint Graph Disabled
-          </button>
-        </div>
+        <p className="text-[10px] text-tn-text-muted">
+          {tintProviderType === "DensityDelimited"
+            ? `${tintBandColors.length} density band${tintBandColors.length === 1 ? "" : "s"} from TintProvider`
+            : "Constant tint from TintProvider"}
+        </p>
         <div
           className="h-7 w-full rounded border border-tn-border"
           style={{ background: `linear-gradient(to right, ${tintGradientStops})` }}

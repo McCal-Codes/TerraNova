@@ -6,9 +6,18 @@ import { getHytaleAssetsInFolder, hasCachedHytaleAssetsInFolder } from "@/utils/
 import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { useLoadingStore } from "@/stores/loadingStore";
 import { resolveKeybinding } from "@/config/keybindings";
+import { nodesEligibleForFraming } from "@/utils/annotationUtils";
+import { handleAutoLayoutSelected } from "@/utils/layoutActions";
 import { copyNodesToClipboard, pasteNodesFromClipboard } from "@/utils/clipboard";
+import {
+  buildNodeHytaleRecord,
+  buildNodeInternalRecord,
+  buildSubgraphClipboard,
+  copyTextToClipboard,
+} from "@/utils/devTools";
 import { ask } from "@tauri-apps/plugin-dialog";
 import type { Node, Edge } from "@xyflow/react";
 
@@ -235,6 +244,8 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
   const confirmOnNodeDelete = useSettingsStore((s) => s.confirmOnNodeDelete);
+  const devActive = useDeveloperMode();
+  const addToast = useToastStore((s) => s.addToast);
   const rightClickedNode = nodes.find((n) => n.id === nodeId);
 
   // Hytale asset context menu logic
@@ -320,6 +331,9 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
   const isRootNode = rightClickedNode?.type === "Root";
   // Annotation nodes (comments/frames) are pure UI overlays — hide graph operations
   const isAnnotation = rightClickedNode?.type === "comment" || rightClickedNode?.type === "frame";
+  const frameableNodes = nodesEligibleForFraming(
+    nodes.filter((n) => selectedIds.has(n.id)),
+  );
   const rootNode = nodes.find((n) => n.type === "Root");
   const isConnectedToRoot = rootNode
     ? edges.some((e) => e.source === nodeId && e.target === rootNode.id)
@@ -453,6 +467,31 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
             }}
           />
           <ContextMenuItem
+            label="Loosen Selection"
+            disabled={frameableNodes.length < 2}
+            onClick={() => {
+              useEditorStore.getState().loosenSelection([...selectedIds]);
+              onClose();
+            }}
+          />
+          <ContextMenuItem
+            label="Frame Selection"
+            shortcut={resolveKeybinding("frameSelection")}
+            disabled={frameableNodes.length === 0}
+            onClick={() => {
+              useEditorStore.getState().frameSelection([...selectedIds]);
+              onClose();
+            }}
+          />
+          <ContextMenuItem
+            label="Frame Selection (Tight)"
+            disabled={frameableNodes.length === 0}
+            onClick={() => {
+              useEditorStore.getState().frameSelection([...selectedIds], "", { loosen: false });
+              onClose();
+            }}
+          />
+          <ContextMenuItem
             label="Ungroup"
             disabled={!isGroup}
             onClick={() => {
@@ -500,19 +539,20 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
           <ContextMenuSeparator />
           <ContextMenuItem
             label="Auto Layout Selected"
+            shortcut={resolveKeybinding("autoLayoutSelected")}
             disabled={selectedIds.size < 2}
-            onClick={async () => {
+            onClick={() => {
               onClose();
-              const { nodes, edges, setNodes, commitState } = useEditorStore.getState();
-              try {
-                const { autoLayoutSelected } = await import("@/utils/autoLayout");
-                const layouted = await autoLayoutSelected(nodes, edges, selectedIds, useSettingsStore.getState().flowDirection);
-                setNodes(layouted);
-                commitState("Auto layout selected");
-              } catch (err) {
-                if (import.meta.env.DEV) console.error("Auto layout failed:", err);
-                useToastStore.getState().addToast("Auto layout failed", "error");
-              }
+              void handleAutoLayoutSelected();
+            }}
+          />
+          <ContextMenuItem
+            label="Auto Layout Selected (Comfortable)"
+            shortcut={resolveKeybinding("autoLayoutSelectedComfortable")}
+            disabled={selectedIds.size < 2}
+            onClick={() => {
+              onClose();
+              void handleAutoLayoutSelected("comfortable");
             }}
           />
           <ContextMenuSubmenu label="Align / Distribute" disabled={selectedIds.size < 2}>
@@ -569,6 +609,45 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
                 s.setEdges([...filtered, newEdge]);
                 s.setOutputNode(nodeId);
               }
+              onClose();
+            }}
+          />
+        </>
+      )}
+      {devActive && rightClickedNode && (
+        <>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            label="Copy internal JSON"
+            onClick={() => {
+              void copyTextToClipboard(JSON.stringify(buildNodeInternalRecord(rightClickedNode), null, 2)).then((ok) => {
+                addToast(ok ? "Copied internal JSON" : "Could not copy internal JSON", ok ? "success" : "error");
+              });
+              onClose();
+            }}
+          />
+          <ContextMenuItem
+            label="Copy Hytale JSON"
+            onClick={() => {
+              const hytale = buildNodeHytaleRecord(rightClickedNode);
+              if (!hytale) {
+                addToast("Could not build Hytale JSON", "error");
+                onClose();
+                return;
+              }
+              void copyTextToClipboard(JSON.stringify(hytale, null, 2)).then((ok) => {
+                addToast(ok ? "Copied Hytale JSON" : "Could not copy Hytale JSON", ok ? "success" : "error");
+              });
+              onClose();
+            }}
+          />
+          <ContextMenuItem
+            label="Copy downstream subgraph"
+            onClick={() => {
+              const clip = buildSubgraphClipboard(nodeId, nodes, edges, "downstream");
+              void copyTextToClipboard(JSON.stringify(clip, null, 2)).then((ok) => {
+                addToast(ok ? "Copied downstream subgraph" : "Could not copy subgraph", ok ? "success" : "error");
+              });
               onClose();
             }}
           />

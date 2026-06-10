@@ -16,6 +16,7 @@ import {
 import type { DensityType } from "@/schema/density";
 import { isBridgeNode } from "@/data/bridgeRegistry";
 import { isPaletteTypeKeyVisible } from "@/nodes/shared/legacyTypes";
+import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 
 const SNIPPET_COLOR = "#a78bfa";
 const ROOT_PALETTE_COLOR = "#8B4450";
@@ -72,32 +73,7 @@ const CATEGORY_ORDER: AssetCategory[] = [
   AssetCategory.WorldStructure,
 ];
 
-/** Map from category → prefix used in node type registry */
-const CATEGORY_PREFIX: Partial<Record<AssetCategory, string>> = {
-  [AssetCategory.Curve]: "Curve",
-  [AssetCategory.MaterialProvider]: "Material",
-  [AssetCategory.Pattern]: "Pattern",
-  [AssetCategory.PositionProvider]: "Position",
-  [AssetCategory.Prop]: "Prop",
-  [AssetCategory.Scanner]: "Scanner",
-  [AssetCategory.Assignment]: "Assignment",
-  [AssetCategory.VectorProvider]: "Vector",
-  [AssetCategory.EnvironmentProvider]: "Environment",
-  [AssetCategory.TintProvider]: "Tint",
-  [AssetCategory.BlockMask]: "BlockMask",
-  [AssetCategory.Directionality]: "Directionality",
-  [AssetCategory.PropDistribution]: "PropDistribution",
-  [AssetCategory.Condition]: "Condition",
-  [AssetCategory.Layer]: "Layer",
-  [AssetCategory.PointGenerator]: "PointGenerator",
-  [AssetCategory.Terrain]: "Terrain",
-  [AssetCategory.CaveGenerator]: "CaveGenerator",
-  [AssetCategory.Generator]: "Generator",
-  [AssetCategory.Biome]: "Biome",
-  [AssetCategory.WorldStructure]: "WorldStructure",
-};
-
-/** Human-readable subcategory labels for density nodes */
+/** Group entries by category */
 const DENSITY_SUB_LABELS: Record<DensitySubcategory, string> = {
   [DensitySubcategory.Generative]: "Generative",
   [DensitySubcategory.FilterTransform]: "Filter / Transform",
@@ -130,13 +106,6 @@ function groupDensityBySub(
     map.set(sub, list);
   }
   return map;
-}
-
-/** Resolve the React Flow node type key from category + type name */
-function resolveNodeTypeKey(entry: CategoryDefaultsEntry): string {
-  if (entry.type.includes(":")) return entry.type;
-  const prefix = CATEGORY_PREFIX[entry.category];
-  return prefix ? `${prefix}:${entry.type}` : entry.type;
 }
 
 /** Group entries by category */

@@ -44,6 +44,10 @@ export interface ColumnProp extends PropFields {
   Type: "Column";
   Height?: number;
   Material?: string;
+  /** Multi-block stacks (Hytale export shape); mutually exclusive with Height/Material when length > 1. */
+  ColumnBlocks?: Array<{ Y?: number; Material?: unknown }>;
+  Scanner?: Record<string, unknown>;
+  Directionality?: Record<string, unknown>;
 }
 
 export interface ClusterProp extends PropFields {

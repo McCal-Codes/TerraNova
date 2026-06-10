@@ -250,7 +250,9 @@ export const ImportedMaterialNode = memo(function ImportedMaterialNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_OUT}>
-      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
+      <div className="min-w-0 px-0.5">
+        <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
+      </div>
     </BaseNode>
   );
 });

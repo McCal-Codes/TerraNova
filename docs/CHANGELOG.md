@@ -16,11 +16,16 @@ All notable changes to [TerraNova](https://github.com/HyperSystems-Development/T
 
 - **Material:Constant fields** — Prefixed material nodes no longer resolve to Tint `Constant` schema fields; `Material` shows the correct block ID editor
 - **Material export shape** — Constant material leaves export as `{ Solid, Fluid: "", SolidBottomUp: false }` to match release biomes
+- **Density preview — BaseHeight & CurveMapper** — BaseHeight evaluates as terrain anchor / distance offset (not constant zero); CurveMapper respects inline `Curve` fields; remappers no longer show misleading inline heatmap thumbnails
+- **CurveMapper export** — `CurveMapper`, `Inverter`, `Cache`, and other V2 single-input density types now map **Input** → Hytale **`Inputs[]`** on export (matches release biome JSON)
+- **Curve validation** — Connected **Curve** port or inline curve satisfies required `Curve` field; no false “requires Curve” when **Curve:Manual** is wired
 
 ### Documentation
 
 - **AGENTS.md** — Agent memory for recurring preferences (release-first assets, verification gates, no unsolicited commits)
 - **Hytale asset guide** — Environments tutorial updated for release `Assets.zip` layout and sync defaults
+- **Preview & curve copy** — Corrected BaseHeight/CurveMapper preview guidance, curve In/Out semantics, and troubleshooting examples (BaseHeight no longer documented as preview zero-return)
+- **Hytale CurveMapper conventions** — Reference doc (`hytale-curvemapper-conventions.md`) grounded in release templates plus community mod audit (`templates/references/`, Tropical Pirate Islands, McCal.Autmn Forest): inline JSON shape, editor port equivalents, canonical Sum stacks, anti-patterns; `scripts/audit-curvemapper.mjs` for re-checks
 
 ## [0.1.7-pre.2] — 2026-03-18
 

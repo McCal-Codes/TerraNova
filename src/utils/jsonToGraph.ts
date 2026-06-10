@@ -1,7 +1,37 @@
 import type { Node, Edge } from "@xyflow/react";
+import bundleJson from "@/data/terranova-bundle.json";
 import { HYTALE_ARRAY_TO_NAMED } from "./translationMaps";
 import { getSchemaCategory } from "@/schema/schemaLoader";
+import {
+  BUNDLE_CATEGORY_TO_ASSET,
+  CATEGORY_TO_EDITOR_PREFIX,
+  FIELD_CATEGORY_PREFIX,
+} from "@/schema/categoryPrefixes";
 import { AssetCategory } from "@/schema/types";
+
+const bundleNodes = (bundleJson as { nodes: Record<string, { category: string }> }).nodes;
+
+/** Nesting fields that imply a Curve child even when the Type string is density-category (Mix). */
+const CURVE_NESTING_FIELDS = new Set([
+  "Curve",
+  "Curves",
+  "ReturnCurve",
+  "AngleCurve",
+  "DistanceCurve",
+  "PinchCurve",
+  "TwistCurve",
+  "RadialCurve",
+  "AxialCurve",
+]);
+
+/** Editor prefix for a bare Hytale Type string (Manual → Curve, Mix → none). */
+function editorPrefixFromBareBundleType(assetType: string): string | null {
+  const bundleNode = bundleNodes[assetType];
+  if (!bundleNode) return null;
+  const assetCategory = BUNDLE_CATEGORY_TO_ASSET[bundleNode.category];
+  if (!assetCategory || assetCategory === AssetCategory.Density) return null;
+  return CATEGORY_TO_EDITOR_PREFIX[assetCategory] ?? null;
+}
 
 interface V2Asset {
   Type?: string;
@@ -27,8 +57,10 @@ const HANDLE_MIGRATION: Record<string, Record<string, string>> = {
   "Material:Striped":           { Material: "Materials[0]" },
 };
 
-function migrateHandle(nodeType: string, handle: string): string {
-  return HANDLE_MIGRATION[nodeType]?.[handle] ?? handle;
+function migrateHandle(nodeType: string, rawType: string, handle: string): string {
+  return HANDLE_MIGRATION[nodeType]?.[handle]
+    ?? HANDLE_MIGRATION[rawType]?.[handle]
+    ?? handle;
 }
 
 /** Fields that are known to contain nested V2 assets (density functions, etc.) */
@@ -85,92 +117,7 @@ function migrateHandle(nodeType: string, handle: string): string {
  * When a nested asset is extracted from one of these fields, its node type
  * gets prefixed with the category so the correct custom node component is used.
  */
-const FIELD_CATEGORY_PREFIX: Record<string, string> = {
-  Curve: "Curve",
-  Pattern: "Pattern",
-  SubPattern: "Pattern",
-  PositionProvider: "Position",
-  Positions: "Position",
-  PropDistribution: "PropDistribution",
-  PropDistributions: "PropDistribution",
-  VectorProvider: "Vector",
-  MaterialProvider: "Material",
-  Scanner: "Scanner",
-  ChildScanner: "Scanner",
-  Prop: "Prop",
-  Solid: "Material",
-  Empty: "Material",
-  Low: "Material",
-  High: "Material",
-  Floor: "Pattern",
-  Ceiling: "Pattern",
-  Surface: "Pattern",
-  Top: "Assignment",
-  Bottom: "Assignment",
-  // Layer sub-assets within SpaceAndDepth
-  Layers: "Layer",
-  Material: "Material",
-  Materials: "Material",
-  ThicknessFunctionXZ: "",
-  NewYAxis: "Vector",
-  Scale: "Vector",
-  // Curve fields on non-CurveFunction parents (e.g. PositionsCellNoise, Shell)
-  ReturnCurve: "Curve",
-  AngleCurve: "Curve",
-  // Curve fields on SDF shape nodes
-  DistanceCurve: "Curve",
-  PinchCurve: "Curve",
-  TwistCurve: "Curve",
-  RadialCurve: "Curve",
-  AxialCurve: "Curve",
-  // Curve array field (Curve:Sum, Curve:Multiplier, etc.)
-  Curves: "Curve",
-  // Pattern array field (Pattern:And, Pattern:Or)
-  Patterns: "Pattern",
-  // Material queue array
-  Queue: "Material",
-  // Cross-category fields on Prop:Prefab, etc.
-  BlockMask: "BlockMask",
-  Directionality: "Directionality",
-  // Position:Clusters handle fields
-  Distributor: "Position",
-  Cluster: "Position",
-  // Array fields for compound nodes
-  Scanners: "Scanner",
-  Props: "Prop",
-  Assignments: "Assignment",
-  // Density fields (no prefix — bare density type)
-  // Condition: resolved in resolveNodeType (density vs Condition:* schema)
-  FieldFunction: "",
-  Density: "",
-  SolidityFunction: "",
-  TerrainDensity: "",
-  Pipeline: "",
-};
-
-const SCHEMA_CATEGORY_PREFIX: Partial<Record<AssetCategory, string>> = {
-  [AssetCategory.Curve]: "Curve",
-  [AssetCategory.MaterialProvider]: "Material",
-  [AssetCategory.Pattern]: "Pattern",
-  [AssetCategory.PositionProvider]: "Position",
-  [AssetCategory.Prop]: "Prop",
-  [AssetCategory.Scanner]: "Scanner",
-  [AssetCategory.Assignment]: "Assignment",
-  [AssetCategory.VectorProvider]: "Vector",
-  [AssetCategory.EnvironmentProvider]: "Environment",
-  [AssetCategory.TintProvider]: "Tint",
-  [AssetCategory.BlockMask]: "BlockMask",
-  [AssetCategory.Directionality]: "Directionality",
-  [AssetCategory.PropDistribution]: "PropDistribution",
-  [AssetCategory.Condition]: "Condition",
-  [AssetCategory.Layer]: "Layer",
-  [AssetCategory.PointGenerator]: "PointGenerator",
-  [AssetCategory.Terrain]: "Terrain",
-  [AssetCategory.CaveGenerator]: "CaveGenerator",
-  [AssetCategory.Generator]: "Generator",
-  [AssetCategory.Biome]: "Biome",
-  [AssetCategory.WorldStructure]: "WorldStructure",
-};
+const SCHEMA_CATEGORY_PREFIX = CATEGORY_TO_EDITOR_PREFIX;
 
 const NON_DENSITY_BARE_SCHEMA_TYPES = new Set([
   "AlwaysTrueCondition",
@@ -204,19 +151,81 @@ function isConditionSchemaType(assetType: string): boolean {
   return getSchemaCategory(assetType) === AssetCategory.Condition;
 }
 
-function resolveNodeType(assetType: string, parentFieldName?: string): string {
+export type ImportGraphCategory = "material" | "density" | "position" | "assignment";
+
+const ROOT_FIELD_IMPORT_CATEGORY: Record<string, ImportGraphCategory> = {
+  MaterialProvider: "material",
+  Positions: "position",
+  Assignments: "assignment",
+  Terrain: "density",
+};
+
+const MATERIAL_NESTED_FIELDS = new Set([
+  "TrueInput",
+  "FalseInput",
+  "InputA",
+  "InputB",
+  "Input",
+  "Solid",
+  "Empty",
+  "Low",
+  "High",
+  "Material",
+  "Materials",
+  "Queue",
+]);
+
+export function resolveImportNodeType(
+  assetType: string,
+  parentFieldName?: string,
+  importCategory?: ImportGraphCategory,
+): string {
   if (assetType.includes(":")) return assetType;
+
+  const bareBundlePrefix = editorPrefixFromBareBundleType(assetType);
+  const schemaCategory = getSchemaCategory(assetType)
+    ?? (bareBundlePrefix ? AssetCategory.Curve : null);
+
   let prefix = parentFieldName ? FIELD_CATEGORY_PREFIX[parentFieldName] : null;
+
+  // Density Mix under curve nesting is still density Mix, not Curve:Mix.
+  if (
+    parentFieldName
+    && CURVE_NESTING_FIELDS.has(parentFieldName)
+    && bundleNodes[assetType]?.category === "Density"
+  ) {
+    return assetType;
+  }
   // Prop Conditional.Condition holds density; material graphs use Condition:* children.
   if (parentFieldName === "Condition") {
     prefix = isConditionSchemaType(assetType) ? "Condition" : "";
   }
-  if (prefix) return `${prefix}:${assetType}`;
-  const schemaCategory = NON_DENSITY_BARE_SCHEMA_TYPES.has(assetType)
-    ? getSchemaCategory(assetType)
-    : null;
-  const schemaPrefix = schemaCategory ? SCHEMA_CATEGORY_PREFIX[schemaCategory] : null;
+  if (
+    !prefix
+    && importCategory === "material"
+    && parentFieldName
+    && MATERIAL_NESTED_FIELDS.has(parentFieldName)
+  ) {
+    prefix = "Material";
+  }
+
+  const schemaPrefix =
+    bareBundlePrefix
+    ?? (schemaCategory ? SCHEMA_CATEGORY_PREFIX[schemaCategory] : null);
+  if (prefix) {
+    return `${prefix}:${assetType}`;
+  }
+
   if (schemaPrefix) return `${schemaPrefix}:${assetType}`;
+
+  if (NON_DENSITY_BARE_SCHEMA_TYPES.has(assetType)) {
+    const fallbackPrefix = editorPrefixFromBareBundleType(assetType)
+      ?? (getSchemaCategory(assetType)
+        ? SCHEMA_CATEGORY_PREFIX[getSchemaCategory(assetType)!]
+        : null);
+    if (fallbackPrefix) return `${fallbackPrefix}:${assetType}`;
+  }
+
   return assetType;
 }
 
@@ -228,6 +237,9 @@ export function jsonToGraph(json: V2Asset, startX = 0, startY = 0, idPrefix = "g
   let localCounter = 0;
   const nodes: Node[] = [];
   const edges: Edge[] = [];
+  const importCategory = rootParentField
+    ? ROOT_FIELD_IMPORT_CATEGORY[rootParentField]
+    : undefined;
 
   function nextId(): string {
     return `${idPrefix}_${++localCounter}`;
@@ -252,7 +264,7 @@ export function jsonToGraph(json: V2Asset, startX = 0, startY = 0, idPrefix = "g
       "x" in (asset.Value as Record<string, unknown>);
     const nodeType = isVectorValue
       ? "Vector:Constant"
-      : resolveNodeType(rawType, parentFieldName);
+      : resolveImportNodeType(rawType, parentFieldName, importCategory);
 
     for (const [key, value] of Object.entries(asset)) {
       if (key === "Type" || key === "__hytaleNodeId") continue;
@@ -278,7 +290,7 @@ export function jsonToGraph(json: V2Asset, startX = 0, startY = 0, idPrefix = "g
           source: childId,
           sourceHandle: "output",
           target: nodeId,
-          targetHandle: migrateHandle(nodeType, key),
+          targetHandle: migrateHandle(nodeType, rawType, key),
         });
         childIndex++;
       } else if (

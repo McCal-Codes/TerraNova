@@ -1,23 +1,17 @@
 import type { Node, Edge } from "@xyflow/react";
 import { evaluateDensityGrid, type EvaluationOptions } from "../utils/densityEvaluator";
 import type { DensityWorkerRequest, DensityWorkerResponse, DensityWorkerError } from "../workers/densityWorker";
+import { useDevMetricsStore } from "@/stores/devMetricsStore";
+import { previewWorkerLog, previewWorkerWarn } from "./previewWorkerLog";
 
 const WORKER_TIMEOUT_MS = 30_000;
 
-function isDebug(): boolean {
-  try {
-    return import.meta.env.DEV || localStorage.getItem("tn-debug-workers") === "1";
-  } catch {
-    return false;
-  }
-}
-
 function log(...args: unknown[]) {
-  if (isDebug()) console.log("[densityWorkerClient]", ...args);
+  previewWorkerLog("densityWorkerClient", ...args);
 }
 
 function warn(...args: unknown[]) {
-  console.warn("[densityWorkerClient]", ...args);
+  previewWorkerWarn("densityWorkerClient", ...args);
 }
 
 export interface EvalParams {
@@ -44,6 +38,22 @@ export interface WorkerInstance {
   cancel: () => void;
 }
 
+function reportDensityEval(
+  lane: "worker" | "main-thread",
+  durationMs: number,
+  resolution: number,
+  fallbackReason?: string,
+) {
+  useDevMetricsStore.getState().reportEval({
+    kind: "density",
+    lane,
+    durationMs,
+    resolution,
+    fallbackReason,
+    at: Date.now(),
+  });
+}
+
 function evaluateOnMainThread(params: EvalParams): EvalResult {
   const result = evaluateDensityGrid(
     params.nodes,
@@ -66,6 +76,8 @@ export function createWorkerInstance(): WorkerInstance {
   let worker: Worker | null = null;
   let workerFailed = false;
   let pendingReject: ((reason: unknown) => void) | null = null;
+  let activeCleanup: (() => void) | null = null;
+  let requestSeq = 0;
 
   function getWorker(): Worker | null {
     if (workerFailed) return null;
@@ -88,6 +100,11 @@ export function createWorkerInstance(): WorkerInstance {
   }
 
   function cancel(): void {
+    requestSeq++;
+    if (activeCleanup) {
+      activeCleanup();
+      activeCleanup = null;
+    }
     if (pendingReject) {
       pendingReject("cancelled");
       pendingReject = null;
@@ -101,8 +118,11 @@ export function createWorkerInstance(): WorkerInstance {
     if (!w) {
       log("Using main-thread fallback (worker unavailable)");
       return new Promise<EvalResult>((resolve, reject) => {
+        const started = performance.now();
         try {
-          resolve(evaluateOnMainThread(params));
+          const result = evaluateOnMainThread(params);
+          reportDensityEval("main-thread", performance.now() - started, params.resolution, "worker-unavailable");
+          resolve(result);
         } catch (err) {
           reject(err);
         }
@@ -111,15 +131,19 @@ export function createWorkerInstance(): WorkerInstance {
 
     return new Promise<EvalResult>((resolve, reject) => {
       pendingReject = reject;
+      const requestId = ++requestSeq;
+      const started = performance.now();
 
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
       const onMessage = (e: MessageEvent<DensityWorkerResponse | DensityWorkerError>) => {
+        if (requestId !== requestSeq) return;
         cleanup();
         if ("error" in e.data) {
           reject(new Error(e.data.error));
         } else {
           log("Worker returned result, values length:", e.data.values.length);
+          reportDensityEval("worker", performance.now() - started, params.resolution);
           resolve({
             values: e.data.values,
             minValue: e.data.minValue,
@@ -131,11 +155,20 @@ export function createWorkerInstance(): WorkerInstance {
       };
 
       const onError = (e: ErrorEvent) => {
+        if (requestId !== requestSeq) return;
         cleanup();
         warn("Worker error during evaluation:", e.message);
         warn("Falling back to main-thread evaluation");
         try {
-          resolve(evaluateOnMainThread(params));
+          const fallbackStarted = performance.now();
+          const result = evaluateOnMainThread(params);
+          reportDensityEval(
+            "main-thread",
+            performance.now() - fallbackStarted,
+            params.resolution,
+            `worker-error:${e.message}`,
+          );
+          resolve(result);
         } catch (fallbackErr) {
           reject(fallbackErr);
         }
@@ -148,17 +181,28 @@ export function createWorkerInstance(): WorkerInstance {
         }
         w!.removeEventListener("message", onMessage);
         w!.removeEventListener("error", onError);
+        if (activeCleanup === cleanup) activeCleanup = null;
         if (pendingReject === reject) pendingReject = null;
       }
 
+      activeCleanup = cleanup;
       w.addEventListener("message", onMessage);
       w.addEventListener("error", onError);
 
       timeoutId = setTimeout(() => {
+        if (requestId !== requestSeq) return;
         cleanup();
         warn(`Worker timed out after ${WORKER_TIMEOUT_MS}ms, falling back to main-thread evaluation`);
         try {
-          resolve(evaluateOnMainThread(params));
+          const fallbackStarted = performance.now();
+          const result = evaluateOnMainThread(params);
+          reportDensityEval(
+            "main-thread",
+            performance.now() - fallbackStarted,
+            params.resolution,
+            "worker-timeout",
+          );
+          resolve(result);
         } catch (fallbackErr) {
           reject(fallbackErr);
         }

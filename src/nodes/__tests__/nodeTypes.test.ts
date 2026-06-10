@@ -335,7 +335,6 @@ describe("Removed legacy non-density types", () => {
 
   const REMOVED_MATERIAL_TYPES = [
     "Material:Solid", "Material:Empty", "Material:Exported",
-    "Material:Conditional", "Material:Blend", "Material:HeightGradient",
     "Material:NoiseSelector", "Material:Surface", "Material:Cave", "Material:Cluster",
   ];
 

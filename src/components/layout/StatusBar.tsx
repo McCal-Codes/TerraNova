@@ -5,11 +5,14 @@ import { useBridgeStore } from "@/stores/bridgeStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { useUpdateStore } from "@/stores/updateStore";
 import { downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { isTauriRuntime } from "@/utils/platform";
 import { useStore } from "@xyflow/react";
 import { getAppVersion } from "@/utils/fetchReleases";
+import { formatBridgeDiscoverySummary } from "@/utils/bridgeDiscovery";
+import { StatusBarSep } from "@/components/ui/editorChrome";
 
 export function StatusBar() {
   const currentFile = useProjectStore((s) => s.currentFile);
@@ -18,8 +21,14 @@ export function StatusBar() {
   const lastError = useProjectStore((s) => s.lastError);
   const bridgeConnected = useBridgeStore((s) => s.connected);
   const bridgeConnecting = useBridgeStore((s) => s.connecting);
+  const bridgeHost = useBridgeStore((s) => s.host);
+  const bridgePort = useBridgeStore((s) => s.port);
+  const bridgeDiscovery = useBridgeStore((s) => s.discovery);
+  const bridgeDiscoveryProbing = useBridgeStore((s) => s.discoveryProbing);
   const viewMode = usePreviewStore((s) => s.viewMode);
   const instantSaveEnabled = useSettingsStore((s) => s.instantSaveEnabled);
+  const devActive = useDeveloperMode();
+  const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
 
   // Node/edge/selection counts
   const nodeCount = useEditorStore((s) => s.nodes.length);
@@ -40,9 +49,9 @@ export function StatusBar() {
       return;
     }
 
-    void getVersion()
+    void getAppVersion()
       .then(setAppVersion)
-      .catch((e) => {
+      .catch((e: unknown) => {
         console.warn("Failed to get app version:", e);
         setAppVersion("");
       });
@@ -66,92 +75,125 @@ export function StatusBar() {
   const isGraphView = viewMode === "graph" || viewMode === "split";
 
   return (
-    <div className="flex items-center h-7 px-3 bg-tn-surface border-t border-tn-border text-xs text-tn-text-muted shrink-0 gap-1" role="status" aria-live="off">
-      {/* File path / error */}
-      <span className="truncate min-w-0">
-        {lastError ? (
-          <span className="text-red-400" role="alert" aria-live="polite">{lastError}</span>
-        ) : (
-          currentFile ? currentFile.replace(projectPath ?? "", ".") : "No file open"
-        )}
-      </span>
+    <div
+      className="flex min-h-7 shrink-0 flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-tn-border bg-tn-surface px-3 py-1 text-[11px] text-tn-text-muted"
+      role="status"
+      aria-live="off"
+    >
+      {lastError ? (
+        <span
+          className="min-w-[12rem] max-w-[min(100%,42rem)] flex-1 basis-full break-words leading-snug text-red-400 sm:basis-auto"
+          role="alert"
+          aria-live="polite"
+          title={lastError}
+        >
+          {lastError}
+        </span>
+      ) : (
+        <span className="min-w-0 max-w-[38%] truncate">
+          {currentFile ? currentFile.replace(projectPath ?? "", ".") : "No file open"}
+        </span>
+      )}
 
-      {/* Node/edge/selection counts */}
-      <span className="ml-3 whitespace-nowrap" aria-label={`${nodeCount} nodes`}>
+      <StatusBarSep />
+      <span className="whitespace-nowrap tabular-nums" aria-label={`${nodeCount} nodes`}>
         {nodeCount} nodes
       </span>
-      <span className="whitespace-nowrap" aria-label={`${edgeCount} edges`}>
+      <span className="whitespace-nowrap tabular-nums" aria-label={`${edgeCount} edges`}>
         {edgeCount} edges
       </span>
       {selectedCount > 0 && (
-        <>
-          <span className="text-tn-border mx-1" aria-hidden="true">|</span>
-          <span className="whitespace-nowrap text-tn-accent" aria-label={`${selectedCount} items selected`}>
-            {selectedCount} selected
-          </span>
-        </>
+        <span className="whitespace-nowrap text-tn-accent" aria-label={`${selectedCount} items selected`}>
+          {selectedCount} selected
+        </span>
       )}
 
-      <div className="flex-1" />
+      {devActive && selectedNodeId && (
+        <span
+          className="max-w-[9rem] truncate font-mono text-[10px] text-tn-text-muted/80"
+          title={selectedNodeId}
+        >
+          {selectedNodeId}
+        </span>
+      )}
 
-      {/* Grid/Snap indicators (only in graph view) */}
+      <div className="min-w-2 flex-1" />
+
       {isGraphView && (
         <>
           <button
             onClick={() => useUIStore.getState().toggleGrid()}
             aria-pressed={showGrid}
-            aria-label={`Toggle grid ${showGrid ? "on" : "off"}`}
-            className={`px-1.5 rounded text-[10px] font-medium ${
-              showGrid ? "text-tn-accent" : "text-tn-text-muted/40"
+            aria-label={`Grid ${showGrid ? "on" : "off"}`}
+            className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
+              showGrid ? "text-tn-accent" : "text-tn-text-muted/45"
             } hover:bg-tn-accent/10`}
           >
-            GRID
+            Grid
           </button>
           <button
             onClick={() => useUIStore.getState().toggleSnap()}
             aria-pressed={snapToGrid}
-            aria-label={`Toggle snap to grid ${snapToGrid ? "on" : "off"}`}
-            className={`px-1.5 rounded text-[10px] font-medium ${
-              snapToGrid ? "text-tn-accent" : "text-tn-text-muted/40"
+            aria-label={`Snap ${snapToGrid ? "on" : "off"}`}
+            className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
+              snapToGrid ? "text-tn-accent" : "text-tn-text-muted/45"
             } hover:bg-tn-accent/10`}
           >
-            SNAP
+            Snap
           </button>
+          <StatusBarSep />
         </>
       )}
 
-      {/* Zoom percentage */}
-      <span className="mx-1 text-[10px] w-8 text-right" aria-label={`Zoom level: ${zoomPercent}%`}>{zoomPercent}%</span>
+      <span className="w-9 text-right tabular-nums" aria-label={`Zoom ${zoomPercent}%`}>
+        {zoomPercent}%
+      </span>
 
-      {/* Bridge */}
       <button
         onClick={() => useBridgeStore.getState().setDialogOpen(true)}
-        aria-label={`Bridge ${bridgeConnected ? "connected" : bridgeConnecting ? "connecting" : "disconnected"}`}
-        className="mx-1 flex items-center gap-1 px-1.5 rounded hover:bg-tn-accent/10"
+        aria-label={
+          bridgeConnected
+            ? "Bridge connected"
+            : bridgeDiscovery
+              ? formatBridgeDiscoverySummary(bridgeDiscovery, bridgeHost, bridgePort)
+              : "Bridge disconnected"
+        }
+        title={
+          bridgeConnected
+            ? "Bridge connected — open settings"
+            : formatBridgeDiscoverySummary(bridgeDiscovery, bridgeHost, bridgePort)
+        }
+        className="flex max-w-[200px] items-center gap-1 rounded px-1.5 py-0.5 hover:bg-tn-accent/10"
       >
         <span className={bridgeColor} aria-hidden="true">●</span>
-        <span>Bridge</span>
+        <span className="truncate">
+          {bridgeConnected
+            ? "Bridge"
+            : bridgeDiscoveryProbing
+              ? "Bridge…"
+              : bridgeDiscovery?.portOpen
+                ? "Ready"
+                : "Bridge"}
+        </span>
       </button>
 
-      {/* Instant Save indicator */}
       <button
         onClick={() => useSettingsStore.getState().toggleInstantSave()}
         aria-pressed={instantSaveEnabled}
-        aria-label={`Instant Save ${instantSaveEnabled ? "enabled" : "disabled"} (Ctrl+Shift+I)`}
-        className={`px-1.5 rounded text-[10px] font-medium ${
-          instantSaveEnabled ? "text-sky-400" : "text-tn-text-muted/40"
+        aria-label={`Instant save ${instantSaveEnabled ? "on" : "off"}`}
+        className={`rounded px-1.5 py-0.5 text-[10px] transition-colors ${
+          instantSaveEnabled ? "text-sky-400" : "text-tn-text-muted/45"
         } hover:bg-sky-400/10`}
-        title={`Instant Save ${instantSaveEnabled ? "enabled" : "disabled"} (Ctrl+Shift+I)`}
+        title={`Instant save (Ctrl+Shift+I)`}
       >
-        INSTANT
+        Instant
       </button>
 
-      {/* Save state */}
-      <span className="mx-1" aria-label={isDirty ? "Unsaved changes" : "File saved"}>
+      <span aria-label={isDirty ? "Unsaved changes" : "File saved"}>
         {isDirty ? (
           <span className="text-amber-400">Unsaved</span>
         ) : (
-          <span className="text-emerald-400">Saved</span>
+          <span className="text-emerald-400/90">Saved</span>
         )}
       </span>
 

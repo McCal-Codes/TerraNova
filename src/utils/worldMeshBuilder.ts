@@ -58,6 +58,9 @@ export interface WorldMeshResult {
   sceneScale: number;
   /** Scene-space footprint size (X and Z) of the loaded terrain */
   terrainSize: number;
+  /** World-space midpoints used when meshing (for player marker overlay). */
+  worldMidX: number;
+  worldMidZ: number;
 }
 
 export function buildWorldMeshes(
@@ -67,7 +70,9 @@ export function buildWorldMeshes(
   centerZ: number,
   surfaceDepth = 32,
 ): WorldMeshResult {
-  if (chunks.length === 0) return { meshes: [], sceneYMin: 0, sceneScale: 1, terrainSize: 0 };
+  if (chunks.length === 0) {
+    return { meshes: [], sceneYMin: 0, sceneScale: 1, terrainSize: 0, worldMidX: 0, worldMidZ: 0 };
+  }
 
   // Build block ID → render info lookup from palette
   const blockInfoCache = new Map<number, BlockRenderInfo>();
@@ -231,5 +236,33 @@ export function buildWorldMeshes(
   }
 
   const terrainSize = Math.max(totalBlocksX, totalBlocksZ) * scale;
-  return { meshes: results, sceneYMin: yMin, sceneScale: scale, terrainSize };
+  return {
+    meshes: results,
+    sceneYMin: yMin,
+    sceneScale: scale,
+    terrainSize,
+    worldMidX,
+    worldMidZ,
+  };
+}
+
+const SCENE_BOX = 50;
+
+/** Map Hytale block coords into the same space as `buildWorldMeshes` output. */
+export function blockToScenePosition(
+  blockX: number,
+  blockY: number,
+  blockZ: number,
+  centerChunkX: number,
+  centerChunkZ: number,
+  layout: Pick<WorldMeshResult, "sceneYMin" | "sceneScale" | "worldMidX" | "worldMidZ">,
+): [number, number, number] {
+  const wx = blockX - centerChunkX * 32;
+  const wz = blockZ - centerChunkZ * 32;
+  const wy = blockY - layout.sceneYMin;
+  return [
+    (wx - layout.worldMidX) * layout.sceneScale,
+    wy * layout.sceneScale - SCENE_BOX / 2,
+    (wz - layout.worldMidZ) * layout.sceneScale,
+  ];
 }

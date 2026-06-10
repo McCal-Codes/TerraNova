@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
-import { CheckCircle2, Package, AlertTriangle, Lock, LockOpen, HelpCircle } from "lucide-react";
+import { Lock, LockOpen, HelpCircle, Copy } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
-import { useProjectStore, type DirectoryEntry } from "@/stores/projectStore";
+import { useProjectStore } from "@/stores/projectStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { useFieldChange } from "@/hooks/useFieldChange";
@@ -20,8 +20,26 @@ import { PropOverviewPanel } from "./PropOverviewPanel";
 import { MaterialLayerStack } from "./MaterialLayerStack";
 import { AtmosphereTab } from "./AtmosphereTab";
 import { DebugTab } from "./DebugTab";
+import { DeveloperInspector } from "./DeveloperInspector";
+import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { PropPlacementGrid } from "./PropPlacementGrid";
-import { CollapsibleEditorSection } from "@/components/editor/CollapsibleEditorSection";
+import { WeightedAssignmentsField } from "./WeightedAssignmentsField";
+import type { WeightedAssignmentEntry } from "@/utils/weightedAssignmentSummary";
+import { AssignmentDelimitersField } from "./AssignmentDelimitersField";
+import { MaterialFieldFunctionBandsField } from "./MaterialFieldFunctionBandsField";
+import { ColumnPropFields } from "./ColumnPropFields";
+import { mergeColumnPropFields } from "@/utils/columnPropHelpers";
+import { WeightedPrefabPathsField } from "./WeightedPrefabPathsField";
+import {
+  delimiterUsesAssignmentBands,
+  delimiterUsesMaterialBands,
+  isInternalMaterialFieldFunction,
+} from "@/utils/weightedAssignmentSummary";
+import type { WeightedPrefabPathEntry } from "@/utils/weightedAssignmentSummary";
+import { ShapePreviewCard } from "./ShapePreviewCard";
+import { InlineCurveField } from "./InlineCurveField";
+import { supportsShapePreviewCard } from "@/utils/shapePreview/shapePreviewProfile";
+import { AssetInspectorPanel, resolveAssetInspectorMode } from "./AssetInspectorPanel";
 import { POSITION_TYPE_NAMES } from "@/utils/positionEvaluator";
 import { getCurveEvaluator } from "@/utils/curveEvaluators";
 import { validateField, type ValidationIssue } from "@/schema/validation";
@@ -29,12 +47,8 @@ import { getConstraints } from "@/schema/constraints";
 import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS, getShortDescription, getExtendedDescription } from "@/schema/fieldDescriptions";
 import { useLanguage } from "@/languages/useLanguage";
-import { useToastStore } from "@/stores/toastStore";
 import { CATEGORY_COLORS } from "@/schema/types";
 import { ALL_DEFAULTS } from "@/schema/defaults";
-import { copyFile, createDirectory, exportAssetFile, listDirectory, resolveBundledHytaleAssetPath, showInFolder } from "@/utils/ipc";
-import mapDirEntry from "@/utils/mapDirEntry";
-import { joinPath, normalizePath, getDirname } from "@/utils/pathUtils";
 import {
   type DelimiterValidationIssue,
   readDelimiterRangeMin,
@@ -53,6 +67,15 @@ import {
   makeAuthorNoteText,
   stripAuthorNotePrefix,
 } from "@/utils/annotationUtils";
+import {
+  getFieldDefaultValue,
+  getOrderedFieldKeys,
+  isInlineCurveFieldKey,
+  matchesFieldFilter,
+  resolvePropertyPanelTypeKey,
+  shouldSkipPropertyField,
+  type PropertyFieldVisibilityContext,
+} from "@/utils/propertyPanelFields";
 
 export { validateEnvironmentDelimiters } from "@/utils/environmentDelimiters";
 export {
@@ -132,199 +155,6 @@ interface EnvironmentNameLookup {
   error: string | null;
 }
 
-const WEATHER_SUMMARY_COLOR_KEYS = [
-  "SkyTopColors",
-  "SkyBottomColors",
-  "SkySunsetColors",
-  "FogColors",
-  "SunColors",
-  "SunGlowColors",
-  "MoonColors",
-  "MoonGlowColors",
-  "SunlightColors",
-  "ScreenEffectColors",
-  "WaterTints",
-];
-
-const WEATHER_SUMMARY_VALUE_KEYS = [
-  "SunScales",
-  "MoonScales",
-  "FogDensities",
-  "FogHeightFalloffs",
-  "SunlightDampingMultipliers",
-];
-
-function isAssetFileInFolder(path: string | null, folderName: string): boolean {
-  if (!path) return false;
-  return path.replace(/\\/g, "/").toLowerCase().includes(`/${folderName.toLowerCase()}/`);
-}
-
-interface AssetInspectorEntry {
-  key: string;
-  label: string;
-  detail: string;
-  status: "in-pack" | "built-in" | "missing";
-  projectPath: string | null;
-  bundledPath: string | null;
-  kind: "weather-texture" | "environment-weather";
-}
-
-function toRelativeDisplayPath(root: string | null, path: string): string {
-  const normalizedPath = normalizePath(path);
-  if (!root) return normalizedPath;
-  const normalizedRoot = normalizePath(root);
-  const prefix = `${normalizedRoot}/`.toLowerCase();
-  return normalizedPath.toLowerCase().startsWith(prefix)
-    ? normalizedPath.slice(normalizedRoot.length + 1)
-    : normalizedPath;
-}
-
-function collectDirectoryFilePaths(entries: DirectoryEntry[]): string[] {
-  const files: string[] = [];
-  const visit = (items: DirectoryEntry[]) => {
-    for (const entry of items) {
-      if (entry.isDir && Array.isArray(entry.children)) {
-        visit(entry.children);
-        continue;
-      }
-      if (!entry.isDir) {
-        files.push(entry.path);
-      }
-    }
-  };
-  visit(entries);
-  return files;
-}
-
-function getFileStem(path: string): string {
-  const normalized = path.replace(/\\/g, "/");
-  const fileName = normalized.slice(normalized.lastIndexOf("/") + 1);
-  return fileName.replace(/\.[^.]+$/i, "");
-}
-
-function referenceToBundledCommonPath(referencePath: string): string {
-  const normalized = referencePath.replace(/\\/g, "/").replace(/^\/+/, "");
-  return normalized.toLowerCase().startsWith("common/") ? normalized : `Common/${normalized}`;
-}
-
-function referenceToProjectCommonPath(projectRoot: string, referencePath: string): string {
-  const normalized = referencePath.replace(/\\/g, "/").replace(/^\/+/, "");
-  const relativePath = normalized.toLowerCase().startsWith("common/") ? normalized : `Common/${normalized}`;
-  return joinPath(projectRoot, relativePath);
-}
-
-function collectWeatherTextureReferences(doc: Record<string, unknown>): Array<{ label: string; referencePath: string }> {
-  const references: Array<{ label: string; referencePath: string }> = [];
-  const seen = new Set<string>();
-  const pushReference = (label: string, referencePath: unknown) => {
-    if (typeof referencePath !== "string" || !referencePath.trim()) return;
-    const normalized = referencePath.trim();
-    const key = normalized.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    references.push({ label, referencePath: normalized });
-  };
-
-  pushReference("Stars", doc.Stars);
-
-  if (Array.isArray(doc.Moons)) {
-    for (const [index, moon] of doc.Moons.entries()) {
-      if (moon && typeof moon === "object") {
-        pushReference(`Moon ${index + 1}`, (moon as { Texture?: unknown }).Texture);
-      }
-    }
-  }
-
-  if (Array.isArray(doc.Clouds)) {
-    for (const [index, cloud] of doc.Clouds.entries()) {
-      if (cloud && typeof cloud === "object") {
-        pushReference(`Cloud ${index + 1}`, (cloud as { Texture?: unknown }).Texture);
-      }
-    }
-  }
-
-  return references;
-}
-
-function collectEnvironmentWeatherIds(doc: Record<string, unknown>): string[] {
-  const forecasts = doc.WeatherForecasts && typeof doc.WeatherForecasts === "object"
-    ? doc.WeatherForecasts as Record<string, unknown>
-    : {};
-  const ids = new Set<string>();
-  for (const entries of Object.values(forecasts)) {
-    if (!Array.isArray(entries)) continue;
-    for (const entry of entries) {
-      if (entry && typeof entry === "object" && typeof (entry as { WeatherId?: unknown }).WeatherId === "string") {
-        ids.add((entry as { WeatherId: string }).WeatherId);
-      }
-    }
-  }
-  return [...ids].sort((left, right) => left.localeCompare(right));
-}
-
-function buildDefaultWeatherDoc(weatherId: string) {
-  return {
-    $Comment: `Placeholder weather created by TerraNova for ${weatherId}`,
-    SkyTopColors: [{ Hour: 12, Color: "rgba(#5ba3e8, 1.0)" }],
-    SkyBottomColors: [{ Hour: 12, Color: "rgba(#3a7fc1, 1.0)" }],
-    FogColors: [{ Hour: 12, Color: "rgba(#a8cce0, 0.4)" }],
-    SunColors: [{ Hour: 12, Color: "rgba(#ffffff, 1.0)" }],
-    MoonColors: [{ Hour: 0, Color: "rgba(#cbd5f5, 1.0)" }],
-    SunlightColors: [{ Hour: 12, Color: "rgba(#ffffff, 1.0)" }],
-    SunScales: [{ Hour: 12, Value: 1.0 }],
-    MoonScales: [{ Hour: 0, Value: 1.0 }],
-    FogDensities: [{ Hour: 12, Value: 0.01 }],
-    FogDistance: [64, 512],
-  };
-}
-
-function inferSuggestedEnvironmentParent(
-  currentFile: string | null,
-  knownEnvironmentNames: string[],
-): string {
-  const envNames = knownEnvironmentNames.filter((name) => /^Env_/i.test(name));
-  const normalizedPath = (currentFile ?? "").replace(/\\/g, "/").toLowerCase();
-  const findExact = (candidate: string) => envNames.find((name) => name.toLowerCase() === candidate.toLowerCase()) ?? null;
-  const findPrefix = (candidatePrefix: string) => envNames.find((name) => name.toLowerCase().startsWith(candidatePrefix.toLowerCase())) ?? null;
-  const findContains = (fragment: string) => envNames.find((name) => name.toLowerCase().includes(fragment.toLowerCase())) ?? null;
-
-  if (normalizedPath.includes("void")) {
-    return findExact("Env_Default_Void")
-      ?? findContains("void")
-      ?? "Env_Default_Void";
-  }
-
-  const zoneMatch = /zone[_ -]?(\d+)/i.exec(normalizedPath);
-  if (zoneMatch) {
-    const zonePrefix = `Env_Zone${zoneMatch[1]}`;
-    return findExact(zonePrefix)
-      ?? findPrefix(zonePrefix)
-      ?? findContains(`zone${zoneMatch[1]}`)
-      ?? findExact("Env_Zone1")
-      ?? findPrefix("Env_Zone1")
-      ?? findExact("Env_Default_Flat")
-      ?? "Env_Default_Flat";
-  }
-
-  return findExact("Env_Zone1")
-    ?? findPrefix("Env_Zone1")
-    ?? findExact("Env_Default_Flat")
-    ?? findPrefix("Env_Default")
-    ?? envNames[0]
-    ?? "Env_Zone1";
-}
-
-function statusClass(status: AssetInspectorEntry["status"]): string {
-  switch (status) {
-    case "in-pack":
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
-    case "built-in":
-      return "border-sky-500/30 bg-sky-500/10 text-sky-300";
-    default:
-      return "border-amber-500/30 bg-amber-500/10 text-amber-300";
-  }
-}
-
 export function PropertyPanel() {
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
@@ -335,22 +165,19 @@ export function PropertyPanel() {
   const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
   const setEditingContext = useEditorStore((s) => s.setEditingContext);
   const biomeSections = useEditorStore((s) => s.biomeSections);
-  const directoryTree = useProjectStore((s) => s.directoryTree);
   const setDirty = useProjectStore((s) => s.setDirty);
-  const setDirectoryTree = useProjectStore((s) => s.setDirectoryTree);
   const currentFile = useProjectStore((s) => s.currentFile);
   const projectPath = useProjectStore((s) => s.projectPath);
   const rawJsonContent = useEditorStore((s) => s.rawJsonContent);
-  const setRawJsonContent = useEditorStore((s) => s.setRawJsonContent);
   const editingContext = useEditorStore((s) => s.editingContext);
   const { openFile } = useTauriIO();
-  const addToast = useToastStore((s) => s.addToast);
   const { getTypeDisplayName, getFieldDisplayName, getFieldTransform } = useLanguage();
   const helpMode = useUIStore((s) => s.helpMode);
   const toggleHelpMode = useUIStore((s) => s.toggleHelpMode);
-  const compactAssetInspector = useUIStore((s) => s.compactAssetInspector);
-  const toggleAssetInspectorCompact = useUIStore((s) => s.toggleAssetInspectorCompact);
+  const devActive = useDeveloperMode();
   const [expandedField, setExpandedField] = useState<string | null>(null);
+  const [fieldFilter, setFieldFilter] = useState("");
+  const [noteExpanded, setNoteExpanded] = useState(false);
   const [idCopied, setIdCopied] = useState(false);
   const idCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [environmentLookup, setEnvironmentLookup] = useState<EnvironmentNameLookup>({
@@ -368,16 +195,6 @@ export function PropertyPanel() {
   const settingsConfig = useEditorStore((s) => s.settingsConfig);
   const setSettingsConfig = useEditorStore((s) => s.setSettingsConfig);
   const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
-  const [assetInspectorEntries, setAssetInspectorEntries] = useState<AssetInspectorEntry[]>([]);
-  const [assetInspectorLoading, setAssetInspectorLoading] = useState(false);
-  const [assetInspectorActionKey, setAssetInspectorActionKey] = useState<string | null>(null);
-  const [assetInspectorRevision, setAssetInspectorRevision] = useState(0);
-  const [assetInspectorCategory, setAssetInspectorCategory] = useState("all");
-  const [assetInspectorOverviewOpen, setAssetInspectorOverviewOpen] = useState(true);
-  const [assetInspectorToolsOpen, setAssetInspectorToolsOpen] = useState(true);
-  const [assetInspectorReferencesOpen, setAssetInspectorReferencesOpen] = useState(true);
-  const [assetInspectorGuidanceOpen, setAssetInspectorGuidanceOpen] = useState(false);
-  const assetInspectorContainerRef = useRef<HTMLDivElement | null>(null);
 
   const hasPendingSnapshotRef = useRef(false);
   const lastChangedFieldRef = useRef<{ field: string; nodeType: string }>({ field: "", nodeType: "" });
@@ -389,14 +206,7 @@ export function PropertyPanel() {
   const selectedNodeBiomeField = typeof selectedNodeData?._biomeField === "string"
     ? selectedNodeData._biomeField
     : "";
-  const assetInspectorMode =
-    !selectedNode && rawJsonContent
-      ? isAssetFileInFolder(currentFile, "Server/Weathers")
-        ? "weather"
-        : isAssetFileInFolder(currentFile, "Server/Environments")
-          ? "environment"
-          : null
-      : null;
+  const assetInspectorMode = resolveAssetInspectorMode(Boolean(selectedNode), rawJsonContent, currentFile);
   const shouldLoadEnvironmentNames =
     selectedNode?.type === "Environment:DensityDelimited"
     || (selectedNodeType === "DensityDelimited" && selectedNodeBiomeField === "EnvironmentProvider");
@@ -452,216 +262,6 @@ export function PropertyPanel() {
       cancelled = true;
     };
   }, [shouldLoadEnvironmentNames, currentFile, projectPath]);
-
-  const refreshAssetInspectorTree = useCallback(async () => {
-    if (projectPath) {
-      try {
-        const entries = await listDirectory(projectPath);
-        setDirectoryTree(entries.map(mapDirEntry));
-      } catch {
-        // Tree refresh failure is non-fatal for the inspector.
-      }
-    }
-    setAssetInspectorRevision((value) => value + 1);
-  }, [projectPath, setDirectoryTree]);
-
-  const importAssetInspectorEntries = useCallback(async (entries: AssetInspectorEntry[]) => {
-    const importableEntries = entries.filter((entry): entry is AssetInspectorEntry & { bundledPath: string; projectPath: string } => (
-      Boolean(entry.bundledPath && entry.projectPath)
-    ));
-    if (importableEntries.length === 0) return;
-
-    let imported = 0;
-    let failed = 0;
-
-    for (const entry of importableEntries) {
-      try {
-        await createDirectory(getDirname(entry.projectPath)).catch(() => {});
-        await copyFile(entry.bundledPath, entry.projectPath);
-        imported += 1;
-      } catch {
-        failed += 1;
-      }
-    }
-
-    await refreshAssetInspectorTree();
-
-    const noun = importableEntries[0]?.kind === "weather-texture"
-      ? "referenced sky asset"
-      : "referenced weather file";
-
-    if (imported > 0) {
-      addToast(`Added ${imported} ${noun}${imported === 1 ? "" : "s"} to this pack.`, "success");
-    }
-    if (failed > 0) {
-      addToast(`Failed to add ${failed} ${noun}${failed === 1 ? "" : "s"}.`, imported > 0 ? "warning" : "error");
-    }
-  }, [addToast, refreshAssetInspectorTree]);
-
-  const createAssetInspectorWeatherFiles = useCallback(async (entries: AssetInspectorEntry[]) => {
-    const creatableEntries = entries.filter((entry): entry is AssetInspectorEntry & { projectPath: string } => (
-      entry.kind === "environment-weather" && Boolean(entry.projectPath)
-    ));
-    if (creatableEntries.length === 0) return;
-
-    let created = 0;
-    let failed = 0;
-
-    for (const entry of creatableEntries) {
-      try {
-        await createDirectory(getDirname(entry.projectPath)).catch(() => {});
-        await exportAssetFile(entry.projectPath, buildDefaultWeatherDoc(entry.label));
-        created += 1;
-      } catch {
-        failed += 1;
-      }
-    }
-
-    await refreshAssetInspectorTree();
-
-    if (created > 0) {
-      addToast(`Created ${created} placeholder weather file${created === 1 ? "" : "s"} in Server/Weathers.`, "success");
-    }
-    if (failed > 0) {
-      addToast(`Failed to create ${failed} placeholder weather file${failed === 1 ? "" : "s"}.`, created > 0 ? "warning" : "error");
-    }
-  }, [addToast, refreshAssetInspectorTree]);
-
-  const runAssetInspectorAction = useCallback(async (actionKey: string, action: () => Promise<void>) => {
-    if (assetInspectorActionKey) return;
-    setAssetInspectorActionKey(actionKey);
-    try {
-      await action();
-    } catch (error) {
-      addToast(String(error), "error");
-    } finally {
-      setAssetInspectorActionKey(null);
-    }
-  }, [assetInspectorActionKey, addToast]);
-
-  useEffect(() => {
-    if (!assetInspectorMode || !rawJsonContent || !projectPath) {
-      setAssetInspectorEntries([]);
-      setAssetInspectorLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadEntries = async () => {
-      setAssetInspectorLoading(true);
-
-      try {
-        const doc = rawJsonContent as Record<string, unknown>;
-        const projectFiles = collectDirectoryFilePaths(Array.isArray(directoryTree) ? directoryTree : []);
-        const projectFileIndex = new Set(projectFiles.map((path) => normalizePath(path).toLowerCase()));
-
-        if (assetInspectorMode === "weather") {
-          const textureEntries = await Promise.all(
-            collectWeatherTextureReferences(doc).map(async ({ label, referencePath }) => {
-              const targetPath = referenceToProjectCommonPath(projectPath, referencePath);
-              const inPack = projectFileIndex.has(normalizePath(targetPath).toLowerCase());
-              let bundledPath: string | null = null;
-
-              if (!inPack) {
-                try {
-                  bundledPath = await resolveBundledHytaleAssetPath(referenceToBundledCommonPath(referencePath));
-                } catch {
-                  bundledPath = null;
-                }
-              }
-
-              return {
-                key: `weather-texture:${referencePath}`.toLowerCase(),
-                label,
-                detail: referencePath.replace(/\\/g, "/"),
-                status: inPack ? "in-pack" : bundledPath ? "built-in" : "missing",
-                projectPath: targetPath,
-                bundledPath,
-                kind: "weather-texture",
-              } satisfies AssetInspectorEntry;
-            }),
-          );
-
-          if (!cancelled) {
-            setAssetInspectorEntries(textureEntries);
-          }
-          return;
-        }
-
-        const projectWeatherIndex = new Map<string, string>();
-        for (const filePath of projectFiles) {
-          const normalizedFilePath = normalizePath(filePath);
-          if (!normalizedFilePath.toLowerCase().endsWith(".json")) continue;
-          if (!isAssetFileInFolder(normalizedFilePath, "Server/Weathers")) continue;
-          projectWeatherIndex.set(getFileStem(normalizedFilePath).toLowerCase(), normalizedFilePath);
-        }
-
-        const bundledWeatherIndex = new Map<string, string>();
-        try {
-          const bundledWeathersPath = await resolveBundledHytaleAssetPath("Server/Weathers");
-          const bundledEntries = await listDirectory(bundledWeathersPath);
-          const bundledFiles = collectDirectoryFilePaths(bundledEntries.map(mapDirEntry));
-          for (const filePath of bundledFiles) {
-            const normalizedFilePath = normalizePath(filePath);
-            if (!normalizedFilePath.toLowerCase().endsWith(".json")) continue;
-            bundledWeatherIndex.set(getFileStem(normalizedFilePath).toLowerCase(), normalizedFilePath);
-          }
-        } catch {
-          // Built-in weather lookup is optional.
-        }
-
-        const weatherEntries = collectEnvironmentWeatherIds(doc).map((weatherId) => {
-          const weatherKey = weatherId.toLowerCase();
-          const existingProjectPath = projectWeatherIndex.get(weatherKey) ?? null;
-          const bundledPath = existingProjectPath ? null : bundledWeatherIndex.get(weatherKey) ?? null;
-          const targetFileName = bundledPath
-            ? (normalizePath(bundledPath).split("/").pop() ?? `${weatherId}.json`)
-            : `${weatherId}.json`;
-          const targetPath = existingProjectPath ?? joinPath(projectPath, `Server/Weathers/${targetFileName}`);
-
-          return {
-            key: `environment-weather:${weatherKey}`,
-            label: weatherId,
-            detail: existingProjectPath
-              ? toRelativeDisplayPath(projectPath, existingProjectPath)
-              : `Server/Weathers/${targetFileName}`,
-            status: existingProjectPath ? "in-pack" : bundledPath ? "built-in" : "missing",
-            projectPath: targetPath,
-            bundledPath,
-            kind: "environment-weather",
-          } satisfies AssetInspectorEntry;
-        });
-
-        if (!cancelled) {
-          setAssetInspectorEntries(weatherEntries);
-        }
-      } catch {
-        if (!cancelled) {
-          setAssetInspectorEntries([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setAssetInspectorLoading(false);
-        }
-      }
-    };
-
-    void loadEntries();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [assetInspectorMode, rawJsonContent, projectPath, directoryTree, assetInspectorRevision]);
-
-  useEffect(() => {
-    setAssetInspectorCategory("all");
-    setAssetInspectorOverviewOpen(true);
-    setAssetInspectorToolsOpen(true);
-    setAssetInspectorReferencesOpen(true);
-    setAssetInspectorGuidanceOpen(false);
-    assetInspectorContainerRef.current?.scrollTo({ top: 0 });
-  }, [assetInspectorMode, currentFile]);
 
   const canOpenEnvironmentGraph = Boolean(
     biomeSections?.EnvironmentProvider,
@@ -751,6 +351,16 @@ export function PropertyPanel() {
       flushPendingSnapshot();
     };
   }, [selectedNodeId, flushPendingSnapshot]);
+
+  useEffect(() => {
+    setFieldFilter("");
+    setExpandedField(null);
+    const node = useEditorStore.getState().nodes.find((n) => n.id === selectedNodeId);
+    const comment = node?.data
+      ? (node.data as Record<string, unknown>).fields as Record<string, unknown> | undefined
+      : undefined;
+    setNoteExpanded(typeof comment?._comment === "string" && comment._comment.trim().length > 0);
+  }, [selectedNodeId]);
 
   // Clean up the copy-ID flash timer on unmount so we don't call setState after unmount
   useEffect(() => {
@@ -911,510 +521,9 @@ export function PropertyPanel() {
     }
 
     if (assetInspectorMode && rawJsonContent) {
-      const isWeatherAsset = assetInspectorMode === "weather";
-      const assetLabel = isWeatherAsset ? "Weather Asset Inspector" : "Environment Asset Inspector";
-      const doc = rawJsonContent as Record<string, unknown>;
-      const inPackEntries = assetInspectorEntries.filter((entry) => entry.status === "in-pack");
-      const builtInEntries = assetInspectorEntries.filter((entry) => entry.status === "built-in");
-      const missingEntries = assetInspectorEntries.filter((entry) => entry.status === "missing");
-      const prioritizedAssetInspectorEntries = [...assetInspectorEntries].sort((left, right) => {
-        const rank = (status: AssetInspectorEntry["status"]) => (
-          status === "missing" ? 0 : status === "built-in" ? 1 : 2
-        );
-        return rank(left.status) - rank(right.status) || left.label.localeCompare(right.label);
-      });
-      const assetInspectorCategoryOptions = isWeatherAsset
-        ? [
-            { value: "all", label: "All assets" },
-            { value: "celestial", label: "Celestial" },
-            { value: "clouds", label: "Clouds" },
-            { value: "needs-attention", label: "Needs attention" },
-            { value: "built-in", label: "Built-in" },
-            { value: "missing", label: "Missing" },
-            { value: "in-pack", label: "In pack" },
-          ]
-        : [
-            { value: "all", label: "All weather refs" },
-            { value: "needs-attention", label: "Needs attention" },
-            { value: "built-in", label: "Built-in" },
-            { value: "missing", label: "Missing" },
-            { value: "in-pack", label: "In pack" },
-          ];
-      const filteredAssetInspectorEntries = prioritizedAssetInspectorEntries.filter((entry) => {
-        switch (assetInspectorCategory) {
-          case "needs-attention":
-            return entry.status !== "in-pack";
-          case "built-in":
-          case "missing":
-          case "in-pack":
-            return entry.status === assetInspectorCategory;
-          case "celestial":
-            return isWeatherAsset && (entry.label === "Stars" || entry.label.startsWith("Moon "));
-          case "clouds":
-            return isWeatherAsset && entry.label.startsWith("Cloud ");
-          default:
-            return true;
-        }
-      });
-      const suggestedParentEnvironment = !isWeatherAsset && !(typeof doc.Parent === "string" && doc.Parent.trim())
-        ? inferSuggestedEnvironmentParent(currentFile, [...FIELD_SUGGESTIONS.Environment])
-        : null;
-      const projectAssetFolder = projectPath
-        ? joinPath(projectPath, isWeatherAsset ? "Common/Sky" : "Server/Weathers")
-        : null;
-      const summaryRows = isWeatherAsset
-        ? [
-            {
-              label: "Color tracks",
-              value: String(WEATHER_SUMMARY_COLOR_KEYS.filter((key) => Array.isArray(doc[key])).length),
-            },
-            {
-              label: "Value tracks",
-              value: String(WEATHER_SUMMARY_VALUE_KEYS.filter((key) => Array.isArray(doc[key])).length),
-            },
-            {
-              label: "Cloud layers",
-              value: String(Array.isArray(doc.Clouds) ? doc.Clouds.length : 0),
-            },
-            {
-              label: "Moons",
-              value: String(Array.isArray(doc.Moons) ? doc.Moons.length : 0),
-            },
-            {
-              label: "Stars",
-              value: typeof doc.Stars === "string" && doc.Stars.trim() ? "Configured" : "Missing",
-            },
-          ]
-        : (() => {
-            const forecasts = (doc.WeatherForecasts && typeof doc.WeatherForecasts === "object"
-              ? doc.WeatherForecasts
-              : {}) as Record<string, unknown>;
-            const forecastEntries = Object.values(forecasts)
-              .filter((value) => Array.isArray(value))
-              .map((value) => value as unknown[]);
-            const totalEntries = forecastEntries.reduce((sum, entries) => sum + entries.length, 0);
-            const uniqueWeatherIds = new Set<string>();
-            for (const entries of forecastEntries) {
-              for (const entry of entries) {
-                if (entry && typeof entry === "object" && typeof (entry as { WeatherId?: unknown }).WeatherId === "string") {
-                  uniqueWeatherIds.add((entry as { WeatherId: string }).WeatherId);
-                }
-              }
-            }
-            return [
-              {
-                label: "Forecast hours",
-                value: String(forecastEntries.filter((entries) => entries.length > 0).length),
-              },
-              {
-                label: "Forecast entries",
-                value: String(totalEntries),
-              },
-              {
-                label: "Weather refs",
-                value: String(uniqueWeatherIds.size),
-              },
-              {
-                label: "Tags",
-                value: String(doc.Tags && typeof doc.Tags === "object" ? Object.keys(doc.Tags as Record<string, unknown>).length : 0),
-              },
-              {
-                label: "Parent",
-                value: typeof doc.Parent === "string" && doc.Parent.trim() ? doc.Parent : "None",
-              },
-            ];
-          })();
-
-      return (
-        <div
-          ref={assetInspectorContainerRef}
-          className={`flex h-full flex-col overflow-y-auto ${compactAssetInspector ? "gap-2 p-2" : "gap-3 p-3"}`}
-        >
-          <div className="border-b border-tn-border pb-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold">{assetLabel}</h3>
-                <p className="mt-1 text-xs text-tn-text-muted">
-                  {compactAssetInspector
-                    ? "Compact asset tools for the file open in the center editor."
-                    : "Context summary and file actions for the asset open in the center editor."}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={toggleAssetInspectorCompact}
-                  className="rounded border border-tn-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-tn-text-muted transition-colors hover:bg-tn-surface hover:text-tn-text"
-                >
-                  {compactAssetInspector ? "Expand" : "Compact"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <CollapsibleEditorSection
-            title="Guidance"
-            description="Authoring notes for pack folder structure and how to build from Hytale-style assets."
-            badge={isWeatherAsset ? "Common + Weathers" : "Environments"}
-            open={assetInspectorGuidanceOpen}
-            onToggle={() => setAssetInspectorGuidanceOpen((value) => !value)}
-          >
-            <div className="flex flex-col gap-3">
-              <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
-                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Folder Notes</p>
-                <p className="mt-1 text-[11px] text-tn-text-muted">
-                  {isWeatherAsset
-                    ? "Store weather JSON in Server/Weathers. Import a cached Hytale weather to start fast, then keep referenced sky textures under Common/Sky."
-                    : "Store environment JSON in Server/Environments. Start from a Hytale asset or create your own, then point Parent at a shared base such as Env_Zone1, Env_Zone1_Caves, or another family root."}
-                </p>
-              </div>
-              {!isWeatherAsset && (
-                <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Zone Folder Pattern</p>
-                  <p className="mt-1 text-[11px] text-tn-text-muted">
-                    Mirror Hytale by grouping environments into folders like Server/Environments/Zone1, Zone2, Zone3, Zone4, Zone0, and Unique. Keep a shared base such as Env_Zone1 or Env_Zone1_Caves alongside the child variants in that family.
-                  </p>
-                </div>
-              )}
-            </div>
-          </CollapsibleEditorSection>
-
-          <CollapsibleEditorSection
-            title="Overview"
-            description="Current file and high-level summary for the asset open in the center editor."
-            badge={currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
-            open={assetInspectorOverviewOpen}
-            onToggle={() => setAssetInspectorOverviewOpen((value) => !value)}
-          >
-            <div className="flex flex-col gap-3">
-              <div className="rounded border border-tn-border/60 bg-tn-bg/70 p-3">
-                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Current File</p>
-                <p className="mt-1 truncate text-sm font-medium text-tn-text">
-                  {currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
-                </p>
-                <p className="mt-1 break-all text-[11px] text-tn-text-muted">{currentFile ?? "No file open"}</p>
-              </div>
-
-              <div className={`grid gap-2 ${compactAssetInspector ? "grid-cols-1" : "grid-cols-2"}`}>
-                {summaryRows.map((item) => (
-                  <div key={item.label} className="rounded border border-tn-border/50 bg-tn-bg/60 px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{item.label}</p>
-                    <p className="mt-1 text-sm font-semibold text-tn-text">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CollapsibleEditorSection>
-
-          <CollapsibleEditorSection
-            title="Asset Tools"
-            description={isWeatherAsset
-              ? "Track missing sky textures and pull cached Hytale assets into the pack's Common folder."
-              : "Resolve referenced weather IDs without leaving the editor by opening, importing, or creating files."}
-            badge={`${filteredAssetInspectorEntries.length}/${assetInspectorEntries.length}`}
-            open={assetInspectorToolsOpen}
-            onToggle={() => setAssetInspectorToolsOpen((value) => !value)}
-          >
-            <div className="flex flex-col gap-3 rounded border border-tn-border/50 bg-tn-bg/50 p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex flex-wrap gap-1 text-[10px]">
-                  <span className={`rounded border px-2 py-1 ${statusClass("in-pack")}`}>{inPackEntries.length} in pack</span>
-                  <span className={`rounded border px-2 py-1 ${statusClass("built-in")}`}>{builtInEntries.length} cached</span>
-                  <span className={`rounded border px-2 py-1 ${statusClass("missing")}`}>{missingEntries.length} missing</span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-end gap-3">
-                <label className="flex min-w-[180px] flex-col gap-1 text-[10px] uppercase tracking-wider text-tn-text-muted">
-                  Category
-                  <select
-                    value={assetInspectorCategory}
-                    onChange={(event) => setAssetInspectorCategory(event.target.value)}
-                    className="rounded border border-tn-border bg-tn-bg px-2 py-1.5 text-[11px] normal-case tracking-normal text-tn-text"
-                  >
-                    {assetInspectorCategoryOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <p className="pb-1 text-[11px] text-tn-text-muted">
-                  Showing {filteredAssetInspectorEntries.length} of {assetInspectorEntries.length} referenced {isWeatherAsset ? "assets" : "weather files"}.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {builtInEntries.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void runAssetInspectorAction(
-                        isWeatherAsset ? "batch-add-built-in-textures" : "batch-import-built-in-weathers",
-                        async () => {
-                          await importAssetInspectorEntries(builtInEntries);
-                        },
-                      );
-                    }}
-                    disabled={assetInspectorActionKey !== null}
-                    className="rounded border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isWeatherAsset ? "Add Built-ins" : "Import Built-ins"}
-                  </button>
-                )}
-                {!isWeatherAsset && suggestedParentEnvironment && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRawJsonContent({
-                        ...(doc as Record<string, unknown>),
-                        Parent: suggestedParentEnvironment,
-                      });
-                      setDirty(true);
-                    }}
-                    disabled={assetInspectorActionKey !== null}
-                    className="rounded border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-200 transition-colors hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Use {suggestedParentEnvironment}
-                  </button>
-                )}
-                {!isWeatherAsset && missingEntries.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void runAssetInspectorAction("batch-create-missing-weathers", async () => {
-                        await createAssetInspectorWeatherFiles(missingEntries);
-                      });
-                    }}
-                    disabled={assetInspectorActionKey !== null}
-                    className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Create Missing Files
-                  </button>
-                )}
-                {projectAssetFolder && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void showInFolder(projectAssetFolder);
-                    }}
-                    disabled={assetInspectorActionKey !== null}
-                    className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isWeatherAsset ? "Reveal Sky Folder" : "Reveal Weathers Folder"}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    void runAssetInspectorAction("refresh-asset-inspector", refreshAssetInspectorTree);
-                  }}
-                  disabled={assetInspectorActionKey !== null}
-                  className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Refresh
-                </button>
-              </div>
-
-              {!projectPath && (
-                <div className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                  Open the file from a pack root to enable import and create actions.
-                </div>
-              )}
-
-              {!isWeatherAsset && (
-                <div className={`grid gap-2 ${compactAssetInspector ? "grid-cols-1" : "md:grid-cols-2"}`}>
-                  <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Parent Chain</p>
-                    <p className="mt-1 text-sm font-semibold text-tn-text">
-                      {typeof doc.Parent === "string" && doc.Parent.trim() ? doc.Parent : "No parent set"}
-                    </p>
-                    <p className="mt-1 text-[11px] text-tn-text-muted">
-                      {typeof doc.Parent === "string" && doc.Parent.trim()
-                        ? "Inherited environment settings will flow from this parent."
-                        : `Suggested parent: ${suggestedParentEnvironment ?? "Env_Zone1"}`}
-                    </p>
-                  </div>
-                  <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Resolution Focus</p>
-                    <p className="mt-1 text-sm font-semibold text-tn-text">
-                      {builtInEntries.length + missingEntries.length} referenced weather file(s) still need attention
-                    </p>
-                    <p className="mt-1 text-[11px] text-tn-text-muted">
-                      Import cached Hytale assets first, then create placeholders only for custom weather IDs that do not exist anywhere.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CollapsibleEditorSection>
-
-          <CollapsibleEditorSection
-            title="Referenced Assets"
-            description={isWeatherAsset
-              ? "Sky textures referenced by this weather asset."
-              : "Weather files referenced by this environment asset."}
-            badge={`${filteredAssetInspectorEntries.length}`}
-            open={assetInspectorReferencesOpen}
-            onToggle={() => setAssetInspectorReferencesOpen((value) => !value)}
-          >
-            <div className="flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
-              {assetInspectorLoading ? (
-                <div className="rounded border border-dashed border-tn-border/60 px-3 py-4 text-xs text-tn-text-muted">
-                  Scanning referenced assets...
-                </div>
-              ) : assetInspectorEntries.length === 0 ? (
-                <div className="rounded border border-dashed border-tn-border/60 px-3 py-4 text-xs text-tn-text-muted">
-                  {isWeatherAsset
-                    ? "No referenced sky textures were found on this weather file yet."
-                    : "No referenced weather IDs were found on this environment file yet."}
-                </div>
-              ) : filteredAssetInspectorEntries.length === 0 ? (
-                <div className="rounded border border-dashed border-tn-border/60 px-3 py-4 text-xs text-tn-text-muted">
-                  No referenced {isWeatherAsset ? "assets" : "weather files"} match the current category.
-                </div>
-              ) : (
-                filteredAssetInspectorEntries.map((entry) => {
-                  const isRunning = assetInspectorActionKey === `entry:${entry.key}`;
-                  const projectRelativePath = entry.projectPath ? toRelativeDisplayPath(projectPath, entry.projectPath) : null;
-                  const hasEntryAction = Boolean(
-                    (entry.kind === "weather-texture" && entry.status === "in-pack" && entry.projectPath)
-                    || (entry.kind === "weather-texture" && entry.status === "built-in")
-                    || (entry.kind === "environment-weather" && entry.status === "in-pack" && entry.projectPath)
-                    || (entry.kind === "environment-weather" && entry.status === "built-in")
-                    || (entry.kind === "environment-weather" && entry.status === "missing"),
-                  );
-
-                  return (
-                    <div key={entry.key} className="rounded border border-tn-border/60 bg-tn-bg/60 p-3">
-                      <div className={compactAssetInspector ? "flex flex-col gap-2" : "flex items-start gap-3"}>
-                        <div className="flex min-w-0 items-start gap-3">
-                          {entry.status === "in-pack" && <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />}
-                          {entry.status === "built-in" && <Package className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-400" />}
-                          {entry.status === "missing" && <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />}
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="truncate text-sm font-medium text-tn-text">{entry.label}</p>
-                              <span className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${statusClass(entry.status)}`}>
-                                {entry.status === "in-pack" ? "In Pack" : entry.status === "built-in" ? "Cached" : "Missing"}
-                              </span>
-                            </div>
-                            <p className="mt-1 break-all text-[11px] text-tn-text-muted">{entry.detail}</p>
-                            {isWeatherAsset && projectRelativePath && (
-                              <p className="mt-1 text-[11px] text-tn-text-muted/80">Pack path: {projectRelativePath}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {hasEntryAction && (
-                          <div className={compactAssetInspector ? "ml-[1.375rem] flex flex-wrap gap-2" : "shrink-0"}>
-                            {entry.kind === "weather-texture" && entry.status === "in-pack" && entry.projectPath && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  void showInFolder(entry.projectPath!);
-                                }}
-                                disabled={assetInspectorActionKey !== null}
-                                className="rounded border border-tn-border px-2.5 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                Reveal
-                              </button>
-                            )}
-
-                            {entry.kind === "weather-texture" && entry.status === "built-in" && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  void runAssetInspectorAction(`entry:${entry.key}`, async () => {
-                                    await importAssetInspectorEntries([entry]);
-                                  });
-                                }}
-                                disabled={assetInspectorActionKey !== null}
-                                className="rounded border border-sky-500/40 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                {isRunning ? "Adding..." : "Add"}
-                              </button>
-                            )}
-
-                            {entry.kind === "environment-weather" && entry.status === "in-pack" && entry.projectPath && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  void openFile(entry.projectPath!);
-                                }}
-                                disabled={assetInspectorActionKey !== null}
-                                className="rounded border border-tn-border px-2.5 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                Open
-                              </button>
-                            )}
-
-                            {entry.kind === "environment-weather" && entry.status === "built-in" && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  void runAssetInspectorAction(`entry:${entry.key}`, async () => {
-                                    await importAssetInspectorEntries([entry]);
-                                  });
-                                }}
-                                disabled={assetInspectorActionKey !== null}
-                                className="rounded border border-sky-500/40 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                {isRunning ? "Importing..." : "Import"}
-                              </button>
-                            )}
-
-                            {entry.kind === "environment-weather" && entry.status === "missing" && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  void runAssetInspectorAction(`entry:${entry.key}`, async () => {
-                                    await createAssetInspectorWeatherFiles([entry]);
-                                  });
-                                }}
-                                disabled={assetInspectorActionKey !== null}
-                                className="rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                {isRunning ? "Creating..." : "Create"}
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </CollapsibleEditorSection>
-
-          <div className="rounded border border-tn-border/50 bg-tn-bg/50 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Quick Actions</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (currentFile) void showInFolder(currentFile);
-                }}
-                className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text hover:bg-tn-surface"
-              >
-                Reveal File
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (projectPath) void showInFolder(projectPath);
-                }}
-                className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text hover:bg-tn-surface"
-              >
-                Reveal Pack Root
-              </button>
-            </div>
-          </div>
-        </div>
-      );
+      return <AssetInspectorPanel />;
     }
+
 
     return (
       <div className="flex-1 flex items-center justify-center p-4">
@@ -1444,6 +553,20 @@ export function PropertyPanel() {
   const isCurveNode = selectedNode.type?.startsWith("Curve:") ?? false;
   const isManualCurve = selectedNode.type === "Curve:Manual";
   const isPositionNode = (selectedNode.type?.startsWith("Position:") ?? false) || (POSITION_TYPE_NAMES as readonly string[]).includes(typeName);
+  const isPrefabNode = selectedNode.type === "Prop:Prefab" || typeName === "Prefab";
+  const isColumnPropNode = selectedNode.type === "Prop:Column" || typeName === "Column";
+  const isWeightedAssignmentNode =
+    selectedNode.type === "Assignment:Weighted" || typeName === "Weighted";
+  const isAssignmentFieldFunctionNode =
+    selectedNode.type === "Assignment:FieldFunction"
+    || (typeName === "FieldFunction" && delimiterUsesAssignmentBands(fields.Delimiters));
+  const isMaterialFieldFunctionNode =
+    typeName === "FieldFunction"
+    && !isAssignmentFieldFunctionNode
+    && (
+      isInternalMaterialFieldFunction(fields)
+      || delimiterUsesMaterialBands(fields.Delimiters)
+    );
   const isEnvironmentDensityDelimitedNode =
     rfType === "Environment:DensityDelimited"
     || (typeName === "DensityDelimited" && (data._biomeField as string | undefined) === "EnvironmentProvider");
@@ -1454,6 +577,31 @@ export function PropertyPanel() {
     name?: string;
     width?: number;
     height?: number;
+  };
+  const typeKey = resolvePropertyPanelTypeKey(rfType, typeName);
+  const fieldVisibility: PropertyFieldVisibilityContext = {
+    isWeightedAssignmentNode,
+    isAssignmentFieldFunctionNode,
+    isMaterialFieldFunctionNode,
+    isColumnPropNode,
+    isPrefabNode,
+  };
+  const skipPropertyField = (key: string) => shouldSkipPropertyField(key, fieldVisibility);
+  const orderedFieldKeys = getOrderedFieldKeys(typeKey, fields, skipPropertyField);
+  const visibleFieldKeys = orderedFieldKeys.filter((key) =>
+    matchesFieldFilter(key, getFieldDisplayName(typeKey, key), fieldFilter),
+  );
+  const showFieldFilter = orderedFieldKeys.length > 6;
+  const commentText = typeof fields["_comment"] === "string" ? fields["_comment"] : "";
+
+  const resetFieldToDefault = (fieldName: string) => {
+    if (!selectedNodeId) return;
+    const defaultValue = getFieldDefaultValue(typeKey, fieldName);
+    if (defaultValue === undefined) return;
+    flushPendingSnapshot();
+    updateNodeField(selectedNodeId, fieldName, defaultValue);
+    commitState(`Reset ${fieldName} on ${typeName}`);
+    setDirty(true);
   };
 
   return (
@@ -1494,6 +642,21 @@ export function PropertyPanel() {
             >
               <HelpCircle className="h-3 w-3" />
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                const exportFields = Object.fromEntries(
+                  Object.entries(fields).filter(
+                    ([key]) => !key.startsWith("$") && !key.startsWith("__") && key !== "_comment",
+                  ),
+                );
+                void navigator.clipboard.writeText(JSON.stringify(exportFields, null, 2));
+              }}
+              title="Copy node fields as JSON"
+              className="w-5 h-5 shrink-0 flex items-center justify-center rounded-full border border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-accent transition-colors"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
           </div>
         </div>
         {!isAnnotationNode && (
@@ -1531,6 +694,10 @@ export function PropertyPanel() {
           </span>
         </button>
       </div>
+
+      {devActive && !isAnnotationNode && (
+        <DeveloperInspector node={selectedNode} />
+      )}
 
       {helpMode && (
         <div className="text-[10px] px-2 py-1.5 rounded border bg-tn-accent/10 border-tn-accent/30 text-tn-accent flex items-center gap-1.5">
@@ -1571,45 +738,211 @@ export function PropertyPanel() {
         />
       )}
 
-      {typeof fields["_comment"] === "string" && fields["_comment"] && (
+      {!isAnnotationNode && (
         <div
-          className="flex flex-col gap-1 px-2.5 py-2 rounded border text-[11px] leading-relaxed"
+          className="rounded border text-[11px] leading-relaxed"
           style={{
             background: "rgba(251, 191, 36, 0.07)",
             borderColor: "rgba(251, 191, 36, 0.25)",
             color: "rgb(253, 224, 71)",
           }}
         >
-          <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.6, letterSpacing: "0.05em", textTransform: "uppercase" }}>Note</span>
-          <textarea
-            value={fields["_comment"] as string}
-            placeholder="Add a note…"
-            onChange={(e) => handleContinuousChange("_comment", e.target.value)}
-            onBlur={handleBlur}
-            rows={3}
-            style={{
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              resize: "vertical",
-              color: "inherit",
-              fontSize: "inherit",
-              fontFamily: "inherit",
-              lineHeight: "inherit",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              overflowWrap: "anywhere",
-              width: "100%",
-              minWidth: 0,
-              padding: 0,
+          <button
+            type="button"
+            onClick={() => setNoteExpanded((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left"
+          >
+            <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.6, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              Author note
+            </span>
+            <span className="text-[10px] opacity-60">
+              {noteExpanded ? "Hide" : commentText.trim() ? "Show" : "Add"}
+            </span>
+          </button>
+          {(noteExpanded || commentText.trim().length > 0) && (
+            <div className="px-2.5 pb-2">
+              {noteExpanded ? (
+                <textarea
+                  value={commentText}
+                  placeholder="Hytale $Comment — semantic note for this node (not a canvas comment box)"
+                  onChange={(e) => handleContinuousChange("_comment", e.target.value)}
+                  onBlur={handleBlur}
+                  rows={3}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    resize: "vertical",
+                    color: "inherit",
+                    fontSize: "inherit",
+                    fontFamily: "inherit",
+                    lineHeight: "inherit",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
+                    width: "100%",
+                    minWidth: 0,
+                    padding: 0,
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setNoteExpanded(true)}
+                  className="w-full text-left text-[11px] opacity-80 line-clamp-2 hover:opacity-100"
+                >
+                  {commentText}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isWeightedAssignmentNode && (
+        <div className="flex flex-col gap-2 border-b border-tn-border pb-2">
+          <p className="text-[11px] text-tn-text-muted leading-snug">
+            Randomly picks one assignment by weight. Higher weight means more likely selection each
+            placement (controlled by Seed).
+          </p>
+          {typeof fields.ExportAs === "string" && fields.ExportAs.trim() && (
+            <div className="text-[11px] text-tn-text-muted">
+              Imported as{" "}
+              <span className="text-tn-text font-mono">{fields.ExportAs}</span>
+              {" "}in biome Assignments
+            </div>
+          )}
+          <WeightedAssignmentsField
+            entries={Array.isArray(fields.WeightedAssignments) ? fields.WeightedAssignments as WeightedAssignmentEntry[] : []}
+            onChange={(next) => {
+              if (!selectedNodeId) return;
+              updateNodeField(selectedNodeId, "WeightedAssignments", next);
+              setDirty(true);
             }}
+            onBlur={handleBlur}
           />
         </div>
       )}
 
-      {Object.entries(fields).filter(([key]) => !key.startsWith("__") && key !== "_comment").map(([key, value]) => {
-        const fieldLabel = getFieldDisplayName(typeName, key);
-        const transform = typeof value === "number" ? getFieldTransform(typeName, key) : null;
+      {isMaterialFieldFunctionNode && (
+        <div className="flex flex-col gap-2 border-b border-tn-border pb-2">
+          {typeof fields.ExportAs === "string" && fields.ExportAs.trim() && (
+            <div className="text-[11px] text-tn-text-muted">
+              Exported as{" "}
+              <span className="text-tn-text font-mono">{fields.ExportAs}</span>
+            </div>
+          )}
+          <MaterialFieldFunctionBandsField
+            materials={isInternalMaterialFieldFunction(fields) ? fields.Materials as unknown[] : undefined}
+            delimiterRanges={
+              isInternalMaterialFieldFunction(fields)
+                ? fields.DelimiterRanges as Array<Record<string, unknown>>
+                : undefined
+            }
+            delimiters={
+              !isInternalMaterialFieldFunction(fields) && Array.isArray(fields.Delimiters)
+                ? fields.Delimiters as Array<Record<string, unknown>>
+                : undefined
+            }
+            onChangeMaterials={(next) => {
+              if (!selectedNodeId) return;
+              updateNodeField(selectedNodeId, "Materials", next);
+              setDirty(true);
+            }}
+            onChangeDelimiterRanges={(next) => {
+              if (!selectedNodeId) return;
+              updateNodeField(selectedNodeId, "DelimiterRanges", next);
+              setDirty(true);
+            }}
+            onChangeDelimiters={(next) => {
+              if (!selectedNodeId) return;
+              updateNodeField(selectedNodeId, "Delimiters", next);
+              setDirty(true);
+            }}
+            onBlur={handleBlur}
+          />
+        </div>
+      )}
+
+      {isAssignmentFieldFunctionNode && (
+        <div className="flex flex-col gap-2 border-b border-tn-border pb-2">
+          {typeof fields.ExportAs === "string" && fields.ExportAs.trim() && (
+            <div className="text-[11px] text-tn-text-muted">
+              Exported as{" "}
+              <span className="text-tn-text font-mono">{fields.ExportAs}</span>
+            </div>
+          )}
+          <AssignmentDelimitersField
+            delimiters={
+              Array.isArray(fields.Delimiters)
+                ? (fields.Delimiters as Array<Record<string, unknown>>)
+                : []
+            }
+            onChange={(next) => {
+              if (!selectedNodeId) return;
+              updateNodeField(selectedNodeId, "Delimiters", next);
+              setDirty(true);
+            }}
+            onBlur={handleBlur}
+            projectPath={projectPath}
+            onOpenAssignment={(filePath) => { void openFile(filePath); }}
+          />
+        </div>
+      )}
+
+      {isColumnPropNode && (
+        <div className="flex flex-col gap-2 border-b border-tn-border pb-2">
+          <ColumnPropFields
+            prop={fields as Record<string, unknown>}
+            onChange={(next) => {
+              if (!selectedNodeId) return;
+              const merged = mergeColumnPropFields(fields as Record<string, unknown>, next);
+              const { nodes, setNodes } = useEditorStore.getState();
+              setNodes(nodes.map((n) => (
+                n.id !== selectedNodeId
+                  ? n
+                  : { ...n, data: { ...(n.data as object), fields: merged } }
+              )));
+              setDirty(true);
+            }}
+            onBlur={handleBlur}
+          />
+        </div>
+      )}
+
+      {isPrefabNode && Array.isArray(fields.WeightedPrefabPaths) && (
+        <div className="flex flex-col gap-2 border-b border-tn-border pb-2">
+          <WeightedPrefabPathsField
+            paths={fields.WeightedPrefabPaths as WeightedPrefabPathEntry[]}
+            onChange={(next) => {
+              if (!selectedNodeId) return;
+              updateNodeField(selectedNodeId, "WeightedPrefabPaths", next);
+              setDirty(true);
+            }}
+            onBlur={handleBlur}
+            projectPath={projectPath}
+          />
+        </div>
+      )}
+
+      {showFieldFilter && !isAnnotationNode && (
+        <input
+          type="search"
+          value={fieldFilter}
+          onChange={(e) => setFieldFilter(e.target.value)}
+          placeholder="Filter fields…"
+          className="w-full px-2 py-1 text-xs bg-tn-bg/50 border border-tn-border/50 rounded focus:outline-none focus:border-tn-accent/60 placeholder:text-tn-text-muted/40"
+        />
+      )}
+
+      {fieldFilter.trim() && visibleFieldKeys.length === 0 && !isAnnotationNode && (
+        <p className="text-[11px] text-tn-text-muted px-1">No fields match &ldquo;{fieldFilter.trim()}&rdquo;</p>
+      )}
+
+      {visibleFieldKeys.map((key) => {
+        const value = fields[key];
+        const fieldLabel = getFieldDisplayName(typeKey, key);
+        const transform = typeof value === "number" ? getFieldTransform(typeKey, key) : null;
         const constraint = typeConstraints[key] ?? typeConstraints[fieldLabel];
         const validationValue = (transform && typeof value === "number") ? transform.toDisplay(value as number) : value;
         const issue = constraint ? validateField(fieldLabel, validationValue, constraint) : null;
@@ -1620,6 +953,8 @@ export function PropertyPanel() {
         const handleHelpClick = helpMode && extendedDesc
           ? () => setExpandedField(expandedField === key ? null : key)
           : undefined;
+        const canResetField = getFieldDefaultValue(typeKey, key) !== undefined;
+        const onResetField = canResetField ? () => resetFieldToDefault(key) : undefined;
 
         if (typeof value === "number") {
           const displayValue = transform ? transform.toDisplay(value) : value;
@@ -1627,7 +962,7 @@ export function PropertyPanel() {
             ? (v: number) => handleContinuousChange(key, transform.fromDisplay(v))
             : (v: number) => handleContinuousChange(key, v);
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <SliderField
                 label={fieldLabel}
                 value={displayValue}
@@ -1642,7 +977,7 @@ export function PropertyPanel() {
         }
         if (typeof value === "boolean") {
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <ToggleField
                 label={fieldLabel}
                 value={value}
@@ -1656,7 +991,7 @@ export function PropertyPanel() {
           const isMaterialField = MATERIAL_FIELD_KEYS.has(key);
           if (isMaterialField) {
             return (
-              <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+              <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
                 <MaterialField
                   label={fieldLabel}
                   value={value}
@@ -1668,7 +1003,7 @@ export function PropertyPanel() {
             );
           }
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <TextField
                 label={fieldLabel}
                 value={value}
@@ -1687,7 +1022,7 @@ export function PropertyPanel() {
         ) {
           const v = value as { x: number; y: number; z: number };
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <VectorField
                 label={fieldLabel}
                 value={v}
@@ -1706,7 +1041,7 @@ export function PropertyPanel() {
         ) {
           const v = value as { Min: number; Max: number };
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <RangeField
                 label={fieldLabel}
                 value={v}
@@ -1722,7 +1057,7 @@ export function PropertyPanel() {
           const delimiterIssues = validateEnvironmentDelimiters(delimiters, environmentLookup.names);
           const datalistId = selectedNodeId ? `env-names-${selectedNodeId}` : "env-names";
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <EnvironmentDelimitersField
                 label={fieldLabel}
                 description={description}
@@ -1778,7 +1113,7 @@ export function PropertyPanel() {
               : bandColors.map((c, i) => `${c} ${Math.round((i / (bandColors.length - 1)) * 100)}%`).join(", ");
 
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-tn-text-muted uppercase tracking-wider font-semibold">Tint Bands</span>
@@ -1937,7 +1272,7 @@ export function PropertyPanel() {
         if (Array.isArray(value) && key === "DelimiterRanges") {
           const ranges = value as { From?: number; To?: number }[];
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <ArrayField
                 label={fieldLabel}
                 values={ranges}
@@ -1992,7 +1327,7 @@ export function PropertyPanel() {
         if (Array.isArray(value)) {
           if (isManualCurve && key === "Points") {
             return (
-              <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+              <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
                 <CurveCanvas
                   key={selectedNodeId}
                   label={`Points (${value.length})`}
@@ -2019,7 +1354,7 @@ export function PropertyPanel() {
             );
           }
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <ArrayField
                 label={fieldLabel}
                 values={value}
@@ -2028,9 +1363,26 @@ export function PropertyPanel() {
             </FieldWrapper>
           );
         }
+        if (typeof value === "object" && value !== null && isInlineCurveFieldKey(key, value)) {
+          return (
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
+              <InlineCurveField
+                label={fieldLabel}
+                value={value as Record<string, unknown>}
+                description={description}
+                onChange={(next) => handleContinuousChange(key, next)}
+                onBlur={handleBlur}
+                onCommit={() => {
+                  flushPendingSnapshot();
+                  commitState(`Edit ${key} on ${typeName}`);
+                }}
+              />
+            </FieldWrapper>
+          );
+        }
         if (typeof value === "object" && value !== null) {
           return (
-            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-tn-text-muted">{fieldLabel}</span>
                 <pre className="text-xs text-tn-text bg-tn-bg p-2 rounded border border-tn-border overflow-x-auto max-h-40">
@@ -2051,6 +1403,23 @@ export function PropertyPanel() {
 
       {/* Show material layer stack when SpaceAndDepth is selected */}
       {typeName === "SpaceAndDepth" && <MaterialLayerStack />}
+
+      {selectedNodeId && supportsShapePreviewCard(typeName) && (
+        <ShapePreviewCard
+          nodeId={selectedNodeId}
+          nodeType={typeName}
+          fields={fields}
+          nodes={nodes}
+          edges={edges}
+        />
+      )}
+
+      {isPrefabNode && (
+        <p className="border-t border-tn-border pt-2 mt-1 text-[11px] text-tn-text-muted">
+          Prefab mesh preview is in the prop preview pane below — open{" "}
+          <strong className="font-medium text-tn-text">3D Prefab</strong> tab (use Split view).
+        </p>
+      )}
 
       {/* Show placement preview for position provider nodes */}
       {isPositionNode && (
@@ -2602,15 +1971,32 @@ function FieldWrapper({
   helpMode,
   onHelpClick,
   extendedDesc,
+  onReset,
 }: {
   children: React.ReactNode;
   issue: ValidationIssue | null;
   helpMode?: boolean;
   onHelpClick?: () => void;
   extendedDesc?: string;
+  onReset?: () => void;
 }) {
   return (
-    <div>
+    <div className="group/field">
+      {onReset && (
+        <div className="flex justify-end -mb-1 opacity-0 group-hover/field:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onReset();
+            }}
+            className="text-[10px] text-tn-text-muted/60 hover:text-tn-accent transition-colors px-1"
+            title="Reset field to schema default"
+          >
+            Reset
+          </button>
+        </div>
+      )}
       <div
         className={`${issue ? "ring-1 ring-red-500/60 rounded p-0.5 -m-0.5" : ""} ${
           helpMode && onHelpClick ? "cursor-help" : ""

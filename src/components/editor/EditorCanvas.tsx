@@ -24,6 +24,8 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { autoLayout } from "@/utils/autoLayout";
 import { nodeTypes } from "@/nodes";
 import { CATEGORY_COLORS, AssetCategory } from "@/schema/types";
+import { getNodeType } from "@/utils/density/evalTypes";
+import { supportsShapePreviewCard } from "@/utils/shapePreview/shapePreviewProfile";
 import { NodeSearchDialog } from "./NodeSearchDialog";
 import { QuickAddDialog, type PendingConnection } from "./QuickAddDialog";
 import { RootDock } from "./RootDock";
@@ -31,6 +33,7 @@ import { CanvasContextMenu } from "./CanvasContextMenu";
 import { NodeContextMenu } from "./NodeContextMenu";
 import { CanvasStatusStrip } from "./CanvasStatusStrip";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useOutputNodeFallback } from "@/hooks/useOutputNodeFallback";
 import { MIN_ZOOM, MAX_ZOOM } from "@/constants";
 import { useConnectionValidation } from "@/hooks/useConnectionValidation";
 import { useKnifeTool } from "@/hooks/useKnifeTool";
@@ -68,6 +71,10 @@ const PREFIX_TO_CATEGORY: Record<string, AssetCategory> = {
 };
 
 function getNodeColor(node: Node): string {
+  if (node.type === "comment") return "#e8d44d";
+  if (node.type === "frame") return "#4a7fa5";
+  if (node.type === "group") return "#8B7355";
+
   const type = node.type ?? "";
   for (const [prefix, cat] of Object.entries(PREFIX_TO_CATEGORY)) {
     if (type.startsWith(prefix)) {
@@ -81,6 +88,7 @@ function getNodeColor(node: Node): string {
 function useResolvedNodes() {
   const nodes = useEditorStore((s) => s.nodes);
   const selectedPreviewNodeId = usePreviewStore((s) => s.selectedPreviewNodeId);
+  const showShapePreview = usePreviewStore((s) => s.showShapePreview);
 
   // Stable type-resolution pass — only reruns when nodes change
   const typeResolved = useMemo(
@@ -91,15 +99,36 @@ function useResolvedNodes() {
     [nodes],
   );
 
-  // Overlay preview ring — only reruns when the preview selection or resolved list changes
+  // Overlay preview ring + frame/comment selection rules
   return useMemo(() => {
-    if (!selectedPreviewNodeId) return typeResolved;
-    return typeResolved.map((node) =>
-      node.id === selectedPreviewNodeId
-        ? { ...node, className: "ring-2 ring-cyan-400/60" }
-        : node,
-    );
-  }, [typeResolved, selectedPreviewNodeId]);
+    const withAnnotations = typeResolved.map((node) => {
+      if (node.type === "frame") {
+        return {
+          ...node,
+          selectable: false,
+          draggable: Boolean(node.selected),
+          dragHandle: node.selected ? ".frame-drag-handle" : undefined,
+        };
+      }
+      if (node.type === "comment") {
+        return {
+          ...node,
+          selectable: false,
+          draggable: Boolean(node.selected),
+        };
+      }
+      return node;
+    });
+
+    if (!selectedPreviewNodeId) return withAnnotations;
+    return withAnnotations.map((node) => {
+      if (node.id !== selectedPreviewNodeId) return node;
+      const ring = showShapePreview
+        ? "ring-2 ring-cyan-400/60 ring-offset-1 ring-offset-violet-500/40"
+        : "ring-2 ring-cyan-400/60";
+      return { ...node, className: ring };
+    });
+  }, [typeResolved, selectedPreviewNodeId, showShapePreview]);
 }
 
 // ---------------------------------------------------------------------------
@@ -137,6 +166,7 @@ export function EditorCanvas({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   const resolvedNodes = useResolvedNodes();
+  useOutputNodeFallback();
   const edges = useEditorStore((s) => s.edges);
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const onNodesChange = useEditorStore((s) => s.onNodesChange);
@@ -156,6 +186,8 @@ export function EditorCanvas({
   // Track mouse position for keyboard-invoked quick-add
   const mousePosRef = useRef({ x: 0, y: 0 });
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+  // Suppress pane click / double-click after annotation drag, resize, or marquee
+  const suppressPointerClickRef = useRef(false);
 
   const getQuickAddAnchor = useCallback(() => {
     const rect = canvasContainerRef.current?.getBoundingClientRect();
@@ -583,11 +615,46 @@ export function EditorCanvas({
     setQuickAddOpen(true);
   }, []);
 
+  const handleAnnotationDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (node.type === "frame" || node.type === "comment") {
+      suppressPointerClickRef.current = true;
+    }
+  }, []);
+
+  const handleAnnotationDragStop = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (node.type === "frame" || node.type === "comment") {
+      setTimeout(() => {
+        suppressPointerClickRef.current = false;
+      }, 0);
+    }
+  }, []);
+
+  const handleNodeDragStop = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      interjectOnNodeDragStop(event, node);
+      handleAnnotationDragStop(event, node);
+    },
+    [interjectOnNodeDragStop, handleAnnotationDragStop],
+  );
+
+  const handleSelectionStart = useCallback(() => {
+    suppressPointerClickRef.current = true;
+  }, []);
+
+  const handleSelectionEnd = useCallback(() => {
+    setTimeout(() => {
+      suppressPointerClickRef.current = false;
+    }, 0);
+  }, []);
+
   // Close context menu on any pane click
   const handlePaneClick = useCallback(() => {
+    if (suppressPointerClickRef.current) {
+      suppressPointerClickRef.current = false;
+      return;
+    }
     setSelectedNodeId(null);
     setSelectedHandle(null);
-    usePreviewStore.getState().setSelectedPreviewNodeId(null);
     setContextMenu(null);
   }, [setSelectedNodeId]);
 
@@ -600,19 +667,44 @@ export function EditorCanvas({
   const handleEdgeClick = useCallback(() => {
     setSelectedNodeId(null);
     setSelectedHandle(null);
-    usePreviewStore.getState().setSelectedPreviewNodeId(null);
     setContextMenu(null);
   }, [setSelectedNodeId]);
 
   const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    if (node.type === "frame" || node.type === "comment") {
+      return;
+    }
     if (event.shiftKey || event.ctrlKey || event.metaKey) {
       setSelectedHandle(null);
       return;
     }
     setSelectedNodeId(node.id);
     setSelectedHandle(null);
-    usePreviewStore.getState().setSelectedPreviewNodeId(node.id);
+    const preview = usePreviewStore.getState();
+    const type = getNodeType(node);
+    const isCurveAsset = type === "Manual" || type.startsWith("Curve:");
+    if (!isCurveAsset) {
+      preview.setSelectedPreviewNodeId(node.id);
+    }
+    if (supportsShapePreviewCard(type)) {
+      preview.setShowShapePreview(true);
+      const viewMode = preview.viewMode;
+      if (viewMode === "graph") {
+        preview.setViewMode("split");
+      }
+    }
   }, [setSelectedNodeId]);
+
+  const handleNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (node.type === "frame" || node.type === "comment") {
+      return;
+    }
+    if (suppressPointerClickRef.current) {
+      suppressPointerClickRef.current = false;
+      return;
+    }
+    onNodeDoubleClick?.(node);
+  }, [onNodeDoubleClick]);
 
   return (
     <div
@@ -645,10 +737,13 @@ export function EditorCanvas({
         onEdgeClick={handleEdgeClick}
         onEdgeMouseEnter={handleEdgeMouseEnter}
         onEdgeMouseLeave={handleEdgeMouseLeave}
+        onNodeDragStart={inspectMode ? undefined : handleAnnotationDragStart}
         onNodeDrag={inspectMode ? undefined : interjectOnNodeDrag}
-        onNodeDragStop={inspectMode ? undefined : interjectOnNodeDragStop}
+        onNodeDragStop={inspectMode ? undefined : handleNodeDragStop}
+        onSelectionStart={inspectMode ? undefined : handleSelectionStart}
+        onSelectionEnd={inspectMode ? undefined : handleSelectionEnd}
         onNodeClick={handleNodeClick}
-        onNodeDoubleClick={(_, node) => onNodeDoubleClick?.(node)}
+        onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={handlePaneClick}
         onPaneContextMenu={inspectMode ? undefined : handlePaneContextMenu}
         onNodeContextMenu={inspectMode ? undefined : handleNodeContextMenu}

@@ -11,6 +11,7 @@ import { buildTransformHandlers } from "./transforms";
 import { buildSdfHandlers } from "./sdfs";
 import { buildWarpHandlers } from "./warps";
 import { buildNoiseHandlers } from "./noise";
+import { buildTerrainSpecificHandlers } from "./terrainSpecific";
 
 export function buildAllHandlers(): Map<string, NodeHandler> {
   const map = new Map<string, NodeHandler>();
@@ -27,6 +28,7 @@ export function buildAllHandlers(): Map<string, NodeHandler> {
     buildSdfHandlers,
     buildWarpHandlers,
     buildNoiseHandlers,
+    buildTerrainSpecificHandlers,
   ]) {
     for (const [k, v] of build()) {
       map.set(k, v);

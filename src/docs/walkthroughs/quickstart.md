@@ -14,12 +14,14 @@ You do not need to understand every node yet. The goal is to leave this page kno
 
 ## 1) Create a new project
 
-1. Open TerraNova.
-2. Click **New Project**.
-3. Choose an empty folder for your pack (e.g. `MyPack`).
-4. Select a template (Void is a good minimal starting point).
+**Recommended for first-time pack authors:** use **Create Pack** on the home screen. The wizard walks through Pack Group/Name, biome template, atmosphere, and instance wiring, then opens your biome in the editor.
 
-You should now have a project on disk with the standard TerraNova folder layout.
+1. Open TerraNova.
+2. Click **Create Pack** (or **New Project** if you prefer a bundled template).
+3. For the wizard: set Pack Group (`User`), Pack Name, pick a parent folder, choose **Basic** world/biome templates, then **Launch**.
+4. For New Project: choose an empty folder and select a template (Void is a good minimal starting point).
+
+You should now have a project on disk with the standard TerraNova folder layout (`Server/HytaleGenerator/...`, optional `Server/Instances/`, and `manifest.json` with export Group/Name when created via the wizard).
 
 ## 2) Explore the layout
 
@@ -46,7 +48,7 @@ Small edits are easier to understand than rebuilding the graph immediately.
 ## 4) Save your work
 
 - Press **Ctrl+S** to save the current file.
-- Use **File → Export Asset Pack** to generate a zip you can load into a server.
+- Use **File → Export Asset Pack** (`Ctrl+Shift+E`) to write a Hytale-ready folder tree (`{Group}.{Name}/Server/HytaleGenerator/...`) for your server mod folder.
 
 If the edit looked worse, undo it, try one smaller value change, and save again once the preview makes sense.
 

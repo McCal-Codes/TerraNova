@@ -86,71 +86,53 @@ The most common pairing is:
 }
 ```
 
-> In the properties panel, set `CurveMapper`'s Curve type to **Manual** and draw your terrain profile. The x-axis of the curve is the input value from `BaseHeight`; the y-axis is the output density.
+> In the properties panel, set `CurveMapper`'s Curve type to **Manual** and draw your terrain profile. The x-axis of the curve is the input value from `BaseHeight` (use **Distance: on** so the input is height offset from surface); the y-axis is the output density.
 
-> **Under the hood:** In the audited source assets, `BaseHeight` is most often used as a named vertical anchor and then remapped through `CurveMapper`. When `Distance: true`, it outputs signed distance from that height. If you need a direct flat-plane teaching analog, `Sum` of `YValue` and `Constant { Value: -80 }` gives a surface at Y=80. See [Terrain Math Explained](./terrain/terrain-math-explained.md) for the full breakdown.
+> **Under the hood:** In release Hytale biomes, `CurveMapper` always carries an **inline nested `Curve`** object in JSON; TerraNova can edit that inline or via a **Curve:Manual** port, and export folds both to the same shape. See [Hytale CurveMapper Conventions](../reference/hytale-curvemapper-conventions.md). `BaseHeight` with **`Distance: true`** feeds most mappers (~83% of release assets). See [Terrain Math Explained](./terrain/terrain-math-explained.md) for the full breakdown.
 
 ### How Curve Points Work: In and Out
 
-Curve control points have two values that are easy to mix up:
+On a **Curve:Manual** node, each control point has **`In`** (horizontal axis) and **`Out`** (vertical axis). **CurveMapper** samples that curve: whatever value arrives on its **Input** port is looked up on the horizontal axis, and the vertical value becomes output **density**.
 
-- **`In`** — the **world height (Y block coordinate)** you want terrain to reach at this point. With a `BaseHeight` at Y=100, an `In` value of `30` means the terrain sits at Y=130 at that point. Negative `In` values go below the base height.
-- **`Out`** — the **noise value** (from -1 to 1) that should produce the `In` height. Confusingly, in Hytale's node editor the default sample biomes use `1.0 = lowest point` and `-1.0 = highest point` — the opposite of what you might expect. This is a quirk of how the math works. You can reverse your own points to a top-down order if that is easier to read.
+With the usual **BaseHeight → CurveMapper** setup:
 
-Put simply: *"When the noise reads this Out value, generate terrain at this In height."*
+1. Set **BaseHeight → Distance: on** so Input is **height offset from the named surface** (blocks), not terrain density.
+2. Draw the curve with **In = blocks from surface**, **Out = density** (positive = solid, negative = air).
 
-The slope between two adjacent points determines how steeply terrain rises between them. Wide spacing in `In` values = tall feature. Tight spacing = flat shelf. Each point must have a unique `In` value — duplicate `In` values will cause a load error.
+Put simply: *"At this many blocks from the reference surface, output this density."*
 
-Here is a 3-point curve example. The noise value (-1 to 1) is the horizontal axis; the output density that determines terrain height is the vertical axis. Where the curve is steep, terrain height changes quickly. Where it is shallow, terrain is flat:
+The slope between adjacent points controls steepness — steep segments become cliffs; flat segments become shelves. Each point needs a unique **In** value (duplicates cause load errors).
 
 ```curve
-Example: gentle hills — 3 control points spanning full noise range
-{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
-[[-1, 1], [0, 0.5], [1, -1]]
+Example: gentle hills — height offset (In) → density (Out)
+{"xLabel": "In (blocks from surface)", "yLabel": "Out (density)"}
+[[-80, 1], [-20, 0.4], [0, 0], [40, -0.6], [80, -1]]
 ```
 
 > [!NOTE]
-> Any noise value that falls **outside the range** of your curve's `Out` values will default to the nearest extreme. A noise value lower than your lowest `Out` causes terrain to extend to the maximum world height (Y=320). A noise value higher than your highest `Out` causes terrain to drop through the world floor. This is the most common cause of blocks filling to world height or holes punching through the bottom of the map.
+> Any **Input** value **outside the curve's In range** clamps to the nearest endpoint — runaway terrain or holes at the world ceiling/floor. Extend the curve to cover the full range your upstream node can produce, or add **Clamp** before **CurveMapper**.
 
-This curve only covers `-0.8` to `0.8`. Any noise value outside that range hits the default — blocks fill to world height on one end, fall through the floor on the other:
+When **SimplexNoise2D** (or another signal in roughly **[-1, 1]**) feeds **CurveMapper** directly, the horizontal axis is that input value instead of height offset — same rule: **In = input**, **Out = output density**. See [Troubleshooting — curve range](../troubleshooting.md) for noise-driven graphs.
 
 ```curve
-Dangerous: curve doesn't cover full noise range — gaps at both ends
-{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
-[[-0.8, 0.8], [0, 0], [0.8, -0.8]]
+Dangerous: curve In range too narrow for noise input
+{"xLabel": "In (noise)", "yLabel": "Out (density)"}
+[[-0.8, 1], [0, 0], [0.8, -1]]
 ```
 
-Fix: extend the `Out` range to `-1` and `1` so every possible noise value is covered:
-
 ```curve
-Safe: full range covered — no runaway terrain
-{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
+Safer: cover the full noise range
+{"xLabel": "In (noise)", "yLabel": "Out (density)"}
 [[-1, 1], [0, 0], [1, -1]]
 ```
 
 ### Curve point tips
 
-**Linear points between two others with the same slope are wasted.** If three points form a straight line, removing the middle one produces identical terrain — the slope between the remaining two is unchanged. Keep your point count to the minimum needed for your shape.
+**Linear points between two others with the same slope are wasted.** If three points form a straight line, removing the middle one produces identical terrain.
 
-**The 50/50 rule.** With a two-point curve spanning the full -1 to 1 noise range, exactly half your terrain falls in each point's region, because noise is distributed evenly across that range. More points don't change this split — what changes is the *slope* in each region, which controls how fast height changes there. A shallow slope over a wide range = flat ground. A steep slope over a narrow range = tall, compressed features.
+**Steep vs shallow segments.** A steep segment over a narrow **In** range compresses a lot of height change into a small input band (cliffs). A shallow segment spreads change slowly (rolling hills). This applies whether **In** is block offset or noise.
 
-Shallow top half = wide flat valleys, pointy peaks (most terrain stays low):
-
-```curve
-Top-heavy: steep upper half, shallow lower — wide flat floors, tall pointy peaks
-{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
-[[-1, 1], [-0.1, 0.9], [0.1, 0.1], [1, -1]]
-```
-
-Shallow bottom half = wide flat hilltops, abrupt cliff walls descending (most terrain stays high):
-
-```curve
-Bottom-heavy: shallow upper half, steep lower — wide flat hilltops, sharp cliff walls
-{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
-[[-1, 1], [-0.1, 0.1], [0.1, -0.9], [1, -1]]
-```
-
-**Crossing or out-of-order `In` values produce strange results.** The curve math processes points by their `Out` value order, not visual order. If you mix up `In` values such that they don't increase monotonically (lowest to highest, or vice versa), the outputs will be processed in a different order than you intended, producing terrain that looks nothing like what you drew. Keep `In` values in a consistent ascending or descending sequence unless you are deliberately experimenting.
+**Keep In values monotonic.** Points are processed in **In** order. Crossing or out-of-order **In** values produce profiles that do not match what you drew unless you are deliberately experimenting.
 
 ---
 
@@ -202,10 +184,10 @@ To create varied terrain, combine the height-based curve with noise using a `Sum
     { "from": "sum", "to": "out", "label": "density" }
   ],
   "steps": [
-    { "nodeId": "bh",  "text": "BaseHeight anchors the vertical zero point at Y=64. Below that level the output is strongly positive (solid rock); above it, strongly negative (air). This is the backbone all other signals modify." },
-    { "nodeId": "cm",  "text": "CurveMapper shapes the height profile. Your curve's control points define which Y heights the terrain reaches and how steeply they transition. Wide spacing in In values = tall terrain. Tight spacing = flat shelves." },
+    { "nodeId": "bh",  "text": "BaseHeight with Distance: on outputs height offset from the named surface (y − baseY). That signed distance is what CurveMapper remaps — not raw terrain density." },
+    { "nodeId": "cm",  "text": "CurveMapper remaps Input through your Manual curve (In = input value, Out = density). Steep segments create cliffs; flat segments create shelves. Preview from Terrain Out, not from CurveMapper alone." },
     { "nodeId": "sn",  "text": "SimplexNoise2D produces horizontal variation across X and Z. The same column of terrain repeats at every Y — so this noise raises and lowers the surface across the world, but cannot create overhangs on its own." },
-    { "nodeId": "sum", "text": "Sum adds the shaped height profile and the noise together. The CurveMapper controls the overall shape; the noise adds local variation on top of it. Together they produce the surface the world will render." },
+    { "nodeId": "sum", "text": "Sum adds the curve-shaped profile and the noise together. The CurveMapper controls the overall vertical shape; the noise adds local variation on top." },
     { "nodeId": "out", "text": "Terrain Out receives the final density. The terrain surface sits wherever this value equals zero. Tune CurveMapper for broad shape; tune noise Scale and amplitude for surface variety." }
   ]
 }
@@ -213,20 +195,16 @@ To create varied terrain, combine the height-based curve with noise using a `Sum
 
 ### How values combine
 
-- Each node outputs a value between -1 and 1.
-- `Sum` of two inputs can range from -2 to 2 -- the world treats **any positive value** as solid.
-- The `CurveMapper` dominates the vertical shape; noise adds surface variation on top.
+- **SimplexNoise2D** outputs roughly **[-1, 1]**; **BaseHeight** and **CurveMapper** outputs depend on mode and curve shape — not a fixed band.
+- **Sum** adds inputs — ranges can exceed [-1, 1]. The world treats **any positive value** as solid.
+- The **CurveMapper** curve sets the vertical profile; noise adds surface variation on top.
 
 ```bounds
-{"min": -1, "max": 1, "label": "CurveMapper output — [-1, 1]"}
+{"min": -1, "max": 1, "label": "SimplexNoise2D — typical [-1, 1]"}
 ```
 
 ```bounds
-{"min": -1, "max": 1, "label": "SimplexNoise2D — [-1, 1]"}
-```
-
-```bounds
-{"min": -2, "max": 2, "label": "Sum — can reach [-2, 2]. Positive = solid, negative = air."}
+{"min": -2, "max": 2, "label": "Sum of noise + shaped profile — can exceed [-1, 1]. Positive = solid, negative = air."}
 ```
 
 ---

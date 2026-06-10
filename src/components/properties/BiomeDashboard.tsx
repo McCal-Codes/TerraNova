@@ -5,6 +5,7 @@ import {
   type SectionSummary,
   type PropSummaryEntry,
 } from "@/utils/biomeSectionUtils";
+import { describeEnvironmentProvider } from "@/utils/atmosphere";
 
 /* ── Inline SVG icons — abstract representations of section types ──── */
 
@@ -61,7 +62,7 @@ export function BiomeDashboard({
 
   if (!biomeConfig || !biomeSections) return null;
 
-  const envType = (biomeConfig.EnvironmentProvider as Record<string, unknown>).Type as string ?? "";
+  const environmentLabel = describeEnvironmentProvider(biomeConfig.EnvironmentProvider);
 
   const sectionKeys = Object.keys(biomeSections);
   const summaries: SectionSummary[] = sectionKeys.map((key) =>
@@ -85,7 +86,7 @@ export function BiomeDashboard({
       <div className="flex items-center gap-2">
         <span className="text-xs text-tn-text-muted">Environment</span>
         <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#7DB350]/15 text-[#7DB350] border border-[#7DB350]/30">
-          {envType || "None"}
+          {environmentLabel}
         </span>
       </div>
 

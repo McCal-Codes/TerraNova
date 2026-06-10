@@ -161,8 +161,23 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     OverrideY: "The fixed Y coordinate to use when evaluating the input. The input is sampled at (x, OverrideY, z) instead of (x, y, z).",
   },
   BaseHeight: {
-    BaseHeightName: "Name of the content field to read (e.g. 'Base', 'Water', 'Bedrock'). Must match a field defined in WorldStructures.",
-    Distance: "When true, outputs the signed distance from the base height (y - baseY). When false, outputs the base height value itself.",
+    BaseHeightName: {
+      short: "WorldStructures height field to read (e.g. Base, Water, Bedrock).",
+      extended:
+        "Must match a content field on the world structure. Preview uses the value from the biome dashboard / content fields panel.",
+    },
+    Distance: {
+      short: "Off: terrain anchor (solid below surface). On: height offset from surface — use with CurveMapper.",
+      extended:
+        "When off, outputs terrain density: positive below the named height, negative above (surface where density crosses zero). When on, outputs y − baseY (signed distance from that height) — the usual input for CurveMapper altitude bands.",
+    },
+  },
+  CurveMapper: {
+    Curve: {
+      short: "Curve that maps Input (horizontal) to output density (vertical). Use Manual to draw the profile.",
+      extended:
+        "Connect a Curve:Manual node to the Curve port, or import JSON with an inline Curve object. X/In is the input value; Y/Out is the output density. Steep segments create cliffs; flat segments create shelves.",
+    },
   },
   PositionsCellNoise: {
     Scale: "Controls the cell size of the noise pattern. Higher values create larger cells.",
@@ -419,6 +434,7 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   },
   FieldFunction: {
     Threshold: "Minimum density value required to keep a position. Positions with density below this are discarded.",
+    Delimiters: "Noise bands — each maps a Min/Max field range to props placed when the noise value falls in that band.",
   },
   Occurrence: {
     Seed: "Random seed for deterministic position filtering.",
@@ -472,6 +488,18 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // FieldFunction Assignment:
   // (Threshold is shared with FieldFunction position provider key above)
   // Sandwich and Weighted have no scalar fields (connections only)
+  "Assignment:Weighted": {
+    SkipChance: "Probability (0–1) that this assignment is skipped entirely on each placement attempt.",
+    Seed: "Random seed string — same seed yields the same weight picks for reproducible worldgen.",
+    WeightedAssignments: "Weighted list of Constant assignments. Higher Weight means more likely selection.",
+    ExportAs: "Biome reference name — biomes import this via Assignment:Imported with matching Name.",
+  },
+  Weighted: {
+    SkipChance: "Probability (0–1) that this assignment is skipped entirely on each placement attempt.",
+    Seed: "Random seed string — same seed yields the same weight picks for reproducible worldgen.",
+    WeightedAssignments: "Weighted list of Constant assignments. Higher Weight means more likely selection.",
+    ExportAs: "Biome reference name — biomes import this via Assignment:Imported with matching Name.",
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // VECTOR PROVIDERS

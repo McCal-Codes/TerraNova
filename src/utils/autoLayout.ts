@@ -74,6 +74,21 @@ export function tidyUp(nodes: Node[], gridSize: number = 20): Node[] {
   return result;
 }
 
+export type LayoutSpacing = "default" | "comfortable";
+
+/** Dagre spacing presets — comfortable leaves more room for labels and handoff. */
+export const LAYOUT_SPACING: Record<LayoutSpacing, { nodesep: number; ranksep: number; edgesep: number }> = {
+  default: { nodesep: 50, ranksep: 80, edgesep: 20 },
+  comfortable: { nodesep: 88, ranksep: 140, edgesep: 28 },
+};
+
+function dagreGraphOptions(direction: "LR" | "RL" | "TB", spacing: LayoutSpacing = "default") {
+  return {
+    rankdir: direction,
+    ...LAYOUT_SPACING[spacing],
+  };
+}
+
 let dagreLib: typeof import("@dagrejs/dagre") | null = null;
 
 /**
@@ -98,17 +113,13 @@ export async function autoLayout(
   nodes: Node[],
   edges: Edge[],
   direction: "LR" | "RL" | "TB" = "LR",
+  spacing: LayoutSpacing = "default",
 ): Promise<Node[]> {
   const dagre = await ensureDagre();
 
   const g = new dagre!.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({
-    rankdir: direction,
-    nodesep: 50,
-    ranksep: 80,
-    edgesep: 20,
-  });
+  g.setGraph(dagreGraphOptions(direction, spacing));
 
   for (const node of nodes) {
     g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
@@ -152,6 +163,7 @@ export async function autoLayoutSelected(
   edges: Edge[],
   selectedIds: Set<string>,
   direction: "LR" | "RL" | "TB" = "LR",
+  spacing: LayoutSpacing = "default",
 ): Promise<Node[]> {
   if (selectedIds.size === 0) return allNodes;
 
@@ -180,12 +192,7 @@ export async function autoLayoutSelected(
 
   const g = new dagre!.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({
-    rankdir: direction,
-    nodesep: 50,
-    ranksep: 80,
-    edgesep: 20,
-  });
+  g.setGraph(dagreGraphOptions(direction, spacing));
 
   for (const node of selectedNodes) {
     g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });

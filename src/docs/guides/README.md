@@ -19,8 +19,13 @@ If you want follow-along build steps instead of explanations, start in [Walkthro
 - **[Materials Guide](./content/materials-guide.md)** — how material providers work: SpaceAndDepth layer types, ConstantThickness, NoiseThickness, RangeThickness, cave ceiling/floor detection with DownwardSpace/UpwardSpace, and worked examples for plains, desert, and cave biomes.
 - **[Props & Placement](./content/props-and-placement.md)** — the position provider → scanner → prop pipeline, prop types (Prefab, Cluster, Weighted, PondFiller), position providers (Occurrence, Jitter2d, SimpleHorizontal), scanners (ColumnLinear, ColumnRandom, Area), and worked examples for trees, boulders, cave mushrooms, and ponds.
 
+**Preview**
+- **[Cave Preview](./preview/cave-preview.md)** — 2D topo slices, vertical section profiles, voxel cutaway, and 3D underground volume view.
+- **[2D Preview & Topographic Maps](./terrain/2d-preview-topographic-context.md)** — contours, hill shade, and topo-style reading habits (includes cave plan slices).
+
 **Terrain**
 - **[Terrain Math Explained](./terrain/terrain-math-explained.md)** — the actual math behind every node type: what each parameter does, how combining nodes produces specific terrain shapes, and a quick-reference tuning table.
+- **[2D Preview & Topographic Maps](./terrain/2d-preview-topographic-context.md)** — how contour lines, hill shade, cross-sections, and scale from classical USGS topographic mapping relate to TerraNova’s 2D preview controls.
 - **[Terrain Types and Node Recipes](./terrain/terrain-types.md)** — organized by terrain outcome: plains, mountains, mesas, floating islands (SDF), skylands altitude bands, caves, warped terrain, dunes, archipelagos, and complex layered worlds.
 - **[Complex Terrain Techniques](./terrain/terrain-types-advanced.md)** — advanced recipes: double domain warp, slope detection with Gradient, depth-zoned Switch branching, Voronoi river networks, altitude-scaled Amplitude, VectorWarp directional distortion, overhangs, and manual multi-scale noise stacks.
 - **[Expert Terrain Techniques](./terrain/terrain-types-expert.md)** — system-level knowledge: MultiMix N-way blending, PositionsPinch/Twist, SingleInstance thread safety, Cache strategy, the Terrain accessor, full preview vs. runtime gap reference, graph topology, and the optimization reference (YSampled placement, octave budget, FastGradientWarp vs GradientWarp, Cache vs DAG diamonds).

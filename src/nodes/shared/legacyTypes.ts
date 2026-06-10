@@ -1,8 +1,8 @@
 /**
  * Single source of truth for all legacy type keys — node types that existed
  * in earlier versions of Hytale's worldgen API but are no longer present in
- * the pre-release. Legacy nodes still load and render correctly but are
- * hidden from the Quick Add palette and display an amber LEGACY badge.
+ * the current release generator. Legacy nodes still load and render correctly
+ * but are hidden from the Quick Add palette and display an amber LEGACY badge.
  */
 export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
   // Density (43 legacy — all removed from the registry)
@@ -50,12 +50,12 @@ export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Check whether a full node type key (e.g. "SimplexRidgeNoise2D" or "Curve:Noise")
- * is a legacy type that is no longer in the Hytale pre-release API.
+ * Bundle nodes whose descriptions mention deprecated/legacy but remain loadable
+ * in release assets (not removed from the API).
  */
-export function isLegacyTypeKey(typeKey: string): boolean {
-  return LEGACY_TYPE_KEYS.has(typeKey);
-}
+export const DEPRECATED_TYPE_KEYS: ReadonlySet<string> = new Set([
+  "Cache2D",
+]);
 
 /**
  * Type keys that are still registered for loading old projects, but should not
@@ -96,12 +96,38 @@ export const NON_CANONICAL_PALETTE_TYPE_KEYS: ReadonlySet<string> = new Set([
   "Material:WeightedThickness",
 ]);
 
+/** Active V2 nodes whose Hytale source descriptions still say "Legacy". */
+export const ACTIVE_V2_MISLABELED_DESCRIPTIONS: ReadonlySet<string> = new Set([
+  "AmplitudeConstant",
+  "OffsetConstant",
+]);
+
+export type DeprecationTier = "active" | "deprecated" | "legacy";
+
+/**
+ * Check whether a full node type key (e.g. "SimplexRidgeNoise2D" or "Curve:Noise")
+ * is a legacy type removed from the current Hytale generator API.
+ */
+export function isLegacyTypeKey(typeKey: string): boolean {
+  return LEGACY_TYPE_KEYS.has(typeKey);
+}
+
+export function isDeprecatedTypeKey(typeKey: string): boolean {
+  return DEPRECATED_TYPE_KEYS.has(typeKey) || NON_CANONICAL_PALETTE_TYPE_KEYS.has(typeKey);
+}
+
+export function getDeprecationTier(typeKey: string): DeprecationTier {
+  if (isLegacyTypeKey(typeKey)) return "legacy";
+  if (isDeprecatedTypeKey(typeKey)) return "deprecated";
+  return "active";
+}
+
 /**
  * Whether a type should be offered in new-node UI surfaces.
  * Existing projects can still load registered legacy/non-canonical nodes.
  */
 export function isPaletteTypeKeyVisible(typeKey: string): boolean {
-  return !isLegacyTypeKey(typeKey) && !NON_CANONICAL_PALETTE_TYPE_KEYS.has(typeKey);
+  return getDeprecationTier(typeKey) === "active";
 }
 
 /**
@@ -133,6 +159,7 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ["Amplitude",           "AmplitudeConstant"],
   ["VoronoiNoise2D",     "CellNoise2D"],
   ["VoronoiNoise3D",     "CellNoise3D"],
+  ["Cache2D",             "Cache"],
   // Old names → V2 names
   ["Product",             "Multiplier"],
   ["Negate",              "Inverter"],
@@ -153,6 +180,11 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ["RotatedPosition",     "Rotator"],
   ["DomainWarp2D",        "FastGradientWarp"],
   ["DomainWarp3D",        "FastGradientWarp"],
+  // Layer thickness — material-prefixed → Layer:*
+  ["Material:ConstantThickness", "Layer:ConstantThickness"],
+  ["Material:NoiseThickness",    "Layer:NoiseThickness"],
+  ["Material:RangeThickness",    "Layer:RangeThickness"],
+  ["Material:WeightedThickness", "Layer:WeightedThickness"],
   // Curves — direct functional equivalents
   ["Curve:Blend",         "Curve:Sum"],
   ["Curve:Cache",         "Curve:Manual"],
@@ -162,6 +194,9 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ["Curve:SmoothStep",    "Curve:Manual"],
   ["Curve:Power",         "Curve:Manual"],
   ["Curve:LinearRemap",   "Curve:Manual"],
+  // Editor keys that lost category prefix on import (e.g. $DisconnectedTrees roots)
+  ["Manual",              "Curve:Manual"],
+  ["Curve:Mix",           "Mix"],
 ]);
 
 /**
@@ -170,4 +205,10 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
  */
 export function getLegacyReplacement(typeKey: string): string | null {
   return LEGACY_TYPE_REPLACEMENTS.get(typeKey) ?? null;
+}
+
+/** True when the node should show a deprecation badge and validation warning. */
+export function isDeprecatedOrLegacyTypeKey(typeKey: string): boolean {
+  const tier = getDeprecationTier(typeKey);
+  return tier === "legacy" || tier === "deprecated";
 }

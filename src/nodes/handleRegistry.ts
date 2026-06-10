@@ -185,6 +185,10 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
   // ── Curve ───────────────────────────────────────────────────────────
 
   "Curve:Manual": [curveOutput()],
+  // Bare Hytale JSON key — same handles as Curve:Manual
+  Manual: [curveOutput()],
+  // Legacy prefixed mix under curve nesting — density Mix handles
+  "Curve:Mix": [densityInput("InputA", "Input"), densityInput("InputB", "Input"), densityInput("Factor", "Factor"), densityOutput()],
   "Curve:Constant": [curveOutput()],
   "Curve:DistanceExponential": [curveOutput()],
   "Curve:DistanceS": [curveOutput()],

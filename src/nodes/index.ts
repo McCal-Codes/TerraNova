@@ -43,6 +43,7 @@ import {
 // ── Material nodes ─────────────────────────────────────────────────────
 import {
   ConstantMaterialNode, SpaceAndDepthMaterialNode, WeightedRandomMaterialNode,
+  ConditionalMaterialNode, BlendMaterialNode, HeightGradientMaterialNode,
   ImportedMaterialNode, FieldFunctionMaterialNode,
   ConstantThicknessNode, NoiseThicknessNode, RangeThicknessNode, WeightedThicknessNode,
   QueueMaterialNode, SolidityMaterialNode, TerrainDensityMaterialNode,
@@ -162,6 +163,8 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   CurveMapper: CurveMapperNode,
   Switch: SwitchNode,
   Mix: MixNode,
+  // Mis-prefixed when density Mix was nested under a Curve/* JSON field
+  "Curve:Mix": MixNode,
   MultiMix: MultiMixNode,
   Min: MinNode,
   Max: MaxNode,
@@ -213,6 +216,8 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
 
   // ── Curve ────────────────────────────────────────────────────────────
   "Curve:Manual": ManualCurveNode,
+  // Bare key from Hytale JSON / disconnected import — same component as Curve:Manual
+  Manual: ManualCurveNode,
   "Curve:Constant": ConstantCurveNode,
   "Curve:DistanceExponential": DistanceExponentialCurveNode,
   "Curve:DistanceS": DistanceSCurveNode,
@@ -236,6 +241,9 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Material:Constant": ConstantMaterialNode,
   "Material:SpaceAndDepth": SpaceAndDepthMaterialNode,
   "Material:WeightedRandom": WeightedRandomMaterialNode,
+  "Material:Conditional": ConditionalMaterialNode,
+  "Material:Blend": BlendMaterialNode,
+  "Material:HeightGradient": HeightGradientMaterialNode,
   "Material:FieldFunction": FieldFunctionMaterialNode,
   "Material:Imported": ImportedMaterialNode,
   // Layer sub-asset types (SpaceAndDepth V2)

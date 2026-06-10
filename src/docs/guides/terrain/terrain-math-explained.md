@@ -4,6 +4,8 @@
 
 This guide explains the actual math behind the nodes -- no prior knowledge required. By the end you will understand *why* certain combinations produce hills, caves, overhangs, and floating islands, and *how* to tune each parameter to get the result you want.
 
+> **Reading the 2D preview:** For how contours, hill shade, and cross-sections map to classical topographic maps, see [2D Preview & Topographic Maps](./2d-preview-topographic-context.md).
+
 > **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Experimental/Arches.json`, `Experimental/Dunes.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Pillars_Marble_Large.json`, `Generative/Generative_Veins.json`
 >
 > The formulas below are compact explanations of patterns seen in those terrain assets and the active editor node set. The skylands section later in this guide is a teaching reconstruction, not a 1:1 copy of one audited biome file.
@@ -154,14 +156,14 @@ When you add two signals each in [-1, 1], the result can reach [-2, 2]:
 ```
 
 ```bounds
-{"min": -1, "max": 1, "context": [-2, 2], "label": "BaseHeight signal — [-1, 1]"}
+{"min": -64, "max": 64, "context": [-128, 128], "label": "BaseHeight (baseY − y) — linear in Y, not clamped to [-1, 1]"}
 ```
 
 ```bounds
-{"min": -2, "max": 2, "context": [-2, 2], "label": "Sum output — can reach [-2, 2]"}
+{"min": -2, "max": 2, "context": [-128, 128], "label": "Sum output — noise plus BaseHeight can span a wide range"}
 ```
 
-The world treats **any positive value** as solid regardless of magnitude, so ±2 works fine for a simple terrain output. But if this Sum feeds a `CurveMapper` or a `Mix` weight, the expanded range can produce unexpected results — use `Clamp` or `Normalizer` to bring it back to [-1, 1] first.
+The world treats **any positive value** as solid regardless of magnitude, so wide ranges work for terrain output. If this Sum feeds a `CurveMapper` or a `Mix` **weight**, normalize or clamp first so the curve/weight inputs stay in the range you designed for.
 
 > [!NOTE]
 > `BaseHeight` is not a height value -- it is a density field that smoothly transitions from solid (positive) below a reference height to air (negative) above it. The rate of that transition is called the gradient, and it determines how steep the implicit surface is.

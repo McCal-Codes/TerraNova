@@ -108,6 +108,19 @@ export function useKeyboardShortcuts({ onSearchOpen, onQuickAdd, disabled = fals
         return;
       }
 
+      // Ctrl+Shift+F — wrap selected graph nodes in a Hytale $Groups frame
+      if (matchesKeybinding("frameSelection", e)) {
+        e.preventDefault();
+        const store = useEditorStore.getState();
+        const selectedIds = store.nodes
+          .filter((n) => n.selected)
+          .map((n) => n.id);
+        if (selectedIds.length > 0) {
+          store.frameSelection(selectedIds);
+        }
+        return;
+      }
+
       // Select Upstream — toggle: select all ancestors, or collapse back to tips
       if (matchesKeybinding("selectUpstream", e)) {
         e.preventDefault();

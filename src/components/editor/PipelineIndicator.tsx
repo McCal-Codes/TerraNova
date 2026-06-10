@@ -35,7 +35,7 @@ function getActiveStep(context: string | null, biomeSection: string | null | und
   return "";
 }
 
-export const PipelineIndicator = memo(function PipelineIndicator() {
+export const PipelineIndicator = memo(function PipelineIndicator({ embedded = false }: { embedded?: boolean }) {
   const editingContext  = useEditorStore((s) => s.editingContext);
   const biomeSection    = useEditorStore((s) => s.activeBiomeSection);
   const biomeSections   = useEditorStore((s) => s.biomeSections);
@@ -65,7 +65,11 @@ export const PipelineIndicator = memo(function PipelineIndicator() {
   }
 
   return (
-    <div className="flex items-center h-7 px-3 bg-tn-bg border-b border-tn-border shrink-0 gap-0 select-none overflow-x-auto">
+    <div
+      className={`flex h-7 items-center gap-0 select-none px-3 ${
+        embedded ? "bg-transparent" : "shrink-0 border-b border-tn-border bg-tn-bg"
+      }`}
+    >
       {STEPS.map((step, i) => {
         const isActive = step.key === activeStep;
         return (

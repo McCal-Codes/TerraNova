@@ -266,7 +266,7 @@ Inputs:
 
 This carves an ellipsoid void from terrain — but only where terrain is already solid. In pure air, `Terrain` returns a large negative value, so `Min` returns that (air stays air). Only where `Terrain` is positive does the ellipsoid carve matter.
 
-**Preview caveat:** TerraNova approximates `Terrain` as `baseHeight - Y` in the preview evaluator. That is useful for broad terrain-shape checks, but it is not the full runtime terrain-provider query. Treat `Gradient(Terrain)` previews as a proxy and test slope-based material rules in-game.
+**Preview caveat:** TerraNova approximates `Terrain` as `baseHeight - Y` in the preview evaluator. That is useful for broad terrain-shape checks, but it is not the full runtime terrain-provider query. Treat `Gradient(Terrain)` previews as a proxy and test slope-based material rules in-game. Compositional caves preview in **2D topo**, **section profile**, **voxel cutaway**, and **3D underground view** — not in the default heightfield.
 
 ---
 
@@ -274,13 +274,17 @@ This carves an ellipsoid void from terrain — but only where terrain is already
 
 **What this is:** A reference for which nodes preview accurately, which are approximated, and which are unsupported in TerraNova's density evaluator. Building complex graphs without knowing these limits leads to designing terrain around a preview that doesn't match what the game generates.
 
-**Unsupported or unresolved in preview:**
+**Approximated terrain-specific (yellow badge — stand-in handlers):**
 
-| Node | Preview output | In-game | Impact |
-|------|---------------|---------|--------|
-| `Pipeline` | `0.0` fallback | Sequential registration / evaluation | Medium -- use it for export ordering, not preview shape |
-| `SurfaceDensity` / `TerrainBoolean` / `TerrainMask` | `0.0` fallback | Runtime terrain-specific logic | High -- preview cannot show these directly |
-| Cross-asset `Imported` with no inline input | `0.0` fallback | Resolves named export | Medium -- inline the referenced graph while previewing |
+| Node | Preview behavior | In-game | Impact |
+|------|------------------|---------|--------|
+| `Pipeline` | Passthrough of last connected stage | Sequential registration / evaluation | Medium — shape may omit multi-stage context |
+| `TerrainBoolean` | Union / Intersection / Subtraction via Min/Max | Runtime boolean CSG | Medium — verify against exported examples |
+| `SurfaceDensity` / `TerrainMask` / `BeardDensity` / `ColumnDensity` | Input passthrough or simple mask | Terrain-specific wrappers | High — treat as directional only |
+| `CaveDensity` | Noise-carve approximation on `Input` | Legacy cave SDF | High — prefer compositional `Min` + inverted 3D noise |
+| `DistanceToBiomeEdge` | Distance to preview range edge (XZ) | Biome delimiter at runtime | Medium — edge falloff only meaningful in-world |
+| Cross-asset `Imported` with no inline input | Resolves same-graph `Exported` by `ExportAs`; else `0` | Named export registry | Medium — inline external refs while previewing |
+| **Caves (compositional)** | Full in 2D topo / voxel / underground 3D | Same graph at runtime | See [Cave Preview](../preview/cave-preview.md) |
 
 **Approximated (visually different from in-game):**
 
@@ -307,11 +311,13 @@ This carves an ellipsoid void from terrain — but only where terrain is already
 
 1. **GradientWarp / VectorWarp:** Build and tune the child terrain first without warping. Once the unwarped shape looks right in preview, add the warp node and use preview for direction and scale. Validate final warp strength in-game.
 
-2. **BaseHeight:** Use the 2D heatmap preview and watch the density value readout at the target Y level. If the anchor is wrong, check that the referenced content field exists and that `Distance` is set correctly for the pattern.
+2. **BaseHeight:** A flat color on the 2D map at one Y slice is normal. Check the content field name and **Distance** mode. Preview **Terrain Out** for full terrain; use **Voxel / Vertical section** for height change.
 
-3. **Export/Import:** Replace `Imported` references with inline copies during preview-time iteration. Restore the `Imported` reference before JSON export.
+3. **CurveMapper / SplineFunction:** No standalone heatmap — edit **Curve:Manual** (or spline points) and preview **Terrain Out** or **Sum** downstream.
 
-4. **CellWallDistance:** Keep the upstream cell-noise node in the same evaluated path before `CellWallDistance`. If the wall signal reads as `0`, the side-channel likely has not been populated yet.
+4. **Export/Import:** Replace `Imported` references with inline copies during preview-time iteration. Restore the `Imported` reference before JSON export.
+
+5. **CellWallDistance:** Keep the upstream cell-noise node in the same evaluated path before `CellWallDistance`. If the wall signal reads as `0`, the side-channel likely has not been populated yet.
 
 ---
 

@@ -63,7 +63,14 @@ export const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {
  * Types that already use Inputs[] arrays (Product, Sum variadic, etc.) are omitted.
  */
 export const DENSITY_NAMED_TO_ARRAY: Record<string, string[]> = {
-  // 1-input types
+  // 1-input types (V2 Hytale names — must mirror HYTALE_ARRAY_TO_NAMED for export)
+  CurveMapper: ["Input"],
+  Inverter: ["Input"],
+  Cache: ["Input"],
+  AmplitudeConstant: ["Input"],
+  Imported: ["Input"],
+  Rotator: ["Input"],
+  // Legacy / alternate internal names
   Negate: ["Input"],
   CurveFunction: ["Input"],
   CacheOnce: ["Input"],

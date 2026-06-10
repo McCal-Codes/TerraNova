@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { DEFAULT_FLOW_DIRECTION, type FlowDirection } from "@/constants";
+import type { SvgExportSettings } from "@/utils/exportSvg";
+import { DEFAULT_SVG_EXPORT_SETTINGS } from "@/utils/exportSvg";
 
 const STORAGE_KEY = "tn-settings";
 const DEBUG_WORKERS_KEY = "tn-debug-workers";
@@ -67,6 +69,46 @@ function getStoredExportPath(): string | null {
   return null;
 }
 
+function getStoredSvgExportSettings(): SvgExportSettings {
+  const parsed = getStoredSettingsObject();
+  const raw = parsed?.svgExportSettings;
+  if (!raw || typeof raw !== "object") return DEFAULT_SVG_EXPORT_SETTINGS;
+  const s = raw as Record<string, unknown>;
+  const scope =
+    s.scope === "viewport" || s.scope === "selection" || s.scope === "full"
+      ? s.scope
+      : DEFAULT_SVG_EXPORT_SETTINGS.scope;
+  const padding =
+    typeof s.padding === "number" && s.padding >= 0 && s.padding <= 200
+      ? Math.round(s.padding)
+      : DEFAULT_SVG_EXPORT_SETTINGS.padding;
+  const background =
+    s.background === "light" || s.background === "transparent" || s.background === "dark"
+      ? s.background
+      : DEFAULT_SVG_EXPORT_SETTINGS.background;
+  const flowDirection =
+    s.flowDirection === "LR" || s.flowDirection === "RL" || s.flowDirection === "canvas"
+      ? s.flowDirection
+      : DEFAULT_SVG_EXPORT_SETTINGS.flowDirection;
+  const resolution =
+    s.resolution === 1920 || s.resolution === 3840
+      ? s.resolution
+      : DEFAULT_SVG_EXPORT_SETTINGS.resolution;
+  return {
+    scope,
+    background,
+    showGrid: typeof s.showGrid === "boolean" ? s.showGrid : DEFAULT_SVG_EXPORT_SETTINGS.showGrid,
+    includeAnnotations:
+      typeof s.includeAnnotations === "boolean"
+        ? s.includeAnnotations
+        : DEFAULT_SVG_EXPORT_SETTINGS.includeAnnotations,
+    mode: s.mode === "debug" ? "debug" : DEFAULT_SVG_EXPORT_SETTINGS.mode,
+    padding,
+    flowDirection,
+    resolution,
+  };
+}
+
 function getStoredAutoCheckUpdates(): boolean {
   const parsed = getStoredSettingsObject();
   if (typeof parsed?.autoCheckUpdates === "boolean") {
@@ -131,10 +173,34 @@ function getStoredHytaleCommonAssetsPath(): string {
   return "";
 }
 
+function getStoredShowNodeIdsOnCanvas(): boolean {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.showNodeIdsOnCanvas === "boolean") {
+    return parsed.showNodeIdsOnCanvas;
+  }
+  return false;
+}
+
 function getStoredDeveloperMode(): boolean {
   const parsed = getStoredSettingsObject();
   if (typeof parsed?.developerMode === "boolean") {
     return parsed.developerMode;
+  }
+  return false;
+}
+
+function getStoredAutoEnableDeveloperModeInDev(): boolean {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.autoEnableDeveloperModeInDev === "boolean") {
+    return parsed.autoEnableDeveloperModeInDev;
+  }
+  return true;
+}
+
+function getStoredShowDevToolsDock(): boolean {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.showDevToolsDock === "boolean") {
+    return parsed.showDevToolsDock;
   }
   return false;
 }
@@ -172,6 +238,7 @@ function persistSettings(settings: {
   instantSaveEnabled: boolean;
   instantSaveDebounceMs: number;
   exportPath: string | null;
+  svgExportSettings: SvgExportSettings;
   hytaleAssetSyncEnabled: boolean;
   hytaleAssetSourceChannel: HytaleAssetSourceChannel;
   hytalePreReleaseAssetsPath: string;
@@ -179,7 +246,10 @@ function persistSettings(settings: {
   hytaleCommonAssetsEnabled: boolean;
   hytaleCommonAssetsPath: string;
   developerMode: boolean;
+  autoEnableDeveloperModeInDev: boolean;
+  showDevToolsDock: boolean;
   debugWorkerLogging: boolean;
+  showNodeIdsOnCanvas: boolean;
 }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -197,6 +267,7 @@ interface SettingsState {
   instantSaveEnabled: boolean;
   instantSaveDebounceMs: number;
   exportPath: string | null;
+  svgExportSettings: SvgExportSettings;
   hytaleAssetSyncEnabled: boolean;
   hytaleAssetSourceChannel: HytaleAssetSourceChannel;
   hytalePreReleaseAssetsPath: string;
@@ -204,7 +275,10 @@ interface SettingsState {
   hytaleCommonAssetsEnabled: boolean;
   hytaleCommonAssetsPath: string;
   developerMode: boolean;
+  autoEnableDeveloperModeInDev: boolean;
+  showDevToolsDock: boolean;
   debugWorkerLogging: boolean;
+  showNodeIdsOnCanvas: boolean;
   setFlowDirection: (dir: FlowDirection) => void;
   setAutoLayoutOnOpen: (value: boolean) => void;
   setAutoCheckUpdates: (value: boolean) => void;
@@ -216,6 +290,7 @@ interface SettingsState {
   toggleInstantSave: () => void;
   setInstantSaveDebounceMs: (ms: number) => void;
   setExportPath: (path: string | null) => void;
+  setSvgExportSettings: (settings: Partial<SvgExportSettings>) => void;
   setHytaleAssetSyncEnabled: (value: boolean) => void;
   setHytaleAssetSourceChannel: (value: HytaleAssetSourceChannel) => void;
   setHytalePreReleaseAssetsPath: (value: string) => void;
@@ -223,7 +298,10 @@ interface SettingsState {
   setHytaleCommonAssetsEnabled: (value: boolean) => void;
   setHytaleCommonAssetsPath: (value: string) => void;
   setDeveloperMode: (value: boolean) => void;
+  setAutoEnableDeveloperModeInDev: (value: boolean) => void;
+  setShowDevToolsDock: (value: boolean) => void;
   setDebugWorkerLogging: (value: boolean) => void;
+  setShowNodeIdsOnCanvas: (value: boolean) => void;
 }
 
 function getAllSettings(state: SettingsState) {
@@ -236,6 +314,7 @@ function getAllSettings(state: SettingsState) {
     instantSaveEnabled: state.instantSaveEnabled,
     instantSaveDebounceMs: state.instantSaveDebounceMs,
     exportPath: state.exportPath,
+    svgExportSettings: state.svgExportSettings,
     hytaleAssetSyncEnabled: state.hytaleAssetSyncEnabled,
     hytaleAssetSourceChannel: state.hytaleAssetSourceChannel,
     hytalePreReleaseAssetsPath: state.hytalePreReleaseAssetsPath,
@@ -243,7 +322,10 @@ function getAllSettings(state: SettingsState) {
     hytaleCommonAssetsEnabled: state.hytaleCommonAssetsEnabled,
     hytaleCommonAssetsPath: state.hytaleCommonAssetsPath,
     developerMode: state.developerMode,
+    autoEnableDeveloperModeInDev: state.autoEnableDeveloperModeInDev,
+    showDevToolsDock: state.showDevToolsDock,
     debugWorkerLogging: state.debugWorkerLogging,
+    showNodeIdsOnCanvas: state.showNodeIdsOnCanvas,
   };
 }
 
@@ -256,6 +338,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   instantSaveEnabled: getStoredInstantSaveEnabled(),
   instantSaveDebounceMs: getStoredInstantSaveDebounceMs(),
   exportPath: getStoredExportPath(),
+  svgExportSettings: getStoredSvgExportSettings(),
   hytaleAssetSyncEnabled: getStoredHytaleAssetSyncEnabled(),
   hytaleAssetSourceChannel: getStoredHytaleAssetSourceChannel(),
   hytalePreReleaseAssetsPath: getStoredHytalePreReleaseAssetsPath(),
@@ -263,7 +346,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   hytaleCommonAssetsEnabled: getStoredHytaleCommonAssetsEnabled(),
   hytaleCommonAssetsPath: getStoredHytaleCommonAssetsPath(),
   developerMode: getStoredDeveloperMode(),
+  autoEnableDeveloperModeInDev: getStoredAutoEnableDeveloperModeInDev(),
+  showDevToolsDock: getStoredShowDevToolsDock(),
   debugWorkerLogging: getStoredDebugWorkerLogging(),
+  showNodeIdsOnCanvas: getStoredShowNodeIdsOnCanvas(),
 
   setFlowDirection: (dir) => {
     set({ flowDirection: dir });
@@ -325,6 +411,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     persistSettings(getAllSettings({ ...get(), exportPath: path }));
   },
 
+  setSvgExportSettings: (partial) => {
+    const svgExportSettings = { ...get().svgExportSettings, ...partial };
+    set({ svgExportSettings });
+    persistSettings(getAllSettings({ ...get(), svgExportSettings }));
+  },
+
   setHytaleAssetSyncEnabled: (value) => {
     set({ hytaleAssetSyncEnabled: value });
     persistSettings(getAllSettings({ ...get(), hytaleAssetSyncEnabled: value }));
@@ -360,9 +452,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     persistSettings(getAllSettings({ ...get(), developerMode: value }));
   },
 
+  setAutoEnableDeveloperModeInDev: (value) => {
+    set({ autoEnableDeveloperModeInDev: value });
+    persistSettings(getAllSettings({ ...get(), autoEnableDeveloperModeInDev: value }));
+  },
+
+  setShowDevToolsDock: (value) => {
+    set({ showDevToolsDock: value });
+    persistSettings(getAllSettings({ ...get(), showDevToolsDock: value }));
+  },
+
   setDebugWorkerLogging: (value) => {
     set({ debugWorkerLogging: value });
     persistDebugWorkerLogging(value);
     persistSettings(getAllSettings({ ...get(), debugWorkerLogging: value }));
+  },
+
+  setShowNodeIdsOnCanvas: (value) => {
+    set({ showNodeIdsOnCanvas: value });
+    persistSettings(getAllSettings({ ...get(), showNodeIdsOnCanvas: value }));
   },
 }));

@@ -1,5 +1,14 @@
-import type { NodeHandler } from "../evalContext";
-import { lastVoronoiDistances } from "../voronoiNoise";
+import type { EvalCtx, NodeHandler } from "../evalContext";
+import { lastVoronoiCellCenter, lastVoronoiCellHash, lastVoronoiDistances } from "../voronoiNoise";
+import { primeCellWallDistanceSideChannel } from "./terrainSpecific";
+
+function syncVoronoiSideChannel(ctx: EvalCtx): void {
+  ctx.cellWallDist = Math.max(0, (lastVoronoiDistances.d2 - lastVoronoiDistances.d1) / 2.0);
+  ctx.cellHash = lastVoronoiCellHash;
+  ctx.cellCenterX = lastVoronoiCellCenter.x;
+  ctx.cellCenterY = lastVoronoiCellCenter.y;
+  ctx.cellCenterZ = lastVoronoiCellCenter.z;
+}
 
 const handlePositionsCellNoise: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const scale = Number(fields.Scale ?? 1.0);
@@ -12,8 +21,7 @@ const handlePositionsCellNoise: NodeHandler = (ctx, fields, inputs, x, y, z) => 
   const sx = scale !== 0 ? x / scale : x;
   const sz = scale !== 0 ? z / scale : z;
   let raw = noise(sx, sz);
-  // Exact cell wall distance from voronoi d1/d2 side-channel
-  ctx.cellWallDist = Math.max(0, (lastVoronoiDistances.d2 - lastVoronoiDistances.d1) / 2.0);
+  syncVoronoiSideChannel(ctx);
   // ReturnType delegation (matching VoronoiNoise2D/3D handlers)
   if (returnType === "Curve") {
     raw = ctx.applyCurve("ReturnCurve", raw, inputs);
@@ -23,7 +31,11 @@ const handlePositionsCellNoise: NodeHandler = (ctx, fields, inputs, x, y, z) => 
   return raw;
 };
 
-const handleCellWallDistance: NodeHandler = (ctx) => {
+const handleCellWallDistance: NodeHandler = (ctx, _fields, _inputs, x, y, z) => {
+  if (ctx.cellWallDist < Infinity) {
+    return ctx.cellWallDist;
+  }
+  primeCellWallDistanceSideChannel(ctx, x, y, z);
   if (ctx.cellWallDist < Infinity) {
     return ctx.cellWallDist;
   }
@@ -41,8 +53,7 @@ const handlePositions3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const sy = scale !== 0 ? y / scale : y;
   const sz = scale !== 0 ? z / scale : z;
   let raw = noise(sx, sy, sz);
-  // Exact cell wall distance from voronoi d1/d2 side-channel
-  ctx.cellWallDist = Math.max(0, (lastVoronoiDistances.d2 - lastVoronoiDistances.d1) / 2.0);
+  syncVoronoiSideChannel(ctx);
   // ReturnType delegation (matching VoronoiNoise2D/3D handlers)
   if (returnType === "Curve") {
     raw = ctx.applyCurve("ReturnCurve", raw, inputs);

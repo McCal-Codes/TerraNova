@@ -63,6 +63,7 @@ function findHytaleGeneratorRoots(): string[] {
   const roots = new Set<string>();
   for (const filePath of templateJsonByPath.keys()) {
     if (filePath.startsWith("hytale-pre-release/")) continue;
+    if (filePath.startsWith("hytale-release/")) continue;
     const parts = filePath.split("/");
     const index = parts.indexOf("HytaleGenerator");
     if (index >= 0) roots.add(parts.slice(0, index + 1).join("/"));

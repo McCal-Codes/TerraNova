@@ -1,4 +1,4 @@
-import { Home, LayoutGrid, Clock, Plus, FolderOpen } from "lucide-react";
+import { Home, LayoutGrid, Clock, Plus, FolderOpen, Package } from "lucide-react";
 
 export type SidebarTab = "home" | "templates" | "recent";
 
@@ -6,6 +6,7 @@ interface HomeSidebarProps {
   activeTab: SidebarTab;
   onTabChange: (tab: SidebarTab) => void;
   onNewProject: () => void;
+  onCreatePack: () => void;
   onOpenProject: () => void;
 }
 
@@ -19,6 +20,7 @@ export function HomeSidebar({
   activeTab,
   onTabChange,
   onNewProject,
+  onCreatePack,
   onOpenProject,
 }: HomeSidebarProps) {
   return (
@@ -54,8 +56,15 @@ export function HomeSidebar({
       {/* Bottom actions */}
       <div className="p-3 border-t border-tn-border flex flex-col gap-2">
         <button
-          onClick={onNewProject}
+          onClick={onCreatePack}
           className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-tn-accent text-tn-bg hover:opacity-90 transition-opacity"
+        >
+          <Package size={15} />
+          Create Pack
+        </button>
+        <button
+          onClick={onNewProject}
+          className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-tn-border text-tn-text-muted hover:bg-tn-bg hover:text-tn-text transition-colors"
         >
           <Plus size={15} />
           New Project

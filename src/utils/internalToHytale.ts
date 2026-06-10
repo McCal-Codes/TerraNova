@@ -25,10 +25,12 @@ import {
 import type { Node } from "@xyflow/react";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
 import {
-  mergePreservedNodeEditorMetadata,
+  attachHytaleNodeEditorMetadata,
   type PreservedNodeEditorMetadata,
 } from "@/utils/nodeEditorMetadata";
+import { stackBiomeSectionNodesForExport } from "@/utils/sectionExportOffsets";
 import { getSchemaCategory } from "@/schema/schemaLoader";
+import { stripEditorPrefix } from "@/schema/categoryPrefixes";
 import { AssetCategory } from "@/schema/types";
 
 // ---------------------------------------------------------------------------
@@ -139,6 +141,31 @@ function generateNodeId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
+/** TerraNova inspector note stored as fields._comment on graph nodes. */
+function readInspectorComment(asset: Record<string, unknown>): string | undefined {
+  const raw = asset._comment;
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  return trimmed || undefined;
+}
+
+/** Write inspector note as Hytale $Comment without clobbering machine-readable Mix tags. */
+function applyInspectorComment(
+  node: Record<string, unknown>,
+  comment: string | undefined,
+): Record<string, unknown> {
+  if (!comment) return node;
+  if (
+    node.Type === "Mix" &&
+    typeof node.$Comment === "string" &&
+    /^Conditional\(Threshold=/.test(node.$Comment)
+  ) {
+    return node;
+  }
+  node.$Comment = comment;
+  return node;
+}
+
 function inferCategory(parentField: string | undefined, type: string, explicitCategory?: string): string {
   if (explicitCategory) return explicitCategory;
 
@@ -167,7 +194,7 @@ function inferCategory(parentField: string | undefined, type: string, explicitCa
     if (catPrefix === "biome") return "biome";
     if (catPrefix === "worldstructure") return "worldstructure";
   }
-  const bareType = stripCategoryPrefix(type);
+  const bareType = stripEditorPrefix(type);
   const schemaCategory = NON_DENSITY_BARE_SCHEMA_TYPES.has(bareType)
     ? getSchemaCategory(bareType)
     : null;
@@ -191,10 +218,6 @@ function getNodeIdPrefix(category: string, hytaleType: string): string {
 }
 
 /** Strip category prefix from internal type names like "Material:Constant" → "Constant" */
-function stripCategoryPrefix(type: string): string {
-  const idx = type.indexOf(":");
-  return idx >= 0 ? type.substring(idx + 1) : type;
-}
 
 // ---------------------------------------------------------------------------
 // Per-type field transformers
@@ -457,6 +480,24 @@ function transformPrefabPropFields(asset: Record<string, unknown>): Record<strin
 
 function transformColumnPropFields(asset: Record<string, unknown>): Record<string, unknown> {
   const result = { ...asset };
+  if ("ColumnBlocks" in result && Array.isArray(result.ColumnBlocks) && result.ColumnBlocks.length > 0) {
+    result.ColumnBlocks = (result.ColumnBlocks as Record<string, unknown>[]).map((block) => {
+      const next = { ...block };
+      if (!("$NodeId" in next)) {
+        next.$NodeId = generateNodeId("Block.Column.Prop");
+      }
+      if (next.Material && typeof next.Material === "object" && !("$NodeId" in (next.Material as object))) {
+        next.Material = {
+          $NodeId: generateNodeId("Material"),
+          ...(next.Material as Record<string, unknown>),
+        };
+      }
+      return next;
+    });
+    delete result.Height;
+    delete result.Material;
+    return result;
+  }
   if ("Height" in result && "Material" in result) {
     const height = result.Height as number;
     const material = result.Material as string;
@@ -1005,7 +1046,7 @@ function transformMaterialConditionalChain(
     current &&
     typeof current === "object" &&
     "Type" in current &&
-    stripCategoryPrefix(current.Type as string) === "Conditional"
+    stripEditorPrefix(current.Type as string) === "Conditional"
   ) {
     const condition = current.Condition as V2Asset | undefined;
     const threshold = current.Threshold as number | undefined;
@@ -1372,7 +1413,8 @@ function transformDensityConditional(
 // ---------------------------------------------------------------------------
 
 export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Record<string, unknown> {
-  const internalType = stripCategoryPrefix(asset.Type);
+  const inspectorComment = readInspectorComment(asset as Record<string, unknown>);
+  const internalType = stripEditorPrefix(asset.Type);
   const category = inferCategory(ctx.parentField, asset.Type, ctx.category);
 
   // Vector:Constant → Point3D format (Hytale uses { $NodeId: "Point3D-...", X, Y, Z } without Type)
@@ -1385,17 +1427,17 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
   );
   if (isVectorConstant) {
     const val = asset.Value as { x: number; y: number; z: number } | undefined;
-    return {
+    return applyInspectorComment({
       $NodeId: generateNodeId("Point3D"),
       X: val?.x ?? 0,
       Y: val?.y ?? 0,
       Z: val?.z ?? 0,
-    };
+    }, inspectorComment);
   }
 
   // Material Conditional → Queue[FieldFunction(...)] — Hytale has no Conditional in material registry
   if (internalType === "Conditional" && category === "material") {
-    return transformMaterialConditionalChain(asset, ctx);
+    return applyInspectorComment(transformMaterialConditionalChain(asset, ctx), inspectorComment);
   }
 
   // Density Conditional → Mix(FalseInput, TrueInput, StepFactor) — Switch is not a valid Hytale density type
@@ -1406,48 +1448,48 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
   // FieldFunction MaterialProvider with Materials[] → Delimiters format
   if (internalType === "FieldFunction" && category === "material" &&
       "Materials" in asset && Array.isArray(asset.Materials)) {
-    return transformFieldFunctionMaterialWithDelimiters(asset, ctx);
+    return applyInspectorComment(transformFieldFunctionMaterialWithDelimiters(asset, ctx), inspectorComment);
   }
 
   // HeightGradient → Queue[FieldFunction(YValue, Delimiters), LowFallback] — HeightGradient is not a valid Hytale type
   if (internalType === "HeightGradient" && category === "material") {
-    return transformHeightGradient(asset, ctx);
+    return applyInspectorComment(transformHeightGradient(asset, ctx), inspectorComment);
   }
 
   // GradientDensity → Normalizer(YValue) — Hytale's Gradient is a directional derivative, not a height ramp
   if (internalType === "GradientDensity") {
-    return transformGradientDensity(asset);
+    return applyInspectorComment(transformGradientDensity(asset), inspectorComment);
   }
 
   // Cluster prop → WeightedProps format — Hytale uses WeightedProps map, not Props array
   if (internalType === "Cluster" && category === "prop") {
     const fields: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(asset)) {
-      if (key === "Type") continue;
+      if (key === "Type" || key === "_comment") continue;
       fields[key] = value;
     }
     const clusterFields = transformClusterPropFields(fields, ctx);
-    return {
+    return applyInspectorComment({
       $NodeId: generateNodeId("Cluster.Prop"),
       Type: "Cluster",
       Skip: false,
       ...clusterFields,
-    };
+    }, inspectorComment);
   }
 
   // SpaceAndDepth → Layers[] format — Hytale uses LayerContext + MaxExpectedDepth + Layers array
   if (internalType === "SpaceAndDepth" && category === "material") {
     const fields: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(asset)) {
-      if (key === "Type") continue;
+      if (key === "Type" || key === "_comment") continue;
       fields[key] = value;
     }
     const layerFields = transformSpaceAndDepthFields(fields, ctx);
-    return {
+    return applyInspectorComment({
       $NodeId: generateNodeId("SpaceAndDepthMaterialProvider"),
       Type: "SpaceAndDepth",
       ...layerFields,
-    };
+    }, inspectorComment);
   }
 
   // AmplitudeConstant/LinearTransform with non-zero Offset → Sum(AmplitudeConstant(Scale, Input), Constant(Offset))
@@ -1487,10 +1529,10 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
   if (!asset.Type.includes(":") && FRAMEWORK_TYPES.has(hytaleType)) {
     const output: Record<string, unknown> = { Type: hytaleType };
     for (const [key, value] of Object.entries(asset)) {
-      if (key === "Type") continue;
+      if (key === "Type" || key === "_comment") continue;
       output[key] = value;
     }
-    return output;
+    return applyInspectorComment(output, inspectorComment);
   }
 
   // Generate $NodeId
@@ -1506,7 +1548,7 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
   // Collect fields (excluding Type)
   const fields: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(asset)) {
-    if (key === "Type") continue;
+    if (key === "Type" || key === "_comment") continue;
     fields[key] = value;
   }
 
@@ -1793,7 +1835,7 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     if (key === "Type") continue;
 
     // Strip TerraNova-internal fields that should not appear in Hytale output
-    if (key === "$DisconnectedTrees") continue;
+    if (key === "$DisconnectedTrees" || key === "_comment") continue;
 
     // Curve points: [[x,y]] → [{$NodeId, In, Out}]
     if (key === "Points" && Array.isArray(value)) {
@@ -1878,7 +1920,7 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     output[key] = value;
   }
 
-  return output;
+  return applyInspectorComment(output, inspectorComment);
 }
 
 // ---------------------------------------------------------------------------
@@ -1896,13 +1938,7 @@ export function internalToHytale(
 ): Record<string, unknown> {
   const result = transformNode(asset, { reactFlowNodes });
 
-  // Generate $NodeEditorMetadata at root if React Flow nodes available
-  if (reactFlowNodes && reactFlowNodes.length > 0) {
-    result.$NodeEditorMetadata = mergePreservedNodeEditorMetadata(
-      generateNodeEditorMetadata(reactFlowNodes),
-      preservedMetadata,
-    );
-  }
+  attachHytaleNodeEditorMetadata(result, reactFlowNodes, preservedMetadata);
 
   return result;
 }
@@ -2027,64 +2063,13 @@ export function internalToHytaleBiome(
     output[key] = value;
   }
 
-  // Generate metadata if nodes provided
   if (sectionNodes) {
-    const allNodes = Object.values(sectionNodes).flat();
-    if (allNodes.length > 0) {
-      output.$NodeEditorMetadata = mergePreservedNodeEditorMetadata(
-        generateNodeEditorMetadata(allNodes),
-        preservedMetadata,
-      );
-    }
+    attachHytaleNodeEditorMetadata(
+      output,
+      stackBiomeSectionNodesForExport(sectionNodes),
+      preservedMetadata,
+    );
   }
 
   return output;
-}
-
-// ---------------------------------------------------------------------------
-// $NodeEditorMetadata generation
-// ---------------------------------------------------------------------------
-
-function generateNodeEditorMetadata(nodes: Node[]): Record<string, unknown> {
-  const $Nodes: Record<string, unknown> = {};
-  const $Comments: unknown[] = [];
-  const $Groups: unknown[] = [];
-
-  for (const node of nodes) {
-    if (node.type === "comment") {
-      const d = node.data as { text?: string; width?: number; height?: number };
-      const text = d.text ?? "";
-      $Comments.push({
-        // Hytale release assets use lowercase keys; keep PascalCase for older TerraNova exports.
-        "$text": text,
-        "$Text": text,
-        "$Position": { "$x": node.position.x, "$y": node.position.y },
-        "$width": d.width ?? 200,
-        "$height": d.height ?? 80,
-        "$Width": d.width ?? 200,
-        "$Height": d.height ?? 80,
-      });
-    } else if (node.type === "frame") {
-      const d = node.data as { name?: string; width?: number; height?: number };
-      $Groups.push({
-        "$Position": { "$x": node.position.x, "$y": node.position.y },
-        "$width": d.width ?? 400,
-        "$height": d.height ?? 300,
-        "$name": d.name ?? "",
-      });
-    } else {
-      $Nodes[node.id] = {
-        "$Position": { "$x": node.position.x, "$y": node.position.y },
-      };
-    }
-  }
-
-  return {
-    $Nodes,
-    $FloatingNodes: [],
-    $Links: [],
-    $Groups,
-    $Comments,
-    $WorkspaceID: "",
-  };
 }

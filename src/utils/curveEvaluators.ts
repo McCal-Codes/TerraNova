@@ -20,6 +20,10 @@ export function normalizePoints(raw: unknown[]): NormalizedPoint[] {
       const obj = p as { x: number; y: number };
       return { x: Number(obj.x), y: Number(obj.y) };
     }
+    if (p && typeof p === "object" && "In" in p && "Out" in p) {
+      const obj = p as { In: number; Out: number };
+      return { x: Number(obj.In), y: Number(obj.Out) };
+    }
     return { x: 0, y: 0 };
   });
 }

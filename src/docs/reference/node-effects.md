@@ -42,7 +42,8 @@ Below the surface the result is positive, so terrain is solid. Above the surface
 | Node | What it returns | Common use |
 |---|---|---|
 | `YValue` | Current world Y coordinate | Teaching height formula, altitude masks |
-| `BaseHeight` | Named terrain anchor; with `Distance: true` it becomes signed distance from that height | Ground anchors, altitude bands |
+| `BaseHeight` | Named terrain anchor (`Distance: off` → `baseY − y` density). `Distance: on` → signed height offset for curve shaping | Ground planes, altitude bands with `CurveMapper` |
+| `CurveMapper` | Remaps **Input** through inline or port-connected **Manual** curve → density; exports as Hytale `Inputs[]` + nested `Curve`. Preview **Sum** / **Terrain Out** | Vertical profiles, masks, noise shaping — see [Hytale CurveMapper Conventions](./hytale-curvemapper-conventions.md) |
 | `DistanceToBiomeEdge` | Distance from the nearest biome boundary | Transition masks, edge effects |
 | `Constant` | Fixed numeric value | Height offsets, weights, amplitude scales |
 
@@ -162,6 +163,36 @@ When you open a Hytale biome JSON in TerraNova, inspect the exact node graph use
 | Surface variation | `SimplexNoise2D` |
 | 3D variation for caves or undersides | `SimplexNoise3D` |
 | Cell-shaped regions | `CellNoise2D` or `PositionsCellNoise` |
+| Visualize PCN cell layout | Preview panel → **Shape Preview** + **Cell map** (2D sidebar, top-down XZ) |
+| Full solid terrain / materials | **Voxel** preview on biome output (Root / Max) |
+| In-game ground truth | **Bridge** world preview |
+
+### Recommended preview mode by node type
+
+| Node family | Best mode | Shape layers |
+|-------------|-----------|--------------|
+| `PositionsCellNoise`, `CellNoise2D/3D`, Voronoi | **2D** heatmap + cell map | Cell boundaries, wall distance, mesh if wired |
+| `Mesh2D`, `Mesh3D` | **2D** | Mesh samples (amber dots) |
+| Ellipsoid, Cuboid, Cylinder, Plane, Shell, Cube | **2D** for zero contour; **Voxel** for solid mesh | SDF surface (pink); voxel Y ±32 around origin |
+| `Max`, `Mix`, combiners | **2D** on output; pick a child for one layer | Merged upstream cells when layers on |
+| Biome terrain output | **2D** / **3D** / **Voxel** | Shape layers optional on subgraph targets |
+
+PCN and mesh layouts are horizontal (XZ). **Do not use Voxel** to debug cell walls — overlays use a different scene transform than the voxel mesh grid.
+
+### Shape Preview (DEV gallery)
+
+Reference-backed UAT (Vite dev server, port 1420):
+
+| URL case | Reference | What to verify |
+|----------|-----------|----------------|
+| `?shape-preview-gallery=1&case=underworld-cell` | `templates/references/TheUnderworld.json` | White Voronoi walls on fine `CellNoise2D` (Frequency 0.05) |
+| `?shape-preview-gallery=1&case=underworld-max` | Same | Max heatmap with merged upstream cell walls; sub-target buttons pick a single `CellNoise2D` |
+| `?shape-preview-gallery=1&case=sdf-showcase` | DEV SDF graph (Hytale-style fields) | Pink zero contour for Ellipsoid, Cuboid, Cylinder, Plane, Shell, Cube — use shape picker row |
+| `?shape-preview-gallery=1&case=mudcracks-cube` | `Mudcracks_Actual_WIP_11.json` Cube subtree | Reference Manual curve on Cube SDF |
+| `?shape-preview-gallery=1&case=tropical-pcn` | `templates/references/Tropical_Pirate_Islands.json` | `PositionsCellNoise` cell walls + amber mesh samples (Mesh2D via Occurrence) |
+
+Use the gallery header **2D / 3D / Voxel** buttons. PCN cases default to **2D**; the harness warns if you switch to Voxel. Voxel mode uses `materialConfig` from the reference biome (not a synthetic graph). Legacy `?case=pcn` and `?case=mix` redirect to `underworld-cell` and `underworld-max`.
+
 | Organic boundary distortion | `FastGradientWarp` |
 | Blend terrain branches | `Mix` + `Normalizer` |
 | Reuse expensive graph results | `Cache` + `Exported` / `Imported` |

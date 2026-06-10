@@ -153,6 +153,12 @@ describe("getNodeFields", () => {
     expect(fields[0].default).toBe("Rock_Lime_Cobble");
   });
 
+  it("returns Name field for Material:Imported via legacy defaults", () => {
+    const fields = getNodeFields("Material:Imported");
+    expect(fields.map((f) => f.name)).toEqual(["Name"]);
+    expect(fields[0].type).toBe("string");
+  });
+
   it("does not map Material:Constant to TintProvider Constant", () => {
     const fields = getNodeFields("Material:Constant");
     expect(fields.some((f) => f.name === "Tint")).toBe(false);

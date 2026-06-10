@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+}
+
+group = project.mod_group
+version = project.mod_version
+
+def resolveHytaleVersion(String channel) {
+    def url = "https://maven.hytale.com/${channel}/com/hypixel/hytale/Server/maven-metadata.xml"
+    def text = new URL(url).text
+    def matcher = text =~ /<release>(.+?)<\/release>/
+    if (!matcher.find()) {
+        throw new GradleException("Could not resolve Hytale server version from ${url}")
+    }
+    return matcher.group(1)
+}
+
+def hytaleChannel = project.findProperty('hytale_channel') ?: 'release'
+def hytaleVersion = resolveHytaleVersion(hytaleChannel)
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(project.java_version.toInteger())
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://maven.hytale.com/${hytaleChannel}" }
+}
+
+dependencies {
+    compileOnly "com.hypixel.hytale:Server:${hytaleVersion}"
+    compileOnly 'org.jetbrains:annotations:26.0.1'
+}
+
+processResources {
+    filesMatching('manifest.json') {
+        expand(version: version, serverVersion: hytaleVersion)
+    }
+}
+
+jar {
+    archiveBaseName.set('TerraNova.Bridge')
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

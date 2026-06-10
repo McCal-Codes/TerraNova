@@ -1,0 +1,20 @@
+{
+  "Group": "TerraNova",
+  "Name": "Bridge",
+  "Version": "${version}",
+  "Description": "Executes TerraNova Bridge queued console commands from bridge/pending-commands.log",
+  "Authors": [
+    {
+      "Name": "HyperSystems-Development"
+    }
+  ],
+  "Website": "https://github.com/HyperSystemsDev/TerraNova",
+  "Main": "dev.hypersystems.terranova.bridge.TerraNovaBridgePlugin",
+  "ServerVersion": "*",
+  "Dependencies": {},
+  "OptionalDependencies": {},
+  "LoadBefore": {},
+  "DisabledByDefault": false,
+  "IncludesAssetPack": false,
+  "SubPlugins": []
+}

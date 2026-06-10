@@ -28,6 +28,7 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-feature
 tokio = { version = "1", features = ["rt-multi-thread"] }
 sysinfo = "0.33"
 zip = "2"
+bridge-save = { path = "../tools/bridge-save" }
 
 [profile.release]
 panic = "abort"

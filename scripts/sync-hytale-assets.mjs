@@ -1,18 +1,79 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
 
 const repoRoot = process.cwd();
-const defaultAssetsPath = "C:/Users/wolft/AppData/Roaming/Hytale/install/pre-release/package/game/latest/Assets";
-const assetsRoot = path.resolve(process.argv[2] ?? process.env.HYTALE_ASSETS ?? defaultAssetsPath);
-const hytaleGeneratorSource = path.join(assetsRoot, "Server", "HytaleGenerator");
-const templateRoot = path.join(repoRoot, "templates", "hytale-pre-release");
+
+function defaultReleaseLatestPath() {
+  const appData = process.env.APPDATA;
+  if (appData) {
+    return path.join(appData, "Hytale", "install", "release", "package", "game", "latest");
+  }
+  const home = os.homedir();
+  if (process.platform === "darwin") {
+    return path.join(home, "Library", "Application Support", "Hytale", "install", "release", "package", "game", "latest");
+  }
+  return path.join(home, ".local", "share", "Hytale", "install", "release", "package", "game", "latest");
+}
+
+const defaultReleaseLatest = defaultReleaseLatestPath();
+const userInput = process.argv[2] ?? process.env.HYTALE_ASSETS ?? defaultReleaseLatest;
+const templateRoot = path.join(repoRoot, "templates", "hytale-release");
 const hytaleGeneratorTarget = path.join(templateRoot, "HytaleGenerator");
 const bundlePath = path.join(repoRoot, "src", "data", "terranova-bundle.json");
 const today = new Date().toISOString().slice(0, 10);
 
-if (!existsSync(hytaleGeneratorSource)) {
-  throw new Error(`HytaleGenerator source not found: ${hytaleGeneratorSource}`);
+/**
+ * Resolve a path to an assets root containing Server/HytaleGenerator.
+ * Supports: loose Assets/, latest folder with Server/, Assets.zip, or direct zip path.
+ */
+function resolveAssetsRoot(inputPath) {
+  const resolved = path.resolve(inputPath);
+
+  if (resolved.endsWith(".zip")) {
+    return extractHytaleGeneratorFromZip(resolved);
+  }
+
+  const candidates = [
+    path.join(resolved, "Server", "HytaleGenerator"),
+    path.join(resolved, "Assets", "Server", "HytaleGenerator"),
+  ];
+  for (const generatorPath of candidates) {
+    if (existsSync(generatorPath)) {
+      return path.dirname(path.dirname(generatorPath));
+    }
+  }
+
+  const embeddedZip = path.join(resolved, "Assets.zip");
+  if (existsSync(embeddedZip)) {
+    return extractHytaleGeneratorFromZip(embeddedZip);
+  }
+
+  throw new Error(
+    `HytaleGenerator source not found under ${resolved}. ` +
+      "Point at the release latest folder, Assets/, or Assets.zip.",
+  );
 }
+
+function extractHytaleGeneratorFromZip(zipPath) {
+  const tempRoot = path.join(os.tmpdir(), `terranova-sync-${Date.now()}`);
+  mkdirSync(tempRoot, { recursive: true });
+  const archivePath = zipPath.replace(/\\/g, "/");
+  const destPath = tempRoot.replace(/\\/g, "/");
+  execSync(`tar -xf "${archivePath}" -C "${destPath}" "Server/HytaleGenerator"`, {
+    stdio: "inherit",
+  });
+  const generatorPath = path.join(tempRoot, "Server", "HytaleGenerator");
+  if (!existsSync(generatorPath)) {
+    throw new Error(`Failed to extract Server/HytaleGenerator from ${zipPath}`);
+  }
+  console.log(`Extracted HytaleGenerator from ${zipPath} → ${generatorPath}`);
+  return path.join(tempRoot, "Server");
+}
+
+const assetsRoot = resolveAssetsRoot(userInput);
+const hytaleGeneratorSource = path.join(assetsRoot, "HytaleGenerator");
 
 function assertInside(parent, child) {
   const relative = path.relative(parent, child);
@@ -207,7 +268,7 @@ for (const file of files) {
 let bundleText = readFileSync(bundlePath, "utf8");
 const bundle = JSON.parse(bundleText);
 bundle.buildDate = today;
-bundle.sourceBuild = "Hytale pre-release local Assets/Server/HytaleGenerator";
+bundle.sourceBuild = "Hytale release local Assets/Server/HytaleGenerator";
 
 let addedNodes = 0;
 let updatedNodes = 0;
@@ -278,8 +339,8 @@ for (const [type, nodeDefinition] of updatedNodeEntries) {
 writeFileSync(bundlePath, bundleText.endsWith("\n") ? bundleText : `${bundleText}\n`);
 
 const manifest = {
-  name: "Hytale Pre-Release",
-  description: "Mirrored from the local Hytale pre-release Assets/Server/HytaleGenerator directory.",
+  name: "Hytale Release",
+  description: "Mirrored from the local Hytale release Assets/Server/HytaleGenerator directory.",
   version: "1.0.0",
   serverVersion: today,
   category: "Official",

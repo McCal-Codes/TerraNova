@@ -2,8 +2,80 @@ use std::time::Duration;
 use tokio::sync::Mutex;
 
 use reqwest::Client;
+use reqwest::StatusCode;
 
 use super::types::*;
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BridgeHttpError {
+    pub code: String,
+    pub message: String,
+    pub http_status: Option<u16>,
+    pub endpoint: Option<String>,
+}
+
+impl BridgeHttpError {
+    pub fn to_user_string(&self) -> String {
+        if let Some(status) = self.http_status {
+            format!("{} (HTTP {}): {}", self.code, status, self.message)
+        } else {
+            format!("{}: {}", self.code, self.message)
+        }
+    }
+}
+
+fn map_reqwest_error(endpoint: &str, err: reqwest::Error) -> BridgeHttpError {
+    if err.is_timeout() {
+        BridgeHttpError {
+            code: "timeout".into(),
+            message: err.to_string(),
+            http_status: None,
+            endpoint: Some(endpoint.into()),
+        }
+    } else if err.is_connect() {
+        BridgeHttpError {
+            code: "connection_refused".into(),
+            message: err.to_string(),
+            http_status: None,
+            endpoint: Some(endpoint.into()),
+        }
+    } else {
+        BridgeHttpError {
+            code: "network".into(),
+            message: err.to_string(),
+            http_status: None,
+            endpoint: Some(endpoint.into()),
+        }
+    }
+}
+
+async fn map_http_response(
+    endpoint: &str,
+    response: reqwest::Response,
+) -> Result<reqwest::Response, BridgeHttpError> {
+    if response.status().is_success() {
+        return Ok(response);
+    }
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
+    let code = match status {
+        StatusCode::UNAUTHORIZED => "unauthorized",
+        StatusCode::NOT_FOUND => "not_found",
+        StatusCode::BAD_REQUEST => "bad_request",
+        _ => "http_error",
+    };
+    Err(BridgeHttpError {
+        code: code.into(),
+        message: if body.is_empty() {
+            status.canonical_reason().unwrap_or("error").to_string()
+        } else {
+            body
+        },
+        http_status: Some(status.as_u16()),
+        endpoint: Some(endpoint.into()),
+    })
+}
 
 #[derive(Clone)]
 pub struct BridgeClient {
@@ -54,24 +126,36 @@ impl BridgeClient {
     }
 
     pub async fn status(&self) -> Result<ServerStatus, String> {
-        self.http
-            .get(format!("{}/api/status", self.base_url))
+        let endpoint = "/api/status";
+        let response = self
+            .http
+            .get(format!("{}{}", self.base_url, endpoint))
             .bearer_auth(&self.auth_token)
             .send()
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| map_reqwest_error(endpoint, e).to_user_string())?;
+        let response = map_http_response(endpoint, response)
+            .await
+            .map_err(|e| e.to_user_string())?;
+        response
             .json::<ServerStatus>()
             .await
             .map_err(|e| e.to_string())
     }
 
     pub async fn reload_worldgen(&self) -> Result<BridgeResponse, String> {
-        self.http
-            .post(format!("{}/api/worldgen/reload", self.base_url))
+        let endpoint = "/api/worldgen/reload";
+        let response = self
+            .http
+            .post(format!("{}{}", self.base_url, endpoint))
             .bearer_auth(&self.auth_token)
             .send()
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| map_reqwest_error(endpoint, e).to_user_string())?;
+        let response = map_http_response(endpoint, response)
+            .await
+            .map_err(|e| e.to_user_string())?;
+        response
             .json::<BridgeResponse>()
             .await
             .map_err(|e| e.to_string())
@@ -83,14 +167,20 @@ impl BridgeClient {
         z: i32,
         radius: u32,
     ) -> Result<BridgeResponse, String> {
+        let endpoint = "/api/chunks/regenerate";
         let body = ChunkRegenRequest { x, z, radius };
-        self.http
-            .post(format!("{}/api/chunks/regenerate", self.base_url))
+        let response = self
+            .http
+            .post(format!("{}{}", self.base_url, endpoint))
             .bearer_auth(&self.auth_token)
             .json(&body)
             .send()
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| map_reqwest_error(endpoint, e).to_user_string())?;
+        let response = map_http_response(endpoint, response)
+            .await
+            .map_err(|e| e.to_user_string())?;
+        response
             .json::<BridgeResponse>()
             .await
             .map_err(|e| e.to_string())
@@ -103,31 +193,43 @@ impl BridgeClient {
         y: f64,
         z: f64,
     ) -> Result<BridgeResponse, String> {
+        let endpoint = "/api/player/teleport";
         let body = TeleportRequest {
             player_name: player_name.to_string(),
             x,
             y,
             z,
         };
-        self.http
-            .post(format!("{}/api/player/teleport", self.base_url))
+        let response = self
+            .http
+            .post(format!("{}{}", self.base_url, endpoint))
             .bearer_auth(&self.auth_token)
             .json(&body)
             .send()
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| map_reqwest_error(endpoint, e).to_user_string())?;
+        let response = map_http_response(endpoint, response)
+            .await
+            .map_err(|e| e.to_user_string())?;
+        response
             .json::<BridgeResponse>()
             .await
             .map_err(|e| e.to_string())
     }
 
     pub async fn fetch_palette(&self) -> Result<BlockPaletteResponse, String> {
-        self.http
-            .get(format!("{}/api/blocks/palette", self.base_url))
+        let endpoint = "/api/blocks/palette";
+        let response = self
+            .http
+            .get(format!("{}{}", self.base_url, endpoint))
             .bearer_auth(&self.auth_token)
             .send()
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| map_reqwest_error(endpoint, e).to_user_string())?;
+        let response = map_http_response(endpoint, response)
+            .await
+            .map_err(|e| e.to_user_string())?;
+        response
             .json::<BlockPaletteResponse>()
             .await
             .map_err(|e| e.to_string())
@@ -141,6 +243,7 @@ impl BridgeClient {
         y_max: i32,
         force_load: bool,
     ) -> Result<ChunkDataResponse, String> {
+        let endpoint = "/api/chunks/data";
         let body = ChunkDataRequest {
             chunk_x,
             chunk_z,
@@ -150,23 +253,21 @@ impl BridgeClient {
         };
         let mut req = self
             .http
-            .post(format!("{}/api/chunks/data", self.base_url))
+            .post(format!("{}{}", self.base_url, endpoint))
             .bearer_auth(&self.auth_token)
             .json(&body);
 
-        // Override client-level 8s timeout when force-loading (server may take up to 15s)
         if force_load {
             req = req.timeout(Duration::from_secs(20));
         }
 
-        let response = req.send().await.map_err(|e| e.to_string())?;
-
-        if !response.status().is_success() {
-            let status = response.status().as_u16();
-            let body = response.text().await.unwrap_or_default();
-            return Err(format!("HTTP {}: {}", status, body));
-        }
-
+        let response = req
+            .send()
+            .await
+            .map_err(|e| map_reqwest_error(endpoint, e).to_user_string())?;
+        let response = map_http_response(endpoint, response)
+            .await
+            .map_err(|e| e.to_user_string())?;
         response
             .json::<ChunkDataResponse>()
             .await
@@ -174,12 +275,18 @@ impl BridgeClient {
     }
 
     pub async fn player_info(&self) -> Result<PlayerInfo, String> {
-        self.http
-            .get(format!("{}/api/player/info", self.base_url))
+        let endpoint = "/api/player/info";
+        let response = self
+            .http
+            .get(format!("{}{}", self.base_url, endpoint))
             .bearer_auth(&self.auth_token)
             .send()
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| map_reqwest_error(endpoint, e).to_user_string())?;
+        let response = map_http_response(endpoint, response)
+            .await
+            .map_err(|e| e.to_user_string())?;
+        response
             .json::<PlayerInfo>()
             .await
             .map_err(|e| e.to_string())

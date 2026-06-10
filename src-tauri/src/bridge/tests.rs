@@ -28,6 +28,9 @@ mod tests {
             player_count: 5,
             port: 7854,
             singleplayer: false,
+            save_root: None,
+            bridge_mode: None,
+            capabilities: vec!["save_chunks".into()],
         };
         let json = serde_json::to_string(&original).unwrap();
         let parsed: ServerStatus = serde_json::from_str(&json).unwrap();

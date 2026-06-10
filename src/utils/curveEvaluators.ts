@@ -24,15 +24,40 @@ export function normalizePoints(raw: unknown[]): NormalizedPoint[] {
       const obj = p as { In: number; Out: number };
       return { x: Number(obj.In), y: Number(obj.Out) };
     }
+    if (p && typeof p === "object" && "Y" in p && "Out" in p) {
+      const obj = p as { Y: number; Out: number };
+      return { x: Number(obj.Y), y: Number(obj.Out) };
+    }
     return { x: 0, y: 0 };
   });
 }
 
+export type CurvePointOutputFormat = "tuple" | "inOut" | "xy" | "yOut";
+
+/** Sort by X, round to 4dp, output in the requested Hytale/editor shape. */
+export function toPointsOutputFormat(
+  points: NormalizedPoint[],
+  format: CurvePointOutputFormat = "tuple",
+): unknown[] {
+  const sorted = [...points]
+    .sort((a, b) => a.x - b.x)
+    .map((p) => ({ x: round4(p.x), y: round4(p.y) }));
+
+  switch (format) {
+    case "inOut":
+      return sorted.map((p) => ({ In: p.x, Out: p.y }));
+    case "xy":
+      return sorted.map((p) => ({ x: p.x, y: p.y }));
+    case "yOut":
+      return sorted.map((p) => ({ Y: p.x, Out: p.y }));
+    default:
+      return sorted.map((p) => [p.x, p.y] as [number, number]);
+  }
+}
+
 /** Sort by X, round to 4dp, output as [[x,y]] for store persistence. */
 export function toOutputFormat(points: NormalizedPoint[]): [number, number][] {
-  return [...points]
-    .sort((a, b) => a.x - b.x)
-    .map((p) => [round4(p.x), round4(p.y)]);
+  return toPointsOutputFormat(points, "tuple") as [number, number][];
 }
 
 // ---------------------------------------------------------------------------

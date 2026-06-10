@@ -1,38 +1,48 @@
 import { FieldTooltip } from "./FieldTooltip";
+import { SliderField } from "./SliderField";
 
 interface VectorFieldProps {
   label: string;
-  value: { x: number; y: number; z: number };
+  value: { x: number; y: number; z?: number };
   description?: string;
+  includeZ?: boolean;
+  min?: number;
+  max?: number;
   onChange: (value: { x: number; y: number; z: number }) => void;
   onBlur?: () => void;
 }
 
-export function VectorField({ label, value, description, onChange, onBlur }: VectorFieldProps) {
+export function VectorField({
+  label,
+  value,
+  description,
+  includeZ = true,
+  min = -64,
+  max = 64,
+  onChange,
+  onBlur,
+}: VectorFieldProps) {
+  const axes = includeZ ? (["x", "y", "z"] as const) : (["x", "y"] as const);
+  const z = value.z ?? 0;
+
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <label className="text-[11px] text-tn-text-muted flex items-center gap-1">
         {label}
         {description && <FieldTooltip description={description} />}
       </label>
-      <div className="flex gap-1">
-        {(["x", "y", "z"] as const).map((axis) => (
-          <div key={axis} className="flex-1">
-            <label className={`text-[10px] uppercase font-medium ${
-              axis === "x" ? "text-red-400/70" : axis === "y" ? "text-green-400/70" : "text-blue-400/70"
-            }`}>{axis}</label>
-            <input
-              type="number"
-              value={value[axis]}
-              onChange={(e) =>
-                onChange({ ...value, [axis]: parseFloat(e.target.value) || 0 })
-              }
-              onBlur={onBlur}
-              className="w-full px-1.5 py-1 text-xs bg-tn-bg border border-tn-border rounded focus:outline-none focus:border-tn-accent/60 transition-colors"
-            />
-          </div>
-        ))}
-      </div>
+      {axes.map((axis) => (
+        <SliderField
+          key={axis}
+          label={axis.toUpperCase()}
+          value={axis === "z" ? z : value[axis]}
+          min={min}
+          max={max}
+          allowInputOverflow
+          onChange={(v) => onChange({ x: value.x, y: value.y, z, [axis]: v })}
+          onBlur={onBlur}
+        />
+      ))}
     </div>
   );
 }

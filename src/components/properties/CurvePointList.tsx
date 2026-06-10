@@ -1,10 +1,18 @@
 import { useState, useCallback, useRef } from "react";
-import { normalizePoints, toOutputFormat, round4 } from "@/utils/curveEvaluators";
+import {
+  normalizePoints,
+  toOutputFormat,
+  toPointsOutputFormat,
+  round4,
+  type CurvePointOutputFormat,
+} from "@/utils/curveEvaluators";
 
 interface CurvePointListProps {
   points: unknown[];
-  onChange?: (points: [number, number][]) => void;
+  onChange?: (points: unknown[]) => void;
   onCommit?: () => void;
+  pointFormat?: CurvePointOutputFormat;
+  axisLabels?: { x: string; y: string };
 }
 
 /** Inline slider + number input for a single axis of a curve point. */
@@ -14,12 +22,18 @@ function PointAxisControl({
   axis: _axis,
   onUpdate,
   onCommit,
+  sliderMin = -2,
+  sliderMax = 2,
+  showSlider = true,
 }: {
   value: number;
   pointKey: string;
   axis: "x" | "y";
   onUpdate: (raw: string) => void;
   onCommit?: () => void;
+  sliderMin?: number;
+  sliderMax?: number;
+  showSlider?: boolean;
 }) {
   const [localVal, setLocalVal] = useState<string | null>(null);
   const dragging = useRef(false);
@@ -48,25 +62,33 @@ function PointAxisControl({
         }}
         className="w-full px-1.5 py-0.5 text-xs bg-tn-bg border border-tn-border rounded"
       />
-      <input
-        type="range"
-        min={-2}
-        max={2}
-        step={0.01}
-        value={Math.max(-2, Math.min(2, value))}
-        onChange={(e) => {
-          dragging.current = true;
-          onUpdate(e.target.value);
-        }}
-        onMouseUp={() => { dragging.current = false; onCommit?.(); }}
-        onTouchEnd={() => { dragging.current = false; onCommit?.(); }}
-        className="w-full h-3 accent-tn-accent cursor-pointer"
-      />
+      {showSlider && (
+        <input
+          type="range"
+          min={sliderMin}
+          max={sliderMax}
+          step={0.01}
+          value={Math.max(sliderMin, Math.min(sliderMax, value))}
+          onChange={(e) => {
+            dragging.current = true;
+            onUpdate(e.target.value);
+          }}
+          onMouseUp={() => { dragging.current = false; onCommit?.(); }}
+          onTouchEnd={() => { dragging.current = false; onCommit?.(); }}
+          className="w-full h-3 accent-tn-accent cursor-pointer"
+        />
+      )}
     </div>
   );
 }
 
-export function CurvePointList({ points, onChange, onCommit }: CurvePointListProps) {
+export function CurvePointList({
+  points,
+  onChange,
+  onCommit,
+  pointFormat = "tuple",
+  axisLabels = { x: "In", y: "Out" },
+}: CurvePointListProps) {
   const [expanded, setExpanded] = useState(true);
 
   // Normalize from any format ({x,y} or [x,y]) to sorted {x,y,origIdx}
@@ -74,6 +96,39 @@ export function CurvePointList({ points, onChange, onCommit }: CurvePointListPro
   const sorted = normalized
     .map((p, i) => ({ x: p.x, y: p.y, origIdx: i }))
     .sort((a, b) => a.x - b.x);
+
+  const ySliderRange = (() => {
+    if (pointFormat !== "yOut" || sorted.length === 0) {
+      return { min: -2, max: 2 };
+    }
+    const ys = sorted.map((p) => p.x);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const pad = Math.max(4, (maxY - minY) * 0.15);
+    return { min: Math.floor(minY - pad), max: Math.ceil(maxY + pad) };
+  })();
+
+  const outSliderRange = (() => {
+    if (pointFormat !== "yOut" || sorted.length === 0) {
+      return { min: -2, max: 2 };
+    }
+    const outs = sorted.map((p) => p.y);
+    const minOut = Math.min(...outs, -1);
+    const maxOut = Math.max(...outs, 1);
+    const pad = Math.max(0.1, (maxOut - minOut) * 0.15);
+    return { min: round4(minOut - pad), max: round4(maxOut + pad) };
+  })();
+
+  const emitPoints = useCallback(
+    (updated: ReturnType<typeof normalizePoints>) => {
+      if (pointFormat === "tuple") {
+        onChange?.(toOutputFormat(updated));
+        return;
+      }
+      onChange?.(toPointsOutputFormat(updated, pointFormat));
+    },
+    [onChange, pointFormat],
+  );
 
   const updatePoint = useCallback(
     (origIdx: number, axis: "x" | "y", raw: string) => {
@@ -85,9 +140,9 @@ export function CurvePointList({ points, onChange, onCommit }: CurvePointListPro
           ? { x: axis === "x" ? round4(val) : p.x, y: axis === "y" ? round4(val) : p.y }
           : p,
       );
-      onChange?.(toOutputFormat(updated));
+      emitPoints(updated);
     },
-    [points, onChange],
+    [points, emitPoints],
   );
 
   const removePoint = useCallback(
@@ -95,10 +150,10 @@ export function CurvePointList({ points, onChange, onCommit }: CurvePointListPro
       if (points.length <= 2) return;
       const current = normalizePoints(points);
       const updated = current.filter((_, i) => i !== origIdx);
-      onChange?.(toOutputFormat(updated));
+      emitPoints(updated);
       onCommit?.();
     },
-    [points, onChange, onCommit],
+    [points, emitPoints, onCommit],
   );
 
   const addPoint = useCallback(() => {
@@ -112,9 +167,9 @@ export function CurvePointList({ points, onChange, onCommit }: CurvePointListPro
     }
     const current = normalizePoints(points);
     const updated = [...current, { x: newX, y: newY }];
-    onChange?.(toOutputFormat(updated));
+    emitPoints(updated);
     onCommit?.();
-  }, [points, sorted, onChange, onCommit]);
+  }, [points, sorted, emitPoints, onCommit]);
 
   return (
     <div className="flex flex-col gap-1">
@@ -131,8 +186,8 @@ export function CurvePointList({ points, onChange, onCommit }: CurvePointListPro
           {/* Header */}
           <div className="grid grid-cols-[20px_1fr_1fr_20px] gap-1 text-[10px] text-tn-text-muted px-0.5">
             <span>#</span>
-            <span>In</span>
-            <span>Out</span>
+            <span>{axisLabels.x}</span>
+            <span>{axisLabels.y}</span>
             <span />
           </div>
 
@@ -146,6 +201,8 @@ export function CurvePointList({ points, onChange, onCommit }: CurvePointListPro
                 value={pt.x}
                 pointKey={`${pt.origIdx}-x`}
                 axis="x"
+                sliderMin={ySliderRange.min}
+                sliderMax={ySliderRange.max}
                 onUpdate={(raw) => updatePoint(pt.origIdx, "x", raw)}
                 onCommit={onCommit}
               />
@@ -153,6 +210,8 @@ export function CurvePointList({ points, onChange, onCommit }: CurvePointListPro
                 value={pt.y}
                 pointKey={`${pt.origIdx}-y`}
                 axis="y"
+                sliderMin={outSliderRange.min}
+                sliderMax={outSliderRange.max}
                 onUpdate={(raw) => updatePoint(pt.origIdx, "y", raw)}
                 onCommit={onCommit}
               />

@@ -1,6 +1,19 @@
 import type { Node, Edge } from "@xyflow/react";
+import { isGraphNode } from "@/utils/annotationUtils";
 import { createVolumeWorkerInstance } from "./volumeWorkerClient";
+import { enrichPreviewContentFields } from "./densityEvaluator";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
+import { resolveTerrainReferenceLevels, computeTerrainAutoFitYBounds } from "@/utils/terrainPreviewLevel";
+import type { TerrainAutoFitYBounds } from "@/utils/terrainPreviewLevel";
+import type { BiomeMaterialConfig } from "@/utils/materialResolver";
+import {
+  analyzeGraphPreviewFeatures,
+  graphHasCaveCarving,
+  graphHasUndergroundCarving,
+  suggestPreviewYLevel,
+} from "@/utils/graphPreviewFeatures";
+
+export { graphHasCaveCarving, graphHasUndergroundCarving };
 
 // ---------------------------------------------------------------------------
 // Feature 1: Auto-fit Y Bounds — scan density grid after coarse pass
@@ -108,6 +121,36 @@ export function scanDensityGridYBounds(
   return { worldYMin, worldYMax, hasSolids: true };
 }
 
+/**
+ * Merge coarse density-grid scan with graph-derived terrain bounds.
+ * Prevents low-res scans from clipping peaks/valleys the static probe already found.
+ */
+export function mergeScanWithTerrainAutoFit(
+  scanned: YBoundsResult,
+  terrain: TerrainAutoFitYBounds | null,
+): YBoundsResult {
+  if (!scanned.hasSolids || !terrain) return scanned;
+
+  const scanSpan = scanned.worldYMax - scanned.worldYMin;
+  const terrainSpan = terrain.worldYMax - terrain.worldYMin;
+
+  // Coarse scan often includes a thick underground column — prefer the tighter terrain band
+  // when the scan window is much wider than the probed surface span.
+  if (scanSpan > terrainSpan * 1.8) {
+    return {
+      worldYMin: terrain.worldYMin,
+      worldYMax: terrain.worldYMax,
+      hasSolids: true,
+    };
+  }
+
+  return {
+    worldYMin: Math.min(scanned.worldYMin, terrain.worldYMin),
+    worldYMax: Math.max(scanned.worldYMax, terrain.worldYMax),
+    hasSolids: true,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Graph hash — detect when graph output could change
 // ---------------------------------------------------------------------------
@@ -119,8 +162,14 @@ export function scanDensityGridYBounds(
 export function computeGraphHash(nodes: Node[], edges: Edge[]): string {
   const parts: string[] = [];
 
+  const graphNodes = nodes.filter(isGraphNode);
+  const graphIds = new Set(graphNodes.map((node) => node.id));
+  const graphEdges = edges.filter(
+    (edge) => graphIds.has(edge.source) && graphIds.has(edge.target),
+  );
+
   // Sort nodes by ID for determinism
-  const sorted = [...nodes].sort((a, b) => a.id.localeCompare(b.id));
+  const sorted = [...graphNodes].sort((a, b) => a.id.localeCompare(b.id));
   for (const node of sorted) {
     parts.push(node.id);
     parts.push(String(node.type ?? ""));
@@ -136,7 +185,7 @@ export function computeGraphHash(nodes: Node[], edges: Edge[]): string {
   }
 
   // Include edge topology
-  const sortedEdges = [...edges].sort((a, b) => a.id.localeCompare(b.id));
+  const sortedEdges = [...graphEdges].sort((a, b) => a.id.localeCompare(b.id));
   for (const e of sortedEdges) {
     parts.push(`${e.source}->${e.target}:${e.sourceHandle ?? ""}:${e.targetHandle ?? ""}`);
   }
@@ -151,6 +200,26 @@ export function computeGraphHash(nodes: Node[], edges: Edge[]): string {
   return hash.toString(36);
 }
 
+export interface EvaluationFingerprintInput {
+  nodes: Node[];
+  edges: Edge[];
+  contentFields?: Record<string, unknown>;
+  rootNodeId?: string | null;
+  materialConfig?: unknown;
+}
+
+/**
+ * Fingerprint for preview/voxel evaluation — changes only when output could change.
+ * Canvas layout (node x/y, frame size, comments) is intentionally excluded.
+ */
+export function computeEvaluationFingerprint(input: EvaluationFingerprintInput): string {
+  const base = computeGraphHash(input.nodes, input.edges);
+  const root = input.rootNodeId ?? "";
+  const content = input.contentFields ? JSON.stringify(input.contentFields) : "";
+  const material = input.materialConfig ? JSON.stringify(input.materialConfig) : "";
+  return `${base}|r:${root}|c:${content}|m:${material}`;
+}
+
 // ---------------------------------------------------------------------------
 // Feature 2: Fit to Content — scan full 3D bounds
 // ---------------------------------------------------------------------------
@@ -163,6 +232,31 @@ export interface Bounds3DResult {
   worldZMin: number;
   worldZMax: number;
   hasSolids: boolean;
+}
+
+export interface FitToContentApply {
+  rangeMin: number;
+  rangeMax: number;
+  voxelYMin: number;
+  voxelYMax: number;
+}
+
+/** Convert a 3D bounds scan into preview range/Y updates (symmetric XZ). */
+export function fitToContentBoundsFromResult(bounds: Bounds3DResult): FitToContentApply | null {
+  if (!bounds.hasSolids) return null;
+  const xzExtent = Math.max(
+    Math.abs(bounds.worldXMin),
+    Math.abs(bounds.worldXMax),
+    Math.abs(bounds.worldZMin),
+    Math.abs(bounds.worldZMax),
+  );
+  const half = Math.min(256, Math.max(8, Math.ceil(xzExtent)));
+  return {
+    rangeMin: -half,
+    rangeMax: half,
+    voxelYMin: bounds.worldYMin,
+    voxelYMax: bounds.worldYMax,
+  };
 }
 
 /**
@@ -277,7 +371,9 @@ export async function runFitToContent(
       yMax: DEFAULT_WORLD_HEIGHT,
       ySlices: 64,
       rootNodeId: selectedNodeId ?? outputNodeId,
-      options: { contentFields },
+      options: {
+        contentFields: enrichPreviewContentFields(contentFields, -128, 128),
+      },
     });
 
     return scanDensityGrid3DBounds(
@@ -300,10 +396,14 @@ export type ConfidenceLevel = "high" | "medium" | "low";
 export interface GraphDefaultsResult {
   suggestedYMin: number;
   suggestedYMax: number;
+  suggestedYLevel?: number;
   suggestedRangeMin: number;
   suggestedRangeMax: number;
   confidence: ConfidenceLevel;
   reason: string;
+  caveCarvingDetected?: boolean;
+  hydrographyDetected?: boolean;
+  featureTags?: string[];
 }
 
 /**
@@ -312,25 +412,68 @@ export interface GraphDefaultsResult {
  */
 export function analyzeGraphDefaults(
   nodes: Node[],
-  _edges: Edge[],
+  edges: Edge[],
   contentFields: Record<string, number>,
+  options?: { useBaseY?: boolean; materialConfig?: BiomeMaterialConfig | null },
 ): GraphDefaultsResult {
-  // Priority 1: BaseHeight nodes
-  for (const node of nodes) {
-    const type = (node.data as Record<string, unknown>)?.type as string | undefined;
-    if (type === "BaseHeight") {
-      const fields = (node.data as Record<string, unknown>)?.fields as Record<string, unknown> | undefined;
-      const name = (fields?.BaseHeightName as string) ?? "Base";
-      const baseY = contentFields[name] ?? 100;
-      return {
-        suggestedYMin: Math.max(0, Math.floor(baseY - 50)),
-        suggestedYMax: Math.min(DEFAULT_WORLD_HEIGHT, Math.ceil(baseY + 50)),
-        suggestedRangeMin: -64,
-        suggestedRangeMax: 64,
-        confidence: "high",
-        reason: `BaseHeight "${name}" = ${baseY}`,
-      };
-    }
+  const features = analyzeGraphPreviewFeatures(
+    nodes,
+    edges,
+    contentFields,
+    options?.materialConfig,
+  );
+  const caveCarving = features.undergroundCarving;
+  const belowPad = features.belowPad;
+  const useBaseY = options?.useBaseY ?? false;
+  const featureSuffix = features.tags.length > 0 ? `; ${features.tags.join(", ")}` : "";
+
+  // Priority 1: BaseHeight terrain — probe surface crossings for tight Y band
+  const terrainAutoFit = computeTerrainAutoFitYBounds(nodes, edges, contentFields, {
+    caveCarving,
+    undergroundCarving: caveCarving,
+    belowPad,
+    useBaseY,
+  });
+  if (terrainAutoFit) {
+    const yLevel = suggestPreviewYLevel(features, terrainAutoFit.yLevel, terrainAutoFit.yLevel);
+    return {
+      suggestedYMin: terrainAutoFit.worldYMin,
+      suggestedYMax: terrainAutoFit.worldYMax,
+      suggestedYLevel: yLevel,
+      suggestedRangeMin: -64,
+      suggestedRangeMax: 64,
+      confidence: "high",
+      reason: `${terrainAutoFit.reason}${featureSuffix}`,
+      caveCarvingDetected: caveCarving,
+      hydrographyDetected: features.hydrography,
+      featureTags: features.tags,
+    };
+  }
+
+  // Fallback when graph has ContentFields base but no BaseHeight node
+  const terrainRef = resolveTerrainReferenceLevels(nodes, edges, contentFields, {
+    belowPad,
+    caveCarving,
+    useBaseY,
+  });
+  if (terrainRef) {
+    const yLevel = suggestPreviewYLevel(
+      features,
+      terrainRef.suggestedYLevel,
+      terrainRef.suggestedYLevel,
+    );
+    return {
+      suggestedYMin: terrainRef.suggestedYMin,
+      suggestedYMax: terrainRef.suggestedYMax,
+      suggestedYLevel: yLevel,
+      suggestedRangeMin: -64,
+      suggestedRangeMax: 64,
+      confidence: "high",
+      reason: `${terrainRef.reason}${featureSuffix}`,
+      caveCarvingDetected: caveCarving,
+      hydrographyDetected: features.hydrography,
+      featureTags: features.tags,
+    };
   }
 
   // Priority 2: SDF shapes — read scale fields, center around origin
@@ -390,6 +533,22 @@ export function analyzeGraphDefaults(
       const scale = Number(fields?.Scale ?? 1);
       const freq = scale !== 0 ? 1 / scale : Number(fields?.Frequency ?? 0.01);
       if (freq > 0) {
+        if (caveCarving) {
+          const baseY = contentFields["Base"] ?? 100;
+          const yLevel = suggestPreviewYLevel(features, baseY);
+          return {
+            suggestedYMin: Math.max(0, Math.floor(baseY - belowPad)),
+            suggestedYMax: Math.min(DEFAULT_WORLD_HEIGHT, Math.ceil(baseY + 50)),
+            suggestedYLevel: yLevel,
+            suggestedRangeMin: -64,
+            suggestedRangeMax: 64,
+            confidence: "medium",
+            reason: `Noise + underground carving; Base height = ${baseY}${featureSuffix}`,
+            caveCarvingDetected: true,
+            hydrographyDetected: features.hydrography,
+            featureTags: features.tags,
+          };
+        }
         const range = Math.min(DEFAULT_WORLD_HEIGHT, Math.ceil(2 / freq));
         return {
           suggestedYMin: 0,
@@ -398,6 +557,7 @@ export function analyzeGraphDefaults(
           suggestedRangeMax: Math.min(DEFAULT_WORLD_HEIGHT, range),
           confidence: "medium",
           reason: `Noise scale ${scale} → range ~${range}`,
+          caveCarvingDetected: false,
         };
       }
     }
@@ -405,12 +565,19 @@ export function analyzeGraphDefaults(
 
   // Priority 5: Fallback — use contentFields["Base"] as center
   const baseY = contentFields["Base"] ?? 100;
+  const yLevel = suggestPreviewYLevel(features, baseY);
   return {
-    suggestedYMin: Math.max(0, Math.floor(baseY - 50)),
+    suggestedYMin: Math.max(0, Math.floor(baseY - belowPad)),
     suggestedYMax: Math.min(DEFAULT_WORLD_HEIGHT, Math.ceil(baseY + 50)),
+    suggestedYLevel: yLevel,
     suggestedRangeMin: -64,
     suggestedRangeMax: 64,
     confidence: "low",
-    reason: `Fallback: Base height = ${baseY}`,
+    reason: caveCarving
+      ? `Fallback: Base height = ${baseY}; underground carving${featureSuffix}`
+      : `Fallback: Base height = ${baseY}${featureSuffix}`,
+    caveCarvingDetected: caveCarving,
+    hydrographyDetected: features.hydrography,
+    featureTags: features.tags,
   };
 }

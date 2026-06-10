@@ -1,303 +1,484 @@
-import { useEffect, useRef } from "react";
+import type { Node, Edge } from "@xyflow/react";
+import { useEffect, useMemo, useRef } from "react";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useEditorStore } from "@/stores/editorStore";
-import { evaluateVolumeInWorker, cancelVolumeEvaluation } from "@/utils/volumeWorkerClient";
-import { extractSurfaceVoxels, type FluidConfig } from "@/utils/voxelExtractor";
-import { resolveMaterials, DEFAULT_MATERIAL_PALETTE, matchMaterialName } from "@/utils/materialResolver";
-import { evaluateMaterialGraph } from "@/utils/materialEvaluator";
-import { createEvaluationContext } from "@/utils/densityEvaluator";
-import { buildVoxelMeshes } from "@/utils/voxelMeshBuilder";
+import { useEvaluationFingerprint } from "@/hooks/useEvaluationFingerprint";
+import {
+  evaluateVolumeInWorker,
+  evaluateVolumeProgressive,
+  cancelVolumeEvaluation,
+} from "@/utils/volumeWorkerClient";
+import { enrichPreviewContentFields } from "@/utils/densityEvaluator";
+import { buildDensityEvalOptions } from "@/utils/buildDensityEvalOptions";
+import { useProjectStore } from "@/stores/projectStore";
 import { useConfigStore } from "@/stores/configStore";
-import { scanDensityGridYBounds, computeGraphHash, analyzeGraphDefaults } from "@/utils/previewAutoFit";
+import {
+  computeGraphHash,
+  analyzeGraphDefaults,
+} from "@/utils/previewAutoFit";
+import { analyzeGraphPreviewFeatures } from "@/utils/graphPreviewFeatures";
+import { computeTerrainAutoFitYBounds } from "@/utils/terrainPreviewLevel";
+import { computeVolumeSessionKey, computeVoxelEvalKey } from "@/utils/volumeSessionKey";
+import { buildProgressiveVolumeSteps } from "@/utils/volumeEvaluationCore";
+import { finishVoxelFromVolume } from "@/utils/finishVoxelFromVolume";
+import { useToastStore } from "@/stores/toastStore";
+import { useDevMetricsStore } from "@/stores/devMetricsStore";
 
-/** Progressive resolution steps */
-const PROGRESSIVE_STEPS = [16, 32, 64, 96, 128];
+import { deferMainThreadWork } from "@/utils/deferMainThreadWork";
+
+function isVoxelViewMode(mode: string, show3DVolumeView: boolean): boolean {
+  return mode === "voxel" || (mode === "3d" && show3DVolumeView);
+}
+
+/** Sync terrain Y from height profile — no density scan, no eval restart. */
+function applyTerrainYBeforeEval(live: ReturnType<typeof readVoxelEvalParams>): boolean {
+  const store = usePreviewStore.getState();
+  if (!store.autoFitYEnabled || store._userManualYAdjust) return false;
+
+  const autoFitKey = terrainAutoFitGraphKey(live.nodes, live.edges, live.terrainRefUseBaseY);
+  if (autoFitKey === store._autoFitGraphHash) return false;
+
+  store._setAutoFitGraphHash(autoFitKey);
+
+  const features = analyzeGraphPreviewFeatures(
+    live.nodes,
+    live.edges,
+    live.contentFields,
+    live.materialConfig,
+  );
+
+  const terrainAutoFit = computeTerrainAutoFitYBounds(
+    live.nodes,
+    live.edges,
+    live.contentFields,
+    {
+      rangeMin: live.rangeMin,
+      rangeMax: live.rangeMax,
+      rootNodeId: live.selectedPreviewNodeId ?? live.outputNodeId ?? undefined,
+      useBaseY: live.terrainRefUseBaseY,
+      undergroundCarving: features.undergroundCarving,
+      belowPad: features.belowPad,
+    },
+  );
+  if (!terrainAutoFit) return false;
+
+  const yChanged = terrainAutoFit.worldYMin !== live.voxelYMin
+    || terrainAutoFit.worldYMax !== live.voxelYMax
+    || terrainAutoFit.yLevel !== live.yLevel;
+  if (!yChanged) return false;
+
+  store.setVoxelYMin(terrainAutoFit.worldYMin);
+  store.setVoxelYMax(terrainAutoFit.worldYMax);
+  store.setYLevel(terrainAutoFit.yLevel);
+  return true;
+}
+
+function readVoxelEvalParams(mode: string, show3DVolumeView: boolean) {
+  const preview = usePreviewStore.getState();
+  const editor = useEditorStore.getState();
+  return {
+    nodes: editor.nodes,
+    edges: editor.edges,
+    contentFields: editor.contentFields,
+    outputNodeId: editor.outputNodeId,
+    materialConfig: editor.materialConfig,
+    rangeMin: preview.rangeMin,
+    rangeMax: preview.rangeMax,
+    yLevel: preview.yLevel,
+    voxelYMin: preview.voxelYMin,
+    voxelYMax: preview.voxelYMax,
+    voxelYSlices: preview.voxelYSlices,
+    voxelResolution: preview.voxelResolution,
+    selectedPreviewNodeId: preview.selectedPreviewNodeId,
+    targetRes: mode === "3d" && show3DVolumeView ? Math.min(preview.voxelResolution, 64) : preview.voxelResolution,
+    show3DVolumeView,
+    terrainRefUseBaseY: preview.terrainRefUseBaseY,
+  };
+}
+
+async function buildVolumeEvalOptions(
+  nodes: Node[],
+  edges: Edge[],
+  contentFields: Record<string, number>,
+  rangeMin: number,
+  rangeMax: number,
+  yLevel: number,
+  projectPath: string | null,
+) {
+  const base = await buildDensityEvalOptions({
+    nodes,
+    edges,
+    contentFields,
+    projectPath,
+  });
+  return {
+    ...base,
+    contentFields: enrichPreviewContentFields(
+      base.contentFields ?? contentFields,
+      rangeMin,
+      rangeMax,
+      yLevel,
+    ),
+  };
+}
+
+function terrainAutoFitGraphKey(nodes: Node[], edges: Edge[], useBaseY: boolean): string {
+  return `${computeGraphHash(nodes, edges)}|${useBaseY ? "baseY" : "profileZero"}`;
+}
 
 /**
- * Voxel evaluation hook — watches voxel mode params, runs volume
- * evaluation in worker, then extracts surface voxels + materials.
- *
- * Pipeline: volume worker produces raw densities → extractSurfaceVoxels
- * applies SOLID_THRESHOLD (density >= 0 = solid) to find the surface.
- * No smoothTerrainFill — raw densities match Hytale's actual generation
- * where the zero-crossing defines the terrain surface.
+ * Voxel evaluation hook — warms voxel mesh in the background while in 2D/3D,
+ * and reuses cached mesh instantly when switching to voxel view.
  */
 export function useVoxelEvaluation() {
-  const nodes = useEditorStore((s) => s.nodes);
-  const edges = useEditorStore((s) => s.edges);
-  const contentFields = useEditorStore((s) => s.contentFields);
-  const outputNodeId = useEditorStore((s) => s.outputNodeId);
-  const materialConfig = useEditorStore((s) => s.materialConfig);
+  const evalFingerprint = useEvaluationFingerprint();
   const mode = usePreviewStore((s) => s.mode);
+  const show3DVolumeView = usePreviewStore((s) => s.show3DVolumeView);
   const rangeMin = usePreviewStore((s) => s.rangeMin);
   const rangeMax = usePreviewStore((s) => s.rangeMax);
+  const yLevel = usePreviewStore((s) => s.yLevel);
   const voxelYMin = usePreviewStore((s) => s.voxelYMin);
   const voxelYMax = usePreviewStore((s) => s.voxelYMax);
   const voxelYSlices = usePreviewStore((s) => s.voxelYSlices);
   const voxelResolution = usePreviewStore((s) => s.voxelResolution);
-  const selectedPreviewNodeId = usePreviewStore((s) => s.selectedPreviewNodeId);
   const viewMode = usePreviewStore((s) => s.viewMode);
   const autoRefresh = usePreviewStore((s) => s.autoRefresh);
   const showMaterialColors = usePreviewStore((s) => s.showMaterialColors);
   const autoFitYEnabled = usePreviewStore((s) => s.autoFitYEnabled);
+  const terrainRefUseBaseY = usePreviewStore((s) => s.terrainRefUseBaseY);
   const setVoxelDensities = usePreviewStore((s) => s.setVoxelDensities);
   const setVoxelLoading = usePreviewStore((s) => s.setVoxelLoading);
+  const setVoxelEvalProgressRes = usePreviewStore((s) => s.setVoxelEvalProgressRes);
   const setVoxelError = usePreviewStore((s) => s.setVoxelError);
-  const setVoxelMaterials = usePreviewStore((s) => s.setVoxelMaterials);
   const debounceMs = useConfigStore((s) => s.debounceMs);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const evalIdRef = useRef(0);
-  const progressiveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountedRef = useRef(false);
+  const graphDefaultsHashRef = useRef("");
+  const latestVoxelEvalKeyRef = useRef("");
 
-  // ── Feature 3: Graph-aware defaults ──
-  // Pre-set Y bounds from static analysis before evaluation starts
+  const targetRes = mode === "3d" && show3DVolumeView
+    ? Math.min(voxelResolution, 64)
+    : voxelResolution;
+
+  const voxelEvalKey = useMemo(
+    () => computeVoxelEvalKey({
+      evalFingerprint,
+      rangeMin,
+      rangeMax,
+      yLevel,
+      voxelYMin,
+      voxelYMax,
+      voxelYSlices,
+      targetRes,
+      showMaterialColors,
+    }),
+    [
+      evalFingerprint, rangeMin, rangeMax, yLevel,
+      voxelYMin, voxelYMax, voxelYSlices, targetRes, showMaterialColors,
+    ],
+  );
+
+  latestVoxelEvalKeyRef.current = voxelEvalKey;
+
   useEffect(() => {
-    if (mode !== "voxel" || !autoFitYEnabled) return;
+    const voxelLike = isVoxelViewMode(mode, show3DVolumeView);
+    if (!voxelLike || !autoFitYEnabled) return;
 
-    const currentHash = computeGraphHash(nodes, edges);
+    const { nodes, edges, contentFields, materialConfig } = useEditorStore.getState();
     const store = usePreviewStore.getState();
-    if (currentHash === store._autoFitGraphHash) return;
-
-    const defaults = analyzeGraphDefaults(nodes, edges, contentFields);
-    if (defaults.confidence === "high") {
-      store.setVoxelYMin(defaults.suggestedYMin);
-      store.setVoxelYMax(defaults.suggestedYMax);
-      store.setRange(defaults.suggestedRangeMin, defaults.suggestedRangeMax);
+    const defaultsKey = terrainAutoFitGraphKey(nodes, edges, store.terrainRefUseBaseY);
+    if (defaultsKey === graphDefaultsHashRef.current) return;
+    if (store._userManualYAdjust) {
+      graphDefaultsHashRef.current = defaultsKey;
+      return;
     }
-  }, [nodes, edges, contentFields, mode, autoFitYEnabled]);
 
-  // ── Main voxel evaluation pipeline ──
+    const defaults = analyzeGraphDefaults(nodes, edges, contentFields, {
+      useBaseY: store.terrainRefUseBaseY,
+      materialConfig,
+    });
+    const applyDefaults = defaults.confidence === "high" || defaults.caveCarvingDetected === true;
+    if (applyDefaults) {
+      const yChanged = defaults.suggestedYMin !== store.voxelYMin
+        || defaults.suggestedYMax !== store.voxelYMax;
+      const rangeChanged = defaults.suggestedRangeMin !== store.rangeMin
+        || defaults.suggestedRangeMax !== store.rangeMax;
+      const yLevelChanged = defaults.suggestedYLevel != null
+        && defaults.suggestedYLevel !== store.yLevel;
+      if (yChanged) {
+        store.setVoxelYMin(defaults.suggestedYMin);
+        store.setVoxelYMax(defaults.suggestedYMax);
+      }
+      if (defaults.suggestedYLevel != null && (yChanged || yLevelChanged)) {
+        store.setYLevel(defaults.suggestedYLevel);
+      }
+      if (rangeChanged) {
+        store.setRange(defaults.suggestedRangeMin, defaults.suggestedRangeMax);
+      }
+      if (defaults.featureTags && defaults.featureTags.length > 0 && (yChanged || yLevelChanged)) {
+        const label = defaults.featureTags.join(", ");
+        useToastStore.getState().addToast(
+          `Preview auto-fit: ${label} — Y range adjusted`,
+          "info",
+        );
+      }
+      store._setAutoFitGraphHash(defaultsKey);
+    }
+    graphDefaultsHashRef.current = defaultsKey;
+  }, [evalFingerprint, mode, show3DVolumeView, autoFitYEnabled, terrainRefUseBaseY]);
+
   useEffect(() => {
-    // Only run in voxel mode when preview is visible
-    if (mode !== "voxel" || viewMode === "graph" || !autoRefresh) return;
+    const voxelLike = isVoxelViewMode(mode, show3DVolumeView);
+    if (!voxelLike || !autoFitYEnabled) return;
+    applyTerrainYBeforeEval(readVoxelEvalParams(mode, show3DVolumeView));
+  }, [evalFingerprint, mode, show3DVolumeView, autoFitYEnabled, terrainRefUseBaseY]);
 
+  // Instant tab switch: drop loading overlay when cached mesh matches current key.
+  useEffect(() => {
+    if (!isVoxelViewMode(mode, show3DVolumeView)) return;
+    const store = usePreviewStore.getState();
+    if (store.voxelEvalKey === voxelEvalKey && store.voxelMeshData) {
+      setVoxelLoading(false);
+      setVoxelEvalProgressRes(null);
+    }
+  }, [mode, show3DVolumeView, voxelEvalKey, setVoxelLoading, setVoxelEvalProgressRes]);
+
+  useEffect(() => {
     unmountedRef.current = false;
+    const keyForThisRun = voxelEvalKey;
+
+    if (viewMode === "graph" || !autoRefresh) {
+      setVoxelLoading(false);
+      setVoxelEvalProgressRes(null);
+      return;
+    }
+
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (progressiveRef.current) clearTimeout(progressiveRef.current);
+
+    const store = usePreviewStore.getState();
+    const cacheFresh = store.voxelEvalKey === voxelEvalKey && !!store.voxelMeshData;
+    if (cacheFresh) {
+      setVoxelLoading(false);
+      setVoxelEvalProgressRes(null);
+      return;
+    }
+
+    const editorNow = useEditorStore.getState();
+    if (editorNow.nodes.length === 0) {
+      setVoxelDensities(null);
+      setVoxelError(null);
+      setVoxelLoading(false);
+      setVoxelEvalProgressRes(null);
+      usePreviewStore.setState({ voxelDisplayedRes: null, voxelEvalKey: null, voxelMeshData: null });
+      return;
+    }
+
+    const isVoxelView = isVoxelViewMode(store.mode, store.show3DVolumeView);
+    const hasStaleMesh = !!store.voxelMeshData;
+    const delay = isVoxelView && !hasStaleMesh ? 0 : debounceMs;
+
+    if (isVoxelView && !hasStaleMesh) {
+      setVoxelLoading(true);
+      setVoxelError(null);
+    }
 
     timerRef.current = setTimeout(() => {
-      if (nodes.length === 0) {
-        setVoxelDensities(null);
-        setVoxelError(null);
-        return;
-      }
+      void (async () => {
+        cancelVolumeEvaluation();
+        const live = readVoxelEvalParams(
+          usePreviewStore.getState().mode,
+          usePreviewStore.getState().show3DVolumeView,
+        );
+        if (live.nodes.length === 0) return;
 
-      const evalId = ++evalIdRef.current;
+        const evalId = ++evalIdRef.current;
+        const currentKey = computeVoxelEvalKey({
+          evalFingerprint,
+          rangeMin: live.rangeMin,
+          rangeMax: live.rangeMax,
+          yLevel: live.yLevel,
+          voxelYMin: live.voxelYMin,
+          voxelYMax: live.voxelYMax,
+          voxelYSlices: live.voxelYSlices,
+          targetRes: live.targetRes,
+          showMaterialColors,
+        });
 
-      // Progressive evaluation: start at lowest res, cascade up
-      const targetRes = voxelResolution;
-      const progressive = useConfigStore.getState().enableProgressiveVoxel;
-      const steps = progressive
-        ? PROGRESSIVE_STEPS.filter((s) => s <= targetRes)
-        : [];
-      if (!steps.includes(targetRes)) steps.push(targetRes);
+        const progressive = useConfigStore.getState().enableProgressiveVoxel;
+        const steps = buildProgressiveVolumeSteps(live.targetRes, live.voxelYSlices, progressive);
+        const finalRes = steps[steps.length - 1]?.resolution ?? live.targetRes;
 
-      let stepIdx = 0;
+        const evalOptions = await buildVolumeEvalOptions(
+          live.nodes,
+          live.edges,
+          live.contentFields,
+          live.rangeMin,
+          live.rangeMax,
+          live.yLevel,
+          useProjectStore.getState().projectPath,
+        );
+        const rootNodeId = live.selectedPreviewNodeId ?? live.outputNodeId ?? undefined;
+        const sessionKey = computeVolumeSessionKey(
+          live.nodes,
+          live.edges,
+          rootNodeId,
+          evalOptions,
+        );
 
-      async function runStep() {
-        if (evalId !== evalIdRef.current || unmountedRef.current) return;
-        const res = steps[stepIdx];
-        const ySlices = Math.round(voxelYSlices * (res / targetRes));
+        setVoxelEvalProgressRes(steps[0]?.resolution ?? null);
 
-        if (stepIdx === 0) {
-          setVoxelLoading(true);
-          setVoxelError(null);
-        }
+        const pipelineStart = performance.now();
+        const finalYSlices = steps[steps.length - 1]?.ySlices ?? live.voxelYSlices;
 
         try {
-          const result = await evaluateVolumeInWorker({
-            nodes,
-            edges,
-            resolution: res,
-            rangeMin,
-            rangeMax,
-            yMin: voxelYMin,
-            yMax: voxelYMax,
-            ySlices: Math.max(1, ySlices),
-            rootNodeId: selectedPreviewNodeId ?? outputNodeId ?? undefined,
-            options: { contentFields },
-          });
+          if (steps.length === 1) {
+            const result = await evaluateVolumeInWorker({
+              nodes: live.nodes,
+              edges: live.edges,
+              resolution: steps[0].resolution,
+              rangeMin: live.rangeMin,
+              rangeMax: live.rangeMax,
+              yMin: live.voxelYMin,
+              yMax: live.voxelYMax,
+              ySlices: steps[0].ySlices,
+              rootNodeId,
+              options: evalOptions,
+              sessionKey,
+            });
 
-          if (evalId !== evalIdRef.current || unmountedRef.current) return;
+            if (evalId !== evalIdRef.current || unmountedRef.current) return;
 
-          // ── Feature 1: Auto-fit Y bounds after coarse pass ──
-          if (stepIdx === 0 && autoFitYEnabled) {
-            const store = usePreviewStore.getState();
-            const currentHash = computeGraphHash(nodes, edges);
-            if (currentHash !== store._autoFitGraphHash) {
-              // Graph changed — reset manual flag and run auto-fit
-              store._setUserManualYAdjust(false);
-              const yBounds = scanDensityGridYBounds(
-                result.densities,
-                result.resolution,
-                result.ySlices,
-                voxelYMin,
-                voxelYMax,
-              );
-              if (yBounds.hasSolids) {
-                store._setAutoFitGraphHash(currentHash);
-                store.setVoxelYMin(yBounds.worldYMin);
-                store.setVoxelYMax(yBounds.worldYMax);
-                // The Y bound change will trigger a re-eval, but the hash
-                // will now match, so auto-fit won't loop.
-                return;
-              }
-            }
-          }
-
-          setVoxelDensities(result.densities);
-
-          // Resolve materials — graph-based evaluation with depth-based fallback
-          let materialIds: Uint8Array | undefined;
-          let palette = DEFAULT_MATERIAL_PALETTE;
-
-          if (showMaterialColors) {
-            // Check if there's a material graph to evaluate
-            const hasMaterialGraph = nodes.some(n =>
-              typeof n.type === 'string' && n.type.startsWith('Material:')
-            );
-
-            if (hasMaterialGraph) {
-              const densityCtx = createEvaluationContext(nodes, edges,
-                selectedPreviewNodeId ?? outputNodeId ?? undefined,
-                { contentFields });
-              const matResult = evaluateMaterialGraph(
-                nodes, edges, result.densities,
-                result.resolution, result.ySlices,
-                rangeMin, rangeMax, voxelYMin, voxelYMax,
-                densityCtx ?? undefined,
-              );
-              if (matResult) {
-                materialIds = matResult.materialIds;
-                palette = matResult.palette;
-              }
-            }
-
-            // Fallback: no material graph or evaluation returned null
-            if (!materialIds) {
-              const matResult = resolveMaterials(
-                result.densities,
-                result.resolution,
-                result.ySlices,
-                undefined,
-                materialConfig ?? undefined,
-              );
-              materialIds = matResult.materialIds;
-              palette = matResult.palette;
-            }
-          }
-
-          // Compute fluid config if biome has fluid (e.g. lava sea)
-          let fluidCfg: FluidConfig | undefined;
-          if (materialConfig?.fluidLevel != null && materialConfig.fluidMaterial) {
-            // Convert world-space fluid level to Y-slice index
-            const yRange = voxelYMax - voxelYMin;
-            const fluidSlice = yRange > 0
-              ? Math.round(((materialConfig.fluidLevel - voxelYMin) / yRange) * result.ySlices)
-              : 0;
-            // Find or add fluid material in palette
-            const fluidMatName = materialConfig.fluidMaterial;
-            let fluidIdx = palette.findIndex((m) => m.name === fluidMatName);
-            if (fluidIdx < 0) {
-              fluidIdx = palette.length;
-              palette = [...palette, { name: fluidMatName, color: matchMaterialName(fluidMatName) }];
-            }
-            if (fluidSlice >= 0 && fluidSlice < result.ySlices) {
-              fluidCfg = { fluidLevel: fluidSlice, fluidMaterialIndex: fluidIdx };
-            }
-          }
-
-          // Compute fluid plane config for the 3D scene
-          if (fluidCfg) {
-            const sceneSize = 50;
-            const meshScaleY = sceneSize / Math.max(result.resolution, result.ySlices);
-            const meshOffsetY = -sceneSize / 2;
-            const fluidY = meshOffsetY + (fluidCfg.fluidLevel * meshScaleY);
-            const fluidMatName = materialConfig?.fluidMaterial ?? "";
-            const isLava = fluidMatName.toLowerCase().includes("lava");
-            usePreviewStore.getState().setFluidPlaneConfig({
-              type: isLava ? "lava" : "water",
-              yPosition: fluidY,
+            finishVoxelFromVolume({
+              nodes: live.nodes,
+              edges: live.edges,
+              result,
+              rangeMin: live.rangeMin,
+              rangeMax: live.rangeMax,
+              voxelYMin: live.voxelYMin,
+              voxelYMax: live.voxelYMax,
+              yLevel: live.yLevel,
+              rootNodeId,
+              contentFields: live.contentFields,
+              materialConfig: live.materialConfig,
+              showMaterialColors,
+              evalOptions,
+              voxelEvalKey: currentKey,
             });
           } else {
-            usePreviewStore.getState().setFluidPlaneConfig(null);
+            await evaluateVolumeProgressive(
+              {
+                sessionKey,
+                nodes: live.nodes,
+                edges: live.edges,
+                rangeMin: live.rangeMin,
+                rangeMax: live.rangeMax,
+                yMin: live.voxelYMin,
+                yMax: live.voxelYMax,
+                rootNodeId,
+                options: evalOptions,
+                steps,
+                pauseAfterFirst: steps.length > 1,
+              },
+              async (step) => {
+                if (evalId !== evalIdRef.current || unmountedRef.current) return "abort";
+
+                const isCoarse = step.stepIndex === 0;
+                const isFinal = step.isFinal;
+                const shouldMesh = isCoarse || isFinal;
+
+                if (!shouldMesh) {
+                  setVoxelLoading(false);
+                  setVoxelEvalProgressRes(finalRes);
+                  return;
+                }
+
+                if (isCoarse) {
+                  await deferMainThreadWork(() => {});
+                }
+
+                if (evalId !== evalIdRef.current || unmountedRef.current) return "abort";
+
+                const fresh = readVoxelEvalParams(
+                  usePreviewStore.getState().mode,
+                  usePreviewStore.getState().show3DVolumeView,
+                );
+
+                await deferMainThreadWork(() => {
+                  finishVoxelFromVolume({
+                    nodes: fresh.nodes,
+                    edges: fresh.edges,
+                    result: step,
+                    rangeMin: fresh.rangeMin,
+                    rangeMax: fresh.rangeMax,
+                    voxelYMin: fresh.voxelYMin,
+                    voxelYMax: fresh.voxelYMax,
+                    yLevel: fresh.yLevel,
+                    rootNodeId: fresh.selectedPreviewNodeId ?? fresh.outputNodeId ?? undefined,
+                    contentFields: fresh.contentFields,
+                    materialConfig: fresh.materialConfig,
+                    showMaterialColors,
+                    evalOptions,
+                    previewPass: !isFinal,
+                    clearProgressRes: isFinal,
+                    voxelEvalKey: isFinal ? currentKey : undefined,
+                  });
+                });
+
+                if (evalId !== evalIdRef.current || unmountedRef.current) return "abort";
+
+                setVoxelLoading(false);
+                setVoxelEvalProgressRes(isFinal ? null : finalRes);
+              },
+            );
           }
 
-          const voxels = extractSurfaceVoxels(
-            result.densities,
-            result.resolution,
-            result.ySlices,
-            materialIds,
-            palette,
-            fluidCfg,
-          );
-
-          if (evalId !== evalIdRef.current || unmountedRef.current) return;
-
-          setVoxelMaterials(
-            voxels.materialIds,
-            voxels.materials,
-          );
-
-          // Build merged geometry meshes with AO + face shading
-          const sceneSize = 50;
-          const meshScaleX = sceneSize / result.resolution;
-          const meshScaleZ = sceneSize / result.resolution;
-          const meshScaleY = sceneSize / Math.max(result.resolution, result.ySlices);
-          const meshOffsetX = -sceneSize / 2;
-          const meshOffsetZ = -sceneSize / 2;
-          const meshOffsetY = -sceneSize / 2;
-
-          const meshData = buildVoxelMeshes(
-            voxels,
-            result.densities,
-            result.resolution,
-            result.ySlices,
-            meshScaleX, meshScaleY, meshScaleZ,
-            meshOffsetX, meshOffsetY, meshOffsetZ,
-          );
-
-          // Store extracted voxel data on the store for the renderer
-          usePreviewStore.setState({
-            _voxelData: voxels,
-            _voxelVolumeRes: result.resolution,
-            _voxelVolumeYSlices: result.ySlices,
-            voxelMeshData: meshData,
-          } as any);
-
-          // Schedule next progressive step
-          stepIdx++;
-          if (stepIdx < steps.length && evalId === evalIdRef.current) {
-            progressiveRef.current = setTimeout(runStep, 100);
+          if (evalId === evalIdRef.current && !unmountedRef.current) {
+            setVoxelLoading(false);
+            setVoxelEvalProgressRes(null);
+            const voxelEval = useDevMetricsStore.getState().voxelEval;
+            useDevMetricsStore.getState().reportEval({
+              kind: "voxel",
+              lane: voxelEval?.lane,
+              durationMs: performance.now() - pipelineStart,
+              resolution: finalRes,
+              detail: `${finalRes}³×${finalYSlices}`,
+              at: Date.now(),
+            });
           }
         } catch (err) {
-          if (err === "cancelled") return;
+          if (err === "cancelled") {
+            if (evalId === evalIdRef.current) {
+              setVoxelLoading(false);
+              setVoxelEvalProgressRes(null);
+            }
+            return;
+          }
           if (evalId === evalIdRef.current) {
             setVoxelDensities(null);
             setVoxelError(`Voxel evaluation failed: ${err}`);
-          }
-        } finally {
-          if (evalId === evalIdRef.current && stepIdx >= steps.length) {
             setVoxelLoading(false);
+            setVoxelEvalProgressRes(null);
           }
         }
-      }
-
-      runStep();
-    }, debounceMs);
+      })();
+    }, delay);
 
     return () => {
-      unmountedRef.current = true;
       if (timerRef.current) clearTimeout(timerRef.current);
-      if (progressiveRef.current) clearTimeout(progressiveRef.current);
-      cancelVolumeEvaluation();
+      if (latestVoxelEvalKeyRef.current !== keyForThisRun) {
+        evalIdRef.current += 1;
+        cancelVolumeEvaluation();
+      }
     };
   }, [
-    nodes, edges, contentFields, outputNodeId, materialConfig, mode, rangeMin, rangeMax, voxelYMin, voxelYMax,
-    voxelYSlices, voxelResolution, selectedPreviewNodeId, viewMode,
-    autoRefresh, showMaterialColors, autoFitYEnabled, debounceMs,
-    setVoxelDensities, setVoxelLoading, setVoxelError, setVoxelMaterials,
+    voxelEvalKey, mode, show3DVolumeView, viewMode, autoRefresh, debounceMs, showMaterialColors, evalFingerprint,
+    setVoxelDensities, setVoxelLoading, setVoxelEvalProgressRes, setVoxelError,
   ]);
+
+  useEffect(() => () => {
+    unmountedRef.current = true;
+    cancelVolumeEvaluation();
+  }, []);
 }

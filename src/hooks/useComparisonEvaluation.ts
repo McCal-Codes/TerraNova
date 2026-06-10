@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { createWorkerInstance, type WorkerInstance } from "@/utils/densityWorkerClient";
 import { useConfigStore } from "@/stores/configStore";
+import { computeEvaluationFingerprint } from "@/utils/previewAutoFit";
 
 /**
  * Dual evaluation hook for Comparison mode.
@@ -21,6 +22,11 @@ export function useComparisonEvaluation() {
   const viewMode = usePreviewStore((s) => s.viewMode);
   const compareNodeA = usePreviewStore((s) => s.compareNodeA);
   const compareNodeB = usePreviewStore((s) => s.compareNodeB);
+  const compareFingerprint = useMemo(
+    () =>
+      `${computeEvaluationFingerprint({ nodes, edges, contentFields })}|a:${compareNodeA ?? ""}|b:${compareNodeB ?? ""}`,
+    [nodes, edges, contentFields, compareNodeA, compareNodeB],
+  );
   const setCompareValuesA = usePreviewStore((s) => s.setCompareValuesA);
   const setCompareValuesB = usePreviewStore((s) => s.setCompareValuesB);
   const setCompareLoadingA = usePreviewStore((s) => s.setCompareLoadingA);
@@ -41,6 +47,7 @@ export function useComparisonEvaluation() {
     if (timerRef.current) clearTimeout(timerRef.current);
 
     timerRef.current = setTimeout(async () => {
+      const { nodes, edges, contentFields } = useEditorStore.getState();
       if (nodes.length === 0) {
         setCompareValuesA(null, 0, 0);
         setCompareValuesB(null, 0, 0);
@@ -145,6 +152,6 @@ export function useComparisonEvaluation() {
       workerARef.current?.cancel();
       workerBRef.current?.cancel();
     };
-  }, [nodes, edges, contentFields, resolution, rangeMin, rangeMax, yLevel, viewMode, compareNodeA, compareNodeB,
+  }, [compareFingerprint, resolution, rangeMin, rangeMax, yLevel, viewMode, compareNodeA, compareNodeB,
       setCompareValuesA, setCompareValuesB, setCompareLoadingA, setCompareLoadingB, debounceMs]);
 }

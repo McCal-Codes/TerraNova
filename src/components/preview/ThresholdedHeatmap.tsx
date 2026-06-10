@@ -1,27 +1,59 @@
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { useNonPassiveWheel } from "@/hooks/useNonPassiveWheel";
 import { usePreviewStore } from "@/stores/previewStore";
 import { screenToWorld } from "@/utils/canvasTransform";
+import { useSmoothCanvasTransform } from "@/hooks/useSmoothCanvasTransform";
+import { previewHudBadgeClass } from "@/components/preview/previewChromeStyles";
 import { generateContours } from "@/utils/contourLines";
+import {
+  drawCellBoundaries,
+  drawSdfZeroContour,
+  drawShapeMeshPoints,
+  drawWallDistanceTint,
+} from "@/utils/shapePreview/drawShapeOverlays";
 
 const SOLID_COLOR = { r: 120, g: 180, b: 100 };
 const AIR_COLOR = { r: 20, g: 20, b: 30 };
 
-export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function ThresholdedHeatmap(_props, ref) {
+export const ThresholdedHeatmap = forwardRef<
+  HTMLCanvasElement,
+  { exportRootRef?: (el: HTMLDivElement | null) => void }
+>(function ThresholdedHeatmap({ exportRootRef }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const interactionRef = useRef<HTMLDivElement>(null);
   const values = usePreviewStore((s) => s.values);
   const rangeMin = usePreviewStore((s) => s.rangeMin);
   const rangeMax = usePreviewStore((s) => s.rangeMax);
   const canvasTransform = usePreviewStore((s) => s.canvasTransform);
   const setCanvasTransform = usePreviewStore((s) => s.setCanvasTransform);
+  const {
+    layerRef: transformLayerRef,
+    applyTransform,
+    flushTransform,
+    getTransform,
+  } = useSmoothCanvasTransform(canvasTransform, setCanvasTransform);
   const showPositionOverlay = usePreviewStore((s) => s.showPositionOverlay);
   const positionOverlayPoints = usePreviewStore((s) => s.positionOverlayPoints);
   const positionOverlayColor = usePreviewStore((s) => s.positionOverlayColor);
   const positionOverlaySize = usePreviewStore((s) => s.positionOverlaySize);
+  const showShapePreview = usePreviewStore((s) => s.showShapePreview);
+  const showCellBoundaries = usePreviewStore((s) => s.showCellBoundaries);
+  const showWallDistance = usePreviewStore((s) => s.showWallDistance);
+  const showMeshSamples = usePreviewStore((s) => s.showMeshSamples);
+  const showSdfSurface = usePreviewStore((s) => s.showSdfSurface);
+  const cellShapeGrid = usePreviewStore((s) => s.cellShapeGrid);
+  const sdfZeroSegments = usePreviewStore((s) => s.sdfZeroSegments);
+  const shapePreviewMeshPoints = usePreviewStore((s) => s.shapePreviewMeshPoints);
 
   const [hoverInfo, setHoverInfo] = useState<{ x: number; z: number; value: number; solid: boolean } | null>(null);
   const dragRef = useRef<{ startX: number; startY: number; startOX: number; startOY: number } | null>(null);
+
+  useEffect(() => {
+    exportRootRef?.(containerRef.current);
+    return () => exportRootRef?.(null);
+  }, [exportRootRef, values]);
 
   // Merge refs
   const setRefs = useCallback(
@@ -81,15 +113,14 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
     ctx.clearRect(0, 0, displaySize, displaySize);
 
     const n = Math.round(Math.sqrt(values.length));
-    const { scale, offsetX, offsetY } = canvasTransform;
 
     const gridToScreen = (gx: number, gz: number) => {
       const cx = displaySize / 2;
       const cy = displaySize / 2;
       const normX = gx / n;
       const normZ = gz / n;
-      const sx = (normX * displaySize - cx) * scale + cx + offsetX;
-      const sy = (normZ * displaySize - cy) * scale + cy + offsetY;
+      const sx = normX * displaySize - cx + cx;
+      const sy = normZ * displaySize - cy + cy;
       return { sx, sy };
     };
 
@@ -106,6 +137,23 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
         ctx.lineTo(p2.sx, p2.sy);
         ctx.stroke();
       }
+    }
+
+    if (showShapePreview) {
+      if (cellShapeGrid && cellShapeGrid.resolution === n) {
+        drawWallDistanceTint(ctx, cellShapeGrid, gridToScreen, showWallDistance);
+        drawCellBoundaries(ctx, cellShapeGrid, gridToScreen, showCellBoundaries);
+      }
+      drawSdfZeroContour(ctx, sdfZeroSegments, gridToScreen, showSdfSurface);
+      drawShapeMeshPoints(
+        ctx,
+        shapePreviewMeshPoints,
+        rangeMin,
+        rangeMax,
+        n,
+        gridToScreen,
+        showMeshSamples,
+      );
     }
 
     // ── Position overlay dots ──
@@ -136,7 +184,7 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [values, canvasTransform, rangeMin, rangeMax, showPositionOverlay, positionOverlayPoints, positionOverlayColor, positionOverlaySize]);
+  }, [values, rangeMin, rangeMax, showShapePreview, showCellBoundaries, showWallDistance, showMeshSamples, showSdfSurface, cellShapeGrid, sdfZeroSegments, shapePreviewMeshPoints, showPositionOverlay, positionOverlayPoints, positionOverlayColor, positionOverlaySize]);
 
   // ── Interaction rect ──
   const getInteractionRect = useCallback((): DOMRect | null => {
@@ -154,8 +202,8 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
       if (dragRef.current) {
         const dx = e.clientX - dragRef.current.startX;
         const dy = e.clientY - dragRef.current.startY;
-        setCanvasTransform({
-          ...canvasTransform,
+        applyTransform({
+          ...getTransform(),
           offsetX: dragRef.current.startOX + dx,
           offsetY: dragRef.current.startOY + dy,
         });
@@ -164,7 +212,7 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
 
       const world = screenToWorld(
         e.clientX - rect.left, e.clientY - rect.top,
-        canvasTransform, rect.width, rangeMin, rangeMax,
+        getTransform(), rect.width, rangeMin, rangeMax,
       );
       const n = Math.round(Math.sqrt(values.length));
       const worldRange = rangeMax - rangeMin;
@@ -184,27 +232,29 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
         solid: val >= 0,
       });
     },
-    [values, rangeMin, rangeMax, canvasTransform, setCanvasTransform, getInteractionRect],
+    [values, rangeMin, rangeMax, getTransform, applyTransform, getInteractionRect],
   );
 
   const onMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
+      const liveTransform = getTransform();
       dragRef.current = {
         startX: e.clientX,
         startY: e.clientY,
-        startOX: canvasTransform.offsetX,
-        startOY: canvasTransform.offsetY,
+        startOX: liveTransform.offsetX,
+        startOY: liveTransform.offsetY,
       };
     },
-    [canvasTransform],
+    [getTransform],
   );
 
   const onMouseUp = useCallback(() => {
     dragRef.current = null;
-  }, []);
+    flushTransform();
+  }, [flushTransform]);
 
   const onWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
+    (e: WheelEvent) => {
       e.preventDefault();
       const rect = getInteractionRect();
       if (!rect) return;
@@ -213,21 +263,24 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
       const cx = rect.width / 2;
       const cy = rect.height / 2;
 
+      const current = getTransform();
       const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-      const newScale = Math.max(0.5, Math.min(10, canvasTransform.scale * factor));
+      const newScale = Math.max(0.25, Math.min(20, current.scale * factor));
 
-      const ox = mouseX - cx - canvasTransform.offsetX;
-      const oy = mouseY - cy - canvasTransform.offsetY;
-      const ratio = newScale / canvasTransform.scale;
+      const ox = mouseX - cx - current.offsetX;
+      const oy = mouseY - cy - current.offsetY;
+      const ratio = newScale / current.scale;
 
-      setCanvasTransform({
+      applyTransform({
         scale: newScale,
-        offsetX: canvasTransform.offsetX - (ox * (ratio - 1)),
-        offsetY: canvasTransform.offsetY - (oy * (ratio - 1)),
+        offsetX: current.offsetX - (ox * (ratio - 1)),
+        offsetY: current.offsetY - (oy * (ratio - 1)),
       });
     },
-    [canvasTransform, setCanvasTransform, getInteractionRect],
+    [applyTransform, getInteractionRect, getTransform],
   );
+
+  useNonPassiveWheel(interactionRef, onWheel, Boolean(values));
 
   const onMouseLeave = useCallback(() => {
     setHoverInfo(null);
@@ -243,36 +296,40 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
   }
 
   return (
-    <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
+    <div ref={containerRef} data-tn-heatmap-root className="relative flex items-center justify-center h-full p-4">
       <div className="relative" style={{ aspectRatio: "1 / 1", maxWidth: "100%", maxHeight: "100%", height: "100%" }}>
-        <canvas
-          ref={setRefs}
-          className="absolute inset-0 w-full h-full border border-tn-border"
-          style={{
-            imageRendering: "pixelated",
-            transform: `translate(${canvasTransform.offsetX}px, ${canvasTransform.offsetY}px) scale(${canvasTransform.scale})`,
-            transformOrigin: "center center",
-          }}
-        />
-        <canvas
-          ref={overlayRef}
-          className="absolute inset-0 w-full h-full"
-          style={{ pointerEvents: "none" }}
-        />
         <div
+          ref={transformLayerRef}
+          className="absolute inset-0 w-full h-full"
+          style={{ transformOrigin: "center center", willChange: "transform" }}
+        >
+          <canvas
+            ref={setRefs}
+            data-tn-heatmap-base
+            className="absolute inset-0 w-full h-full border border-tn-border"
+            style={{ imageRendering: canvasTransform.scale > 2 ? "auto" : "pixelated" }}
+          />
+          <canvas
+            ref={overlayRef}
+            data-tn-heatmap-overlay
+            className="absolute inset-0 w-full h-full"
+            style={{ pointerEvents: "none" }}
+          />
+        </div>
+        <div
+          ref={interactionRef}
           className="absolute inset-0"
           style={{ cursor: dragRef.current ? "grabbing" : "crosshair" }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseLeave}
-          onWheel={onWheel}
         />
       </div>
 
       {/* Hover readout */}
       {hoverInfo && (
-        <div className="absolute bottom-3 left-3 px-2 py-1 bg-tn-panel/90 border border-tn-border rounded text-[10px] text-tn-text font-mono">
+        <div className={`absolute bottom-3 left-3 px-2 py-1 text-[10px] text-tn-text font-mono ${previewHudBadgeClass}`}>
           x: {hoverInfo.x}, z: {hoverInfo.z} &rarr; {hoverInfo.value.toFixed(4)} ({hoverInfo.solid ? "solid" : "air"})
         </div>
       )}
@@ -291,7 +348,7 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
 
       {/* Zoom indicator */}
       {canvasTransform.scale !== 1 && (
-        <div className="absolute top-3 left-3 px-1.5 py-0.5 bg-tn-panel/80 border border-tn-border rounded text-[9px] text-tn-text-muted font-mono">
+        <div className={`absolute top-3 left-3 text-[9px] ${previewHudBadgeClass}`}>
           {canvasTransform.scale.toFixed(1)}x
         </div>
       )}

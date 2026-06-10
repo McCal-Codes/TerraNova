@@ -1,36 +1,172 @@
+// @refresh reset
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
+import { useNonPassiveWheel } from "@/hooks/useNonPassiveWheel";
 import { usePreviewStore } from "@/stores/previewStore";
+import { useEditorStore } from "@/stores/editorStore";
+import {
+  detectHydrographyContext,
+  hydrographySliceParams,
+} from "@/utils/hydrographyContext";
 import { getColormap } from "@/utils/colormaps";
+import { resolve2dPreviewResolutionForZoom } from "@/utils/previewResolution";
 import { screenToWorld } from "@/utils/canvasTransform";
+import { useSmoothCanvasTransform } from "@/hooks/useSmoothCanvasTransform";
+import { previewHudBadgeClass } from "@/components/preview/previewChromeStyles";
 import { generateContours, getContourLevels } from "@/utils/contourLines";
+import {
+  drawCellBoundaries,
+  drawSdfZeroContour,
+  drawShapeMeshPoints,
+  drawWallDistanceTint,
+} from "@/utils/shapePreview/drawShapeOverlays";
+import { TopoMapHud } from "@/components/preview/TopoMapHud";
+import {
+  USGS_INDEX_CONTOUR_BROWN,
+  applyUsgsLandCoverWash,
+  applyUsgsPaperGrain,
+  applyUsgsParchmentVignette,
+  drawUsgsContourLabels,
+  drawUsgsContours,
+  drawUsgsHydrographyHatch,
+  drawUsgsMarginTicks,
+  drawUsgsNeatline,
+  drawUsgsSpotElevations,
+  drawUsgsSteepSlopeHachures,
+  findUsgsSpotElevations,
+  getUsgsContourLevels,
+  sampleUsgsHypsometricTint,
+  shadeUsgsReliefPixel,
+} from "@/utils/topoMapStyle";
 
-export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_props, ref) {
+type Heatmap2DProps = {
+  exportRootRef?: (el: HTMLDivElement | null) => void;
+  sliceHint?: string | null;
+};
+
+const Heatmap2DInner = forwardRef<HTMLCanvasElement, Heatmap2DProps>(function Heatmap2D({ exportRootRef, sliceHint = null }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const values = usePreviewStore((s) => s.values);
-  const minValue = usePreviewStore((s) => s.minValue);
-  const maxValue = usePreviewStore((s) => s.maxValue);
-  const p02Value = usePreviewStore((s) => s.p02Value);
-  const p98Value = usePreviewStore((s) => s.p98Value);
-  const rangeMin = usePreviewStore((s) => s.rangeMin);
-  const rangeMax = usePreviewStore((s) => s.rangeMax);
-  const colormap = usePreviewStore((s) => s.colormap);
-  const canvasTransform = usePreviewStore((s) => s.canvasTransform);
+  const mapFrameRef = useRef<HTMLDivElement>(null);
+  const interactionRef = useRef<HTMLDivElement>(null);
+  const [mapFrameSize, setMapFrameSize] = useState({ w: 0, h: 0 });
+  const {
+    values,
+    minValue,
+    maxValue,
+    p02Value,
+    p98Value,
+    rangeMin,
+    rangeMax,
+    colormap,
+    canvasTransform,
+    resolution,
+    isLoading,
+    showContours,
+    contourInterval,
+    showCrossSection,
+    crossSectionLine,
+    showPositionOverlay,
+    positionOverlayPoints,
+    positionOverlayColor,
+    positionOverlaySize,
+    showHillShade,
+    yLevel,
+    usgsTopoStyle,
+    showThresholdView,
+    showShapePreview,
+    showCellBoundaries,
+    showWallDistance,
+    showMeshSamples,
+    showSdfSurface,
+    cellShapeGrid,
+    sdfZeroSegments,
+    shapePreviewMeshPoints,
+  } = usePreviewStore(
+    useShallow((s) => ({
+      values: s.values,
+      minValue: s.minValue,
+      maxValue: s.maxValue,
+      p02Value: s.p02Value,
+      p98Value: s.p98Value,
+      rangeMin: s.rangeMin,
+      rangeMax: s.rangeMax,
+      colormap: s.colormap,
+      canvasTransform: s.canvasTransform,
+      resolution: s.resolution,
+      isLoading: s.isLoading,
+      showContours: s.showContours,
+      contourInterval: s.contourInterval,
+      showCrossSection: s.showCrossSection,
+      crossSectionLine: s.crossSectionLine,
+      showPositionOverlay: s.showPositionOverlay,
+      positionOverlayPoints: s.positionOverlayPoints,
+      positionOverlayColor: s.positionOverlayColor,
+      positionOverlaySize: s.positionOverlaySize,
+      showHillShade: s.showHillShade,
+      yLevel: s.yLevel,
+      usgsTopoStyle: s.usgsTopoStyle,
+      showThresholdView: s.showThresholdView,
+      showShapePreview: s.showShapePreview,
+      showCellBoundaries: s.showCellBoundaries,
+      showWallDistance: s.showWallDistance,
+      showMeshSamples: s.showMeshSamples,
+      showSdfSurface: s.showSdfSurface,
+      cellShapeGrid: s.cellShapeGrid,
+      sdfZeroSegments: s.sdfZeroSegments,
+      shapePreviewMeshPoints: s.shapePreviewMeshPoints,
+    })),
+  );
   const setCanvasTransform = usePreviewStore((s) => s.setCanvasTransform);
-  const showContours = usePreviewStore((s) => s.showContours);
-  const contourInterval = usePreviewStore((s) => s.contourInterval);
-  const showCrossSection = usePreviewStore((s) => s.showCrossSection);
-  const crossSectionLine = usePreviewStore((s) => s.crossSectionLine);
+  const {
+    layerRef: transformLayerRef,
+    applyTransform,
+    flushTransform,
+    getTransform,
+  } = useSmoothCanvasTransform(canvasTransform, setCanvasTransform);
+  const resetCanvasTransform = usePreviewStore((s) => s.resetCanvasTransform);
+  const setRange = usePreviewStore((s) => s.setRange);
   const setCrossSectionLine = usePreviewStore((s) => s.setCrossSectionLine);
-  const showPositionOverlay = usePreviewStore((s) => s.showPositionOverlay);
-  const positionOverlayPoints = usePreviewStore((s) => s.positionOverlayPoints);
-  const positionOverlayColor = usePreviewStore((s) => s.positionOverlayColor);
-  const positionOverlaySize = usePreviewStore((s) => s.positionOverlaySize);
+  const materialConfig = useEditorStore((s) => s.materialConfig);
+  const contentFields = useEditorStore((s) => s.contentFields);
 
-  const showHillShade = usePreviewStore((s) => s.showHillShade);
-
+  const evalResolution = useMemo(
+    () => resolve2dPreviewResolutionForZoom(resolution, canvasTransform.scale),
+    [resolution, canvasTransform.scale],
+  );
+  const hydroContext = useMemo(
+    () => detectHydrographyContext(materialConfig, contentFields),
+    [materialConfig, contentFields],
+  );
+  const hydroSlice = useMemo(
+    () => hydrographySliceParams(hydroContext, yLevel),
+    [hydroContext, yLevel],
+  );
   const [hoverInfo, setHoverInfo] = useState<{ x: number; z: number; value: number } | null>(null);
+  const [isPanning, setIsPanning] = useState(false);
+
+  useEffect(() => {
+    exportRootRef?.(containerRef.current);
+    return () => exportRootRef?.(null);
+  }, [exportRootRef, values]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      setMapFrameSize({
+        w: Math.max(64, w),
+        h: Math.max(64, h),
+      });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const dragRef = useRef<{ startX: number; startY: number; startOX: number; startOY: number } | null>(null);
   const crossLineRef = useRef<{ startX: number; startZ: number } | null>(null);
 
@@ -80,15 +216,17 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
     const lx = Math.cos(altitude) * Math.sin(azimuth);
     const ly = Math.sin(altitude);
     const lz = Math.cos(altitude) * Math.cos(azimuth);
-    const reliefScale = 2.0;
-    const ambient = 0.3;
-    const diffuse = 0.7;
+    const reliefScale = usgsTopoStyle ? 2.8 : 2.0;
+    const ambient = usgsTopoStyle ? 0.58 : 0.3;
+    const diffuse = usgsTopoStyle ? 0.42 : 0.7;
 
     for (let row = 0; row < n; row++) {
       for (let col = 0; col < n; col++) {
         const i = row * n + col;
         const norm = isFlat ? 0.5 : Math.max(0, Math.min(1, (values[i] - lo) / range));
-        const [r, g, b] = cm.ramp(norm);
+        const [r, g, b] = usgsTopoStyle
+          ? sampleUsgsHypsometricTint(norm)
+          : cm.ramp(norm);
         const pixel = i * 4;
 
         if (normalized && showHillShade) {
@@ -114,13 +252,20 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
           const nny = ny / len;
           const nnz = nz / len;
 
-          // Lambertian shading
           const dot = nnx * lx + nny * ly + nnz * lz;
-          const shade = ambient + diffuse * Math.max(0, dot);
+          const hillshade = ambient + diffuse * Math.max(0, dot);
+          const slopeMag = Math.sqrt(dx * dx + dz * dz);
 
-          imageData.data[pixel] = Math.min(255, r * shade);
-          imageData.data[pixel + 1] = Math.min(255, g * shade);
-          imageData.data[pixel + 2] = Math.min(255, b * shade);
+          if (usgsTopoStyle) {
+            const [sr, sg, sb] = shadeUsgsReliefPixel([r, g, b], hillshade, slopeMag);
+            imageData.data[pixel] = sr;
+            imageData.data[pixel + 1] = sg;
+            imageData.data[pixel + 2] = sb;
+          } else {
+            imageData.data[pixel] = Math.min(255, r * hillshade);
+            imageData.data[pixel + 1] = Math.min(255, g * hillshade);
+            imageData.data[pixel + 2] = Math.min(255, b * hillshade);
+          }
         } else {
           imageData.data[pixel] = r;
           imageData.data[pixel + 1] = g;
@@ -130,14 +275,33 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
       }
     }
 
+    if (usgsTopoStyle) {
+      applyUsgsLandCoverWash(imageData.data, values, lo, hi, hydroSlice);
+      applyUsgsParchmentVignette(imageData.data, n);
+      applyUsgsPaperGrain(imageData.data, n);
+    }
+
     ctx.putImageData(imageData, 0, 0);
-  }, [values, minValue, maxValue, p02Value, p98Value, colormap, showHillShade]);
+  }, [values, minValue, maxValue, p02Value, p98Value, colormap, showHillShade, usgsTopoStyle, hydroSlice]);
 
   // ── Memoize contour data separately from drawing ──
-  const contourData = useMemo(
-    () => showContours && values ? generateContours(values, Math.round(Math.sqrt(values.length)), getContourLevels(minValue, maxValue, contourInterval)) : [],
-    [values, showContours, contourInterval, minValue, maxValue],
-  );
+  const contourData = useMemo(() => {
+    if (!showContours || !values) return [];
+    const n = Math.round(Math.sqrt(values.length));
+    const contourMin = usgsTopoStyle ? (p02Value ?? minValue) : minValue;
+    const contourMax = usgsTopoStyle ? (p98Value ?? maxValue) : maxValue;
+    const levels = usgsTopoStyle
+      ? getUsgsContourLevels(contourMin, contourMax, contourInterval)
+      : getContourLevels(minValue, maxValue, contourInterval);
+    return generateContours(values, n, levels);
+  }, [values, showContours, contourInterval, minValue, maxValue, p02Value, p98Value, usgsTopoStyle]);
+
+  const spotElevations = useMemo(() => {
+    if (!usgsTopoStyle || !values) return [];
+    const n = Math.round(Math.sqrt(values.length));
+    if (n < 8) return [];
+    return findUsgsSpotElevations(values, n);
+  }, [values, usgsTopoStyle]);
 
   // ── Shared overlay helpers ──
   const getOverlayContext = useCallback(() => {
@@ -179,19 +343,19 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
     ctx.clearRect(0, 0, displaySize, displaySize);
 
     const n = Math.round(Math.sqrt(values.length));
-    const { scale, offsetX, offsetY } = canvasTransform;
-    const gridToScreen = makeGridToScreen(displaySize, n, scale, offsetX, offsetY);
+    const gridToScreen = makeGridToScreen(displaySize, n, 1, 0, 0);
 
     // ── World-coordinate gridlines ──
     const worldRange = rangeMax - rangeMin;
-    const pixelsPerBlock = (displaySize * scale) / worldRange;
+    // Grid spacing in canvas space — visual zoom comes from the transform layer.
+    const pixelsPerBlock = displaySize / worldRange;
     let gridSpacing = 8;
     if (pixelsPerBlock * 8 < 16) gridSpacing = 64;
     else if (pixelsPerBlock * 8 < 32) gridSpacing = 32;
     else if (pixelsPerBlock * 8 < 64) gridSpacing = 16;
 
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
-    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = usgsTopoStyle ? "rgba(92, 64, 30, 0.1)" : "rgba(255,255,255,0.08)";
+    ctx.lineWidth = usgsTopoStyle ? 0.4 : 0.5;
 
     const gridStart = Math.ceil(rangeMin / gridSpacing) * gridSpacing;
     for (let w = gridStart; w <= rangeMax; w += gridSpacing) {
@@ -213,11 +377,12 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
       ctx.stroke();
     }
 
-    // ── Contour lines (uses pre-computed contourData) ──
-    if (showContours && contourData.length > 0) {
-      ctx.strokeStyle = "rgba(255,255,255,0.35)";
-      ctx.lineWidth = 0.8;
-      for (const contour of contourData) {
+    // ── Terrain view: emphasize density = 0 surface (compatible with USGS topo) ──
+    if (showThresholdView) {
+      const zeroContours = generateContours(values, n, [0]);
+      ctx.strokeStyle = usgsTopoStyle ? USGS_INDEX_CONTOUR_BROWN : "#ffffff";
+      ctx.lineWidth = usgsTopoStyle ? 2 : 1.5;
+      for (const contour of zeroContours) {
         for (const seg of contour.segments) {
           const p1 = gridToScreen(seg.x1, seg.z1);
           const p2 = gridToScreen(seg.x2, seg.z2);
@@ -227,6 +392,72 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
           ctx.stroke();
         }
       }
+    }
+
+    const contourLo = usgsTopoStyle ? (p02Value ?? minValue) : minValue;
+    const contourHi = usgsTopoStyle ? (p98Value ?? maxValue) : maxValue;
+
+    if (usgsTopoStyle) {
+      drawUsgsHydrographyHatch(ctx, values, n, gridToScreen, hydroSlice);
+      drawUsgsSteepSlopeHachures(ctx, values, n, gridToScreen, contourLo, contourHi);
+    }
+
+    // ── Contour lines (uses pre-computed contourData) ──
+    if (showContours && contourData.length > 0) {
+      if (usgsTopoStyle) {
+        drawUsgsContours(ctx, contourData, gridToScreen, contourInterval);
+        drawUsgsContourLabels(ctx, contourData, gridToScreen, contourInterval, n);
+      } else {
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = 0.8;
+        for (const contour of contourData) {
+          for (const seg of contour.segments) {
+            const p1 = gridToScreen(seg.x1, seg.z1);
+            const p2 = gridToScreen(seg.x2, seg.z2);
+            ctx.beginPath();
+            ctx.moveTo(p1.sx, p1.sy);
+            ctx.lineTo(p2.sx, p2.sy);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    if (usgsTopoStyle && spotElevations.length > 0) {
+      drawUsgsSpotElevations(ctx, spotElevations, gridToScreen);
+    }
+
+    if (usgsTopoStyle) {
+      drawUsgsNeatline(ctx, displaySize);
+      drawUsgsMarginTicks(
+        ctx,
+        displaySize,
+        rangeMin,
+        rangeMax,
+        gridSpacing,
+        gridToScreen,
+        n,
+        10,
+        true,
+      );
+    }
+
+    // ── Shape preview overlays ──
+    if (showShapePreview && values) {
+      if (cellShapeGrid && cellShapeGrid.resolution === n) {
+        drawWallDistanceTint(ctx, cellShapeGrid, gridToScreen, showWallDistance);
+        drawCellBoundaries(ctx, cellShapeGrid, gridToScreen, showCellBoundaries);
+      }
+      drawSdfZeroContour(ctx, sdfZeroSegments, gridToScreen, showSdfSurface);
+      drawShapeMeshPoints(
+        ctx,
+        shapePreviewMeshPoints,
+        rangeMin,
+        rangeMax,
+        n,
+        gridToScreen,
+        showMeshSamples,
+      );
     }
 
     // ── Position overlay dots ──
@@ -265,16 +496,16 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
       const p1 = gridToScreen(g1.gx, g1.gz);
       const p2 = gridToScreen(g2.gx, g2.gz);
 
-      ctx.strokeStyle = "#22c55e";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 3]);
+      ctx.strokeStyle = usgsTopoStyle ? "#2d6a4f" : "#22c55e";
+      ctx.lineWidth = usgsTopoStyle ? 1.75 : 2;
+      ctx.setLineDash(usgsTopoStyle ? [8, 4] : [6, 3]);
       ctx.beginPath();
       ctx.moveTo(p1.sx, p1.sy);
       ctx.lineTo(p2.sx, p2.sy);
       ctx.stroke();
       ctx.setLineDash([]);
 
-      ctx.fillStyle = "#22c55e";
+      ctx.fillStyle = usgsTopoStyle ? "#2d6a4f" : "#22c55e";
       ctx.beginPath();
       ctx.arc(p1.sx, p1.sy, 3, 0, Math.PI * 2);
       ctx.fill();
@@ -284,7 +515,7 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [values, canvasTransform, contourData, showContours, rangeMin, rangeMax, showCrossSection, crossSectionLine, showPositionOverlay, positionOverlayPoints, positionOverlayColor, positionOverlaySize, getOverlayContext, makeGridToScreen]);
+  }, [values, contourData, spotElevations, hydroSlice, showContours, contourInterval, usgsTopoStyle, showThresholdView, rangeMin, rangeMax, minValue, maxValue, p02Value, p98Value, yLevel, showCrossSection, crossSectionLine, showShapePreview, showCellBoundaries, showWallDistance, showMeshSamples, showSdfSurface, cellShapeGrid, sdfZeroSegments, shapePreviewMeshPoints, showPositionOverlay, positionOverlayPoints, positionOverlayColor, positionOverlaySize, getOverlayContext, makeGridToScreen]);
 
   // ── Get display rect for interactions ──
   const getInteractionRect = useCallback((): DOMRect | null => {
@@ -303,8 +534,8 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
       if (dragRef.current && !e.shiftKey) {
         const dx = e.clientX - dragRef.current.startX;
         const dy = e.clientY - dragRef.current.startY;
-        setCanvasTransform({
-          ...canvasTransform,
+        applyTransform({
+          ...getTransform(),
           offsetX: dragRef.current.startOX + dx,
           offsetY: dragRef.current.startOY + dy,
         });
@@ -315,7 +546,7 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
       if (crossLineRef.current && e.shiftKey) {
         const world = screenToWorld(
           e.clientX - rect.left, e.clientY - rect.top,
-          canvasTransform, rect.width, rangeMin, rangeMax,
+          getTransform(), rect.width, rangeMin, rangeMax,
         );
         setCrossSectionLine({
           start: { x: crossLineRef.current.startX, z: crossLineRef.current.startZ },
@@ -327,7 +558,7 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
       // Hover readout
       const world = screenToWorld(
         e.clientX - rect.left, e.clientY - rect.top,
-        canvasTransform, rect.width, rangeMin, rangeMax,
+        getTransform(), rect.width, rangeMin, rangeMax,
       );
 
       // Use actual grid size from values array — may differ from resolution
@@ -349,19 +580,20 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
         value: val,
       });
     },
-    [values, rangeMin, rangeMax, canvasTransform, setCanvasTransform, setCrossSectionLine, getInteractionRect],
+    [values, rangeMin, rangeMax, getTransform, applyTransform, setCrossSectionLine, getInteractionRect],
   );
 
   const onMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const rect = getInteractionRect();
       if (!rect) return;
+      const liveTransform = getTransform();
 
       // Shift+click starts cross-section line
       if (e.shiftKey && showCrossSection) {
         const world = screenToWorld(
           e.clientX - rect.left, e.clientY - rect.top,
-          canvasTransform, rect.width, rangeMin, rangeMax,
+          liveTransform, rect.width, rangeMin, rangeMax,
         );
         crossLineRef.current = { startX: world.x, startZ: world.z };
         return;
@@ -372,16 +604,17 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
       dragRef.current = {
         startX: e.clientX,
         startY: e.clientY,
-        startOX: canvasTransform.offsetX,
-        startOY: canvasTransform.offsetY,
+        startOX: liveTransform.offsetX,
+        startOY: liveTransform.offsetY,
       };
+      setIsPanning(true);
 
       const handleDocMouseMove = (ev: MouseEvent) => {
         if (!dragRef.current) return;
         const dx = ev.clientX - dragRef.current.startX;
         const dy = ev.clientY - dragRef.current.startY;
-        setCanvasTransform({
-          ...canvasTransform,
+        applyTransform({
+          ...getTransform(),
           offsetX: dragRef.current.startOX + dx,
           offsetY: dragRef.current.startOY + dy,
         });
@@ -389,22 +622,26 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
       const handleDocMouseUp = () => {
         dragRef.current = null;
         crossLineRef.current = null;
+        setIsPanning(false);
+        flushTransform();
         document.removeEventListener("mousemove", handleDocMouseMove);
         document.removeEventListener("mouseup", handleDocMouseUp);
       };
       document.addEventListener("mousemove", handleDocMouseMove);
       document.addEventListener("mouseup", handleDocMouseUp);
     },
-    [canvasTransform, rangeMin, rangeMax, showCrossSection, getInteractionRect, setCanvasTransform],
+    [getTransform, rangeMin, rangeMax, showCrossSection, getInteractionRect, applyTransform, flushTransform],
   );
 
   const onMouseUp = useCallback(() => {
     dragRef.current = null;
     crossLineRef.current = null;
-  }, []);
+    setIsPanning(false);
+    flushTransform();
+  }, [flushTransform]);
 
   const onWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
+    (e: WheelEvent) => {
       e.preventDefault();
       const rect = getInteractionRect();
       if (!rect) return;
@@ -413,37 +650,57 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
       const cx = rect.width / 2;
       const cy = rect.height / 2;
 
+      const current = getTransform();
       const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
-      const newScale = Math.max(0.5, Math.min(10, canvasTransform.scale * factor));
+
+      // Ctrl/Cmd + wheel: zoom the sampled world range (re-triggers density eval).
+      if (e.ctrlKey || e.metaKey) {
+        const world = screenToWorld(
+          mouseX, mouseY, current, rect.width, rangeMin, rangeMax,
+        );
+        const span = (rangeMax - rangeMin) * factor;
+        const minSpan = 16;
+        const maxSpan = 512;
+        const clampedSpan = Math.max(minSpan, Math.min(maxSpan, span));
+        const center = (world.x + world.z) / 2;
+        setRange(center - clampedSpan / 2, center + clampedSpan / 2);
+        return;
+      }
+
+      const newScale = Math.max(0.25, Math.min(20, current.scale * factor));
 
       // Zoom centered on cursor
-      const ox = mouseX - cx - canvasTransform.offsetX;
-      const oy = mouseY - cy - canvasTransform.offsetY;
-      const ratio = newScale / canvasTransform.scale;
+      const ox = mouseX - cx - current.offsetX;
+      const oy = mouseY - cy - current.offsetY;
+      const ratio = newScale / current.scale;
 
-      setCanvasTransform({
+      applyTransform({
         scale: newScale,
-        offsetX: canvasTransform.offsetX - (ox * (ratio - 1)),
-        offsetY: canvasTransform.offsetY - (oy * (ratio - 1)),
+        offsetX: current.offsetX - (ox * (ratio - 1)),
+        offsetY: current.offsetY - (oy * (ratio - 1)),
       });
     },
-    [canvasTransform, setCanvasTransform, getInteractionRect],
+    [rangeMin, rangeMax, applyTransform, setRange, getInteractionRect, getTransform],
   );
+
+  useNonPassiveWheel(interactionRef, onWheel, Boolean(values));
 
   const onDoubleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      // Shift+double-click clears cross-section
       if (e.shiftKey && showCrossSection) {
         setCrossSectionLine(null);
+        return;
       }
+      resetCanvasTransform();
     },
-    [showCrossSection, setCrossSectionLine],
+    [showCrossSection, setCrossSectionLine, resetCanvasTransform],
   );
 
   const onMouseLeave = useCallback(() => {
     setHoverInfo(null);
-    dragRef.current = null;
-    crossLineRef.current = null;
+    if (!dragRef.current) {
+      crossLineRef.current = null;
+    }
   }, []);
 
   const cm = getColormap(colormap);
@@ -457,65 +714,109 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
   }
 
   return (
-    <div ref={containerRef} className="relative flex items-center justify-center h-full p-4">
-      <div className="relative" style={{ aspectRatio: "1 / 1", maxWidth: "100%", maxHeight: "100%", height: "100%" }}>
-        {/* Base heatmap canvas */}
-        <canvas
-          ref={setRefs}
-          className="absolute inset-0 w-full h-full border border-tn-border"
-          style={{
-            imageRendering: "pixelated",
-            transform: `translate(${canvasTransform.offsetX}px, ${canvasTransform.offsetY}px) scale(${canvasTransform.scale})`,
-            transformOrigin: "center center",
-          }}
-        />
-        {/* Overlay canvas for contours, grid, cross-section */}
-        <canvas
-          ref={overlayRef}
+    <div
+      ref={containerRef}
+      data-tn-heatmap-root
+      className={`relative flex items-center justify-center h-full min-h-0 w-full p-0.5 overflow-visible ${usgsTopoStyle ? "bg-[#f5f0e1]" : ""}`}
+    >
+      <div
+        ref={mapFrameRef}
+        className="relative shrink-0 overflow-visible"
+        style={{
+          width: mapFrameSize.w > 0 ? mapFrameSize.w : "100%",
+          height: mapFrameSize.h > 0 ? mapFrameSize.h : "100%",
+          maxWidth: "100%",
+          maxHeight: "100%",
+        }}
+      >
+        {/* Transformed map layer — GPU pan/zoom; overlays skip transform math per frame */}
+        <div
+          ref={transformLayerRef}
           className="absolute inset-0 w-full h-full"
-          style={{ pointerEvents: "none" }}
-        />
+          style={{ transformOrigin: "center center", willChange: "transform" }}
+        >
+          <canvas
+            ref={setRefs}
+            data-tn-heatmap-base
+            className={`absolute inset-0 w-full h-full border ${usgsTopoStyle ? "border-[#c4b89a]" : "border-tn-border"}`}
+            style={{ imageRendering: canvasTransform.scale > 2 ? "auto" : "pixelated" }}
+          />
+          <canvas
+            ref={overlayRef}
+            data-tn-heatmap-overlay
+            className="absolute inset-0 w-full h-full"
+            style={{ pointerEvents: "none" }}
+          />
+        </div>
         {/* Interaction layer */}
         <div
+          ref={interactionRef}
           className="absolute inset-0"
-          style={{ cursor: dragRef.current ? "grabbing" : "crosshair" }}
+          role="application"
+          aria-label={
+            usgsTopoStyle
+              ? "Topographic density map. Drag to pan, scroll to zoom detail, Ctrl+scroll to change world range, Shift-drag for cross-section."
+              : "Density heatmap preview. Drag to pan, scroll to zoom detail, Ctrl+scroll to change world range, Shift-drag for cross-section."
+          }
+          style={{ cursor: isPanning ? "grabbing" : "crosshair" }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseLeave}
-          onWheel={onWheel}
           onDoubleClick={onDoubleClick}
         />
+
+        {usgsTopoStyle && (
+          <TopoMapHud
+            contourInterval={contourInterval}
+            rangeMin={rangeMin}
+            rangeMax={rangeMax}
+            yLevel={yLevel}
+            p02={p02Value ?? minValue}
+            p98={p98Value ?? maxValue}
+            zoom={canvasTransform.scale}
+            evalResolution={evalResolution}
+            mapSize={Math.min(mapFrameSize.w, mapFrameSize.h) || 0}
+            canvasScale={canvasTransform.scale}
+            hoverInfo={hoverInfo}
+            showHydrography={hydroContext.enabled}
+            waterSurfaceY={hydroContext.waterSurfaceY}
+            sliceHint={sliceHint}
+          />
+        )}
       </div>
 
-      {/* Hover readout */}
-      {hoverInfo && (
-        <div className="absolute bottom-3 left-3 px-2 py-1 bg-tn-panel/90 border border-tn-border rounded text-[10px] text-tn-text font-mono">
-          x: {hoverInfo.x}, z: {hoverInfo.z} &rarr; {hoverInfo.value.toFixed(4)}
+      {!usgsTopoStyle && hoverInfo && (
+        <div className={`absolute bottom-3 left-3 px-2 py-1 font-mono text-[10px] text-tn-text ${previewHudBadgeClass}`}>
+          d: {hoverInfo.value.toFixed(4)} &middot; x {hoverInfo.x}, z {hoverInfo.z}
         </div>
       )}
 
-      {/* Min/Max legend */}
-      <div className="absolute top-3 right-3 flex flex-col gap-0.5 text-[10px] text-tn-text-muted font-mono">
-        <span>min: {minValue.toFixed(3)}</span>
-        <span>max: {maxValue.toFixed(3)}</span>
-      </div>
+      {!usgsTopoStyle && (
+        <div className={`absolute top-3 right-3 flex flex-col gap-0.5 font-mono text-[10px] text-tn-text-muted ${previewHudBadgeClass} px-2 py-1`}>
+          <span>min: {minValue.toFixed(3)}</span>
+          <span>max: {maxValue.toFixed(3)}</span>
+        </div>
+      )}
 
-      {/* Color ramp legend bar */}
-      <div className="absolute bottom-3 right-3 flex items-end gap-1">
-        <span className="text-[9px] text-tn-text-muted font-mono">low</span>
-        <div className="w-24 h-2 rounded-sm" style={{
-          background: cm.cssGradient,
-        }} />
-        <span className="text-[9px] text-tn-text-muted font-mono">high</span>
-      </div>
+      {!usgsTopoStyle && (
+        <div className="absolute bottom-3 right-3 flex items-end gap-1">
+          <span className="font-mono text-[9px] text-tn-text-muted">low</span>
+          <div className="h-2 w-24 rounded-sm" style={{ background: cm.cssGradient }} />
+          <span className="font-mono text-[9px] text-tn-text-muted">high</span>
+        </div>
+      )}
 
-      {/* Zoom indicator */}
-      {canvasTransform.scale !== 1 && (
-        <div className="absolute top-3 left-3 px-1.5 py-0.5 bg-tn-panel/80 border border-tn-border rounded text-[9px] text-tn-text-muted font-mono">
-          {canvasTransform.scale.toFixed(1)}x
+      {!usgsTopoStyle && (canvasTransform.scale !== 1 || evalResolution !== resolution) && (
+        <div className={`absolute top-3 left-3 ${previewHudBadgeClass}`}>
+          {canvasTransform.scale.toFixed(1)}× · {evalResolution}²
+          {isLoading && !values && <span className="ml-1 text-tn-accent">…</span>}
         </div>
       )}
     </div>
   );
-}));
+});
+
+export const Heatmap2D = memo(Heatmap2DInner);
+Heatmap2D.displayName = "Heatmap2D";
+export default Heatmap2D;

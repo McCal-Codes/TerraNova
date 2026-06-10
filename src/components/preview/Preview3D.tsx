@@ -1,26 +1,37 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { AdaptiveDpr, AdaptiveEvents, OrbitControls } from "@react-three/drei";
 import { EffectComposer, SSAO } from "@react-three/postprocessing";
+import { useShallow } from "zustand/react/shallow";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useConfigStore } from "@/stores/configStore";
 import { getColormap } from "@/utils/colormaps";
 import { CameraPresets } from "./CameraPresets";
 import { WaterPlane } from "./FluidPlane";
 import { PositionMarkers3D } from "./PositionMarkers3D";
+import { ShapePreview3D } from "./ShapePreview3D";
 import { EdgeOutlineEffect } from "./EdgeOutlineEffect";
 import { HytaleSky, HytaleFog, GroundShadow } from "./SceneEnvironment";
 import { BufferAttribute, Vector2 } from "three";
 import type { Mesh } from "three";
+import { VoxelMeshGroup } from "./VoxelMeshGroup";
+import { buildCutawayClipPlane } from "@/utils/previewCutaway";
+import { WebGLContextRecovery } from "./WebGLContextRecovery";
+import { PreviewSceneCameraFit } from "./PreviewSceneCameraFit";
+import { previewHudChipClass, previewHudPanelClass } from "./previewChromeStyles";
 
 function Heightfield({ wireframe }: { wireframe: boolean }) {
-  const values = usePreviewStore((s) => s.values);
-  const minValue = usePreviewStore((s) => s.minValue);
-  const maxValue = usePreviewStore((s) => s.maxValue);
-  const p02Value = usePreviewStore((s) => s.p02Value);
-  const p98Value = usePreviewStore((s) => s.p98Value);
-  const colormap = usePreviewStore((s) => s.colormap);
-  const heightScale3D = usePreviewStore((s) => s.heightScale3D);
+  const { values, minValue, maxValue, p02Value, p98Value, colormap, heightScale3D } = usePreviewStore(
+    useShallow((s) => ({
+      values: s.values,
+      minValue: s.minValue,
+      maxValue: s.maxValue,
+      p02Value: s.p02Value,
+      p98Value: s.p98Value,
+      colormap: s.colormap,
+      heightScale3D: s.heightScale3D,
+    })),
+  );
   const meshRef = useRef<Mesh>(null);
 
   const geometry = useMemo(() => {
@@ -119,8 +130,9 @@ function SSAOEffect() {
 }
 
 function PostProcessing() {
-  const showSSAO = usePreviewStore((s) => s.showSSAO);
-  const showEdgeOutline = usePreviewStore((s) => s.showEdgeOutline);
+  const { showSSAO, showEdgeOutline } = usePreviewStore(
+    useShallow((s) => ({ showSSAO: s.showSSAO, showEdgeOutline: s.showEdgeOutline })),
+  );
 
   if (showSSAO && showEdgeOutline) {
     return (
@@ -147,25 +159,127 @@ function PostProcessing() {
   return null;
 }
 
+function VolumeScene({ wireframe }: { wireframe: boolean }) {
+  const {
+    voxelMeshData,
+    cutawayEnabled,
+    cutawayLevel,
+    rangeMin,
+    rangeMax,
+    voxelYMin,
+    voxelYMax,
+    voxelResolution,
+    voxelYSlices,
+    tint,
+  } = usePreviewStore(
+    useShallow((s) => ({
+      voxelMeshData: s.voxelMeshData,
+      cutawayEnabled: s.cutawayEnabled,
+      cutawayLevel: s.cutawayLevel,
+      rangeMin: s.rangeMin,
+      rangeMax: s.rangeMax,
+      voxelYMin: s.voxelYMin,
+      voxelYMax: s.voxelYMax,
+      voxelResolution: s.voxelResolution,
+      voxelYSlices: s.voxelYSlices,
+      tint: s.tintColors,
+    })),
+  );
+
+  const clippingPlanes = useMemo(() => {
+    if (!cutawayEnabled) return undefined;
+    return [
+      buildCutawayClipPlane(cutawayLevel, {
+        rangeMin,
+        rangeMax,
+        voxelYMin,
+        voxelYMax,
+        resolution: voxelResolution,
+        ySlices: voxelYSlices,
+      }),
+    ];
+  }, [cutawayEnabled, cutawayLevel, rangeMin, rangeMax, voxelYMin, voxelYMax, voxelResolution, voxelYSlices]);
+
+  if (!voxelMeshData?.length) return null;
+
+  return (
+    <group position={[0, -25, 0]}>
+      <VoxelMeshGroup
+        meshData={voxelMeshData}
+        wireframe={wireframe}
+        color1={tint.color1}
+        color2={tint.color2}
+        color3={tint.color3}
+        clippingPlanes={clippingPlanes}
+      />
+    </group>
+  );
+}
+
 export function Preview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElement | null) => void }) {
   const [wireframe, setWireframe] = useState(false);
-  const showWaterPlane = usePreviewStore((s) => s.showWaterPlane);
-  const showFog3D = usePreviewStore((s) => s.showFog3D);
-  const showSky3D = usePreviewStore((s) => s.showSky3D);
-  const atm = usePreviewStore((s) => s.atmosphereSettings);
-  const enableShadows = useConfigStore((s) => s.enableShadows);
-  const shadowMapSize = useConfigStore((s) => s.shadowMapSize);
-  const gpuPowerPreference = useConfigStore((s) => s.gpuPowerPreference);
-  const preferredGpuId = useConfigStore((s) => s.preferredGpuId);
+  const [glRecoveryKey, setGlRecoveryKey] = useState(0);
+  const {
+    showWaterPlane,
+    showFog3D,
+    showSky3D,
+    show3DVolumeView,
+    isVoxelLoading,
+    voxelEvalProgressRes,
+    voxelDisplayedRes,
+    voxelMeshData,
+    atm,
+    values,
+  } = usePreviewStore(
+    useShallow((s) => ({
+      showWaterPlane: s.showWaterPlane,
+      showFog3D: s.showFog3D,
+      showSky3D: s.showSky3D,
+      show3DVolumeView: s.show3DVolumeView,
+      isVoxelLoading: s.isVoxelLoading,
+      voxelEvalProgressRes: s.voxelEvalProgressRes,
+      voxelDisplayedRes: s.voxelDisplayedRes,
+      voxelMeshData: s.voxelMeshData,
+      atm: s.atmosphereSettings,
+      values: s.values,
+    })),
+  );
+  const { enableShadows, shadowMapSize, gpuPowerPreference, preferredGpuId, rendererPixelRatio } = useConfigStore(
+    useShallow((s) => ({
+      enableShadows: s.enableShadows,
+      shadowMapSize: s.shadowMapSize,
+      gpuPowerPreference: s.gpuPowerPreference,
+      preferredGpuId: s.preferredGpuId,
+      rendererPixelRatio: s.rendererPixelRatio,
+    })),
+  );
+  const canvasDpr = rendererPixelRatio > 0 ? rendererPixelRatio : undefined;
 
   return (
     <div className="relative w-full h-full">
       <Canvas
-        key={`preview3d-${gpuPowerPreference}-${preferredGpuId || "auto"}`}
+        key={`preview3d-${glRecoveryKey}-${gpuPowerPreference}-${preferredGpuId || "auto"}`}
         camera={{ position: [30, 25, 30], fov: 50 }}
-        gl={{ preserveDrawingBuffer: true, powerPreference: gpuPowerPreference }}
+        dpr={canvasDpr}
+        gl={{
+          preserveDrawingBuffer: true,
+          powerPreference: gpuPowerPreference,
+          localClippingEnabled: show3DVolumeView,
+        }}
         shadows={enableShadows}
       >
+        {rendererPixelRatio === 0 && (
+          <>
+            <AdaptiveDpr pixelated />
+            <AdaptiveEvents />
+          </>
+        )}
+        <PreviewSceneCameraFit
+          target={[0, show3DVolumeView ? -12 : 0, 0]}
+          radius={show3DVolumeView ? 30 : 28}
+          resetKey={`${show3DVolumeView}-${voxelMeshData?.length ?? 0}-${values?.length ?? 0}`}
+        />
+        <WebGLContextRecovery onRecover={() => setGlRecoveryKey((k) => k + 1)} />
         {/* Hytale-style lighting */}
         <hemisphereLight args={[atm.skyHorizon, "#8B7355", 0.4]} />
         <directionalLight
@@ -184,11 +298,12 @@ export function Preview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElemen
         />
         <directionalLight position={[-12, 15, -8]} intensity={0.2} color="#b0c4de" />
 
-        <Heightfield wireframe={wireframe} />
+        {show3DVolumeView ? <VolumeScene wireframe={wireframe} /> : <Heightfield wireframe={wireframe} />}
         <OrbitControls enableDamping dampingFactor={0.1} />
         <gridHelper args={[50, 50, "#4a4438", "#312d28"]} />
         <GroundShadow />
         <PositionMarkers3D />
+        <ShapePreview3D space="heightfield" />
         {showWaterPlane && <WaterPlane />}
         {showFog3D && <HytaleFog />}
         {showSky3D && <HytaleSky />}
@@ -198,14 +313,29 @@ export function Preview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElemen
         <PostProcessing />
       </Canvas>
 
+      {show3DVolumeView && (
+        <div className={`absolute top-2 right-2 z-10 max-w-[220px] px-2 py-1 text-[10px] text-tn-text-muted ${previewHudPanelClass}`}>
+          Underground volume view — surface heightfield cannot show cave voids.
+          {isVoxelLoading && !voxelMeshData
+            ? (voxelEvalProgressRes != null
+              ? ` Evaluating volume (${voxelEvalProgressRes}³)…`
+              : " Evaluating volume…")
+            : voxelEvalProgressRes != null
+              ? (voxelDisplayedRes != null && voxelDisplayedRes < voxelEvalProgressRes
+                ? ` ${voxelDisplayedRes}³ preview · refining to ${voxelEvalProgressRes}³…`
+                : ` Refining to ${voxelEvalProgressRes}³…`)
+              : ""}
+        </div>
+      )}
+
       {/* Wireframe toggle */}
       <div className="absolute top-2 left-2 z-10">
         <button
           onClick={() => setWireframe((w) => !w)}
-          className={`px-2 py-1 text-[10px] rounded border transition-colors ${
+          className={`${previewHudChipClass} ${
             wireframe
-              ? "bg-tn-accent/20 text-tn-accent border-tn-accent/40"
-              : "bg-tn-panel/80 text-tn-text-muted border-tn-border hover:text-tn-text"
+              ? "border-tn-accent/50 bg-black/65 text-tn-accent"
+              : ""
           }`}
         >
           {wireframe ? "Wireframe" : "Solid"}

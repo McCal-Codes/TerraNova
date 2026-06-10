@@ -110,6 +110,18 @@ export function ramBudgetToSettings(mb: number) {
   return { maxHistoryEntries: 100, maxPersistedHistory: 50, defaultPreviewRes: 512, defaultVoxelRes: 128, defaultVoxelYSlices: 64 };
 }
 
+/** Read persisted preview/voxel defaults without initializing the config store (avoids init cycles). */
+export function readStoredPreviewDefaults(): Pick<
+  typeof DEFAULTS,
+  "defaultPreviewRes" | "defaultVoxelRes" | "defaultVoxelYSlices"
+> {
+  return {
+    defaultPreviewRes: getStoredNumber("defaultPreviewRes", DEFAULTS.defaultPreviewRes),
+    defaultVoxelRes: getStoredNumber("defaultVoxelRes", DEFAULTS.defaultVoxelRes),
+    defaultVoxelYSlices: getStoredNumber("defaultVoxelYSlices", DEFAULTS.defaultVoxelYSlices),
+  };
+}
+
 // ── Types ──
 
 interface ConfigValues {

@@ -1,8 +1,14 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { SliderField } from "@/components/properties/SliderField";
-import { runFitToContent } from "@/utils/previewAutoFit";
+import { runFitToContent, fitToContentBoundsFromResult } from "@/utils/previewAutoFit";
+import { resolveTerrainReferenceLevels } from "@/utils/terrainPreviewLevel";
+import {
+  PreviewCheckbox,
+  PreviewSidebarSection,
+  previewButtonClass,
+} from "./PreviewControlPrimitives";
 
 export function ControlsVoxel() {
   const rangeMin = usePreviewStore((s) => s.rangeMin);
@@ -34,7 +40,32 @@ export function ControlsVoxel() {
   const setShowEdgeOutline = usePreviewStore((s) => s.setShowEdgeOutline);
   const autoFitYEnabled = usePreviewStore((s) => s.autoFitYEnabled);
   const setAutoFitYEnabled = usePreviewStore((s) => s.setAutoFitYEnabled);
+  const terrainRefUseBaseY = usePreviewStore((s) => s.terrainRefUseBaseY);
   const isFitToContentRunning = usePreviewStore((s) => s.isFitToContentRunning);
+  const cutawayEnabled = usePreviewStore((s) => s.cutawayEnabled);
+  const setCutawayEnabled = usePreviewStore((s) => s.setCutawayEnabled);
+  const cutawayLevel = usePreviewStore((s) => s.cutawayLevel);
+  const setCutawayLevel = usePreviewStore((s) => s.setCutawayLevel);
+  const yLevel = usePreviewStore((s) => s.yLevel);
+  const nodes = useEditorStore((s) => s.nodes);
+  const edges = useEditorStore((s) => s.edges);
+  const contentFields = useEditorStore((s) => s.contentFields);
+
+  const terrainRef = useMemo(
+    () => resolveTerrainReferenceLevels(nodes, edges, contentFields, {
+      useBaseY: terrainRefUseBaseY,
+    }),
+    [nodes, edges, contentFields, terrainRefUseBaseY],
+  );
+
+  const handleTerrainRefUseBaseY = useCallback((enabled: boolean) => {
+    const store = usePreviewStore.getState();
+    store.setTerrainRefUseBaseY(enabled);
+    if (store.autoFitYEnabled) {
+      store._setAutoFitGraphHash("");
+      store._setUserManualYAdjust(false);
+    }
+  }, []);
 
   const handleYMinChange = useCallback((v: number) => {
     usePreviewStore.getState()._setUserManualYAdjust(true);
@@ -60,88 +91,99 @@ export function ControlsVoxel() {
     );
 
     if (result?.hasSolids) {
-      // Adjust XZ range — use the larger of X/Z extents, symmetrized
-      const xzExtent = Math.max(
-        Math.abs(result.worldXMin),
-        Math.abs(result.worldXMax),
-        Math.abs(result.worldZMin),
-        Math.abs(result.worldZMax),
-      );
-      store.setRange(-xzExtent, xzExtent);
-      store.setVoxelYMin(result.worldYMin);
-      store.setVoxelYMax(result.worldYMax);
-      store._setUserManualYAdjust(true);
+      const apply = fitToContentBoundsFromResult(result);
+      if (apply) {
+        store.setRange(apply.rangeMin, apply.rangeMax);
+        store.setVoxelYMin(apply.voxelYMin);
+        store.setVoxelYMax(apply.voxelYMax);
+        store._setUserManualYAdjust(true);
+      }
     }
 
     store.setFitToContentRunning(false);
   }, []);
 
   return (
-    <>
-      <SliderField label="Range Min" value={rangeMin} min={-256} max={0} step={1} onChange={(v) => setRange(v, rangeMax)} />
-      <SliderField label="Range Max" value={rangeMax} min={0} max={256} step={1} onChange={(v) => setRange(rangeMin, v)} />
+    <PreviewSidebarSection title="Voxel mesh" headingId="preview-voxel-heading">
+      <SliderField label="Range min" value={rangeMin} min={-256} max={0} step={1} onChange={(v) => setRange(v, rangeMax)} />
+      <SliderField label="Range max" value={rangeMax} min={0} max={256} step={1} onChange={(v) => setRange(rangeMin, v)} />
 
       <button
+        type="button"
         onClick={handleFitToContent}
         disabled={isFitToContentRunning}
-        className="w-full px-2 py-1 text-[11px] font-medium rounded border border-tn-border bg-tn-bg-secondary text-tn-text-muted hover:bg-tn-bg-tertiary hover:text-tn-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className={`w-full ${previewButtonClass}`}
       >
-        {isFitToContentRunning ? "Scanning..." : "Fit to Content"}
+        {isFitToContentRunning ? "Scanning…" : "Fit to content"}
       </button>
 
-      <div className="flex flex-col gap-2 border-t border-tn-border pt-2">
-        <span className="text-[10px] text-tn-text-muted font-medium">Voxel Options</span>
+      <SliderField
+        label="Resolution"
+        value={voxelResolution}
+        min={8}
+        max={256}
+        step={8}
+        allowInputOverflow
+        onChange={setVoxelResolution}
+      />
+      <SliderField label="Y min" value={voxelYMin} min={-128} max={319} step={1} onChange={handleYMinChange} />
+      <SliderField label="Y max" value={voxelYMax} min={-127} max={320} step={1} onChange={handleYMaxChange} />
+      {terrainRef && (
+        <p className="text-[10px] text-tn-text-muted leading-snug">
+          Terrain ref: {terrainRef.baseHeightName} Y={terrainRef.referenceY}
+          {!terrainRefUseBaseY && terrainRef.suggestedYLevel !== terrainRef.referenceY
+            ? ` · nominal surface Y≈${terrainRef.suggestedYLevel}`
+            : terrainRefUseBaseY ? " · anchored to Base Y" : ""}
+          {terrainRef.bedrockY != null ? ` · bedrock Y=${terrainRef.bedrockY}` : ""}
+        </p>
+      )}
+      <SliderField label="Y slices" value={voxelYSlices} min={8} max={128} step={4} onChange={setVoxelYSlices} />
 
-        <SliderField label="Resolution" value={voxelResolution} min={8} max={256} step={8} allowInputOverflow onChange={setVoxelResolution} />
-        <SliderField label="Y Min" value={voxelYMin} min={0} max={319} step={1} onChange={handleYMinChange} />
-        <SliderField label="Y Max" value={voxelYMax} min={1} max={320} step={1} onChange={handleYMaxChange} />
-        <SliderField label="Y Slices" value={voxelYSlices} min={8} max={128} step={4} onChange={setVoxelYSlices} />
+      <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0">
+        <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">Cave visibility</legend>
+        <PreviewCheckbox
+          checked={cutawayEnabled}
+          onChange={setCutawayEnabled}
+          label="Cutaway (hide above Y)"
+          description="Clip the mesh above a world Y to see underground tunnels."
+        />
+        {cutawayEnabled && (
+          <SliderField
+            label="Cutaway Y"
+            value={cutawayLevel}
+            min={voxelYMin}
+            max={voxelYMax}
+            step={1}
+            onChange={setCutawayLevel}
+          />
+        )}
+        <button
+          type="button"
+          className={previewButtonClass}
+          onClick={() => setCutawayLevel(yLevel)}
+        >
+          Sync cutaway to 2D Y level ({yLevel})
+        </button>
+      </fieldset>
 
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={autoFitYEnabled} onChange={(e) => setAutoFitYEnabled(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Auto-fit Y range
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showMaterialColors} onChange={(e) => setShowMaterialColors(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Material Colors
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showVoxelWireframe} onChange={(e) => setShowVoxelWireframe(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Wireframe
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showMaterialLegend} onChange={(e) => setShowMaterialLegend(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Legend
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showWaterPlane} onChange={(e) => setShowWaterPlane(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Water Plane
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showFog3D} onChange={(e) => setShowFog3D(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Fog
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showSky3D} onChange={(e) => setShowSky3D(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Sky
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showSSAO} onChange={(e) => setShowSSAO(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          SSAO
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showEdgeOutline} onChange={(e) => setShowEdgeOutline(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Edge Outline
-        </label>
-      </div>
-    </>
+      <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0">
+        <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">Display</legend>
+        <PreviewCheckbox checked={autoFitYEnabled} onChange={setAutoFitYEnabled} label="Auto-fit Y range" />
+        <PreviewCheckbox
+          checked={terrainRefUseBaseY}
+          onChange={handleTerrainRefUseBaseY}
+          label="Anchor terrain ref to Base Y"
+          description="Use ContentFields Base for auto-fit and 2D Y level instead of the height-curve zero-crossing."
+        />
+        <PreviewCheckbox checked={showMaterialColors} onChange={setShowMaterialColors} label="Material colors" />
+        <PreviewCheckbox checked={showVoxelWireframe} onChange={setShowVoxelWireframe} label="Wireframe" />
+        <PreviewCheckbox checked={showMaterialLegend} onChange={setShowMaterialLegend} label="Material legend" />
+        <PreviewCheckbox checked={showWaterPlane} onChange={setShowWaterPlane} label="Water plane" />
+        <PreviewCheckbox checked={showFog3D} onChange={setShowFog3D} label="Fog" />
+        <PreviewCheckbox checked={showSky3D} onChange={setShowSky3D} label="Sky" />
+        <PreviewCheckbox checked={showSSAO} onChange={setShowSSAO} label="SSAO" />
+        <PreviewCheckbox checked={showEdgeOutline} onChange={setShowEdgeOutline} label="Edge outline" />
+      </fieldset>
+    </PreviewSidebarSection>
   );
 }

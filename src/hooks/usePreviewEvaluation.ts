@@ -1,135 +1,460 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+
 import { usePreviewStore } from "@/stores/previewStore";
+
 import { useEditorStore } from "@/stores/editorStore";
+
 import { evaluateInWorker, cancelEvaluation } from "@/utils/densityWorkerClient";
+
 import { computeFidelityScore } from "@/utils/graphDiagnostics";
+
 import { useConfigStore } from "@/stores/configStore";
 
-const PROGRESSIVE_STEPS = [16, 32, 64];
+import { useProjectStore } from "@/stores/projectStore";
+
+import { buildDensityEvalOptions } from "@/utils/buildDensityEvalOptions";
+
+import { isPropEditingContext } from "@/utils/propEditingContext";
+
+import { useEvaluationFingerprint } from "@/hooks/useEvaluationFingerprint";
+
+import {
+  buildDensityPreviewEvalSteps,
+  resolve2dPreviewResolutionForZoom,
+} from "@/utils/previewResolution";
+import { useZoomEvalScale } from "@/hooks/useZoomEvalScale";
+
+
 
 /**
+
  * Auto-evaluation hook for the preview panel.
+
  * Watches graph changes and preview control changes, then triggers
+
  * evaluation via the Web Worker with debouncing and cancellation.
+
+ *
+
+ * Mount via PreviewEvaluationHost once per editor shell (not inside PreviewPanel).
+
  */
+
 export function usePreviewEvaluation() {
-  const nodes = useEditorStore((s) => s.nodes);
-  const edges = useEditorStore((s) => s.edges);
-  const contentFields = useEditorStore((s) => s.contentFields);
-  const outputNodeId = useEditorStore((s) => s.outputNodeId);
+
+  const evalFingerprint = useEvaluationFingerprint();
+
+  const editingContext = useEditorStore((s) => s.editingContext);
+
+  const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
+
   const resolution = usePreviewStore((s) => s.resolution);
+
   const rangeMin = usePreviewStore((s) => s.rangeMin);
+
   const rangeMax = usePreviewStore((s) => s.rangeMax);
+
   const yLevel = usePreviewStore((s) => s.yLevel);
+
   const selectedPreviewNodeId = usePreviewStore((s) => s.selectedPreviewNodeId);
+
   const viewMode = usePreviewStore((s) => s.viewMode);
-  const autoRefresh = usePreviewStore((s) => s.autoRefresh);
-  const setValues = usePreviewStore((s) => s.setValues);
-  const setLoading = usePreviewStore((s) => s.setLoading);
-  const setPreviewError = usePreviewStore((s) => s.setPreviewError);
+
+  const previewAutoRefresh = usePreviewStore((s) => s.autoRefresh);
+  const configAutoRefresh = useConfigStore((s) => s.autoRefresh);
+  const autoRefresh = previewAutoRefresh && configAutoRefresh;
+
+  const mode = usePreviewStore((s) => s.mode);
+
+  const canvasScale = usePreviewStore((s) => s.canvasTransform.scale);
+
+  const zoomEvalScale = useZoomEvalScale(canvasScale);
+
   const debounceMs = useConfigStore((s) => s.debounceMs);
+
+
+
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const evalIdRef = useRef(0);
 
+  const latestPreviewEvalKeyRef = useRef<string | null>(null);
+
+
+
+  const previewEvalKey = useMemo(() => {
+
+    if (isPropEditingContext(editingContext, activeBiomeSection)) return null;
+
+    if (mode === "voxel" || mode === "world") return null;
+
+    if (viewMode === "graph" || !autoRefresh) return null;
+
+
+
+    const effectiveResolution = mode === "2d"
+      ? resolve2dPreviewResolutionForZoom(resolution, zoomEvalScale)
+      : resolution;
+
+    return [
+
+      evalFingerprint,
+
+      mode,
+
+      effectiveResolution,
+
+      rangeMin,
+
+      rangeMax,
+
+      yLevel,
+
+      selectedPreviewNodeId ?? "",
+
+    ].join("|");
+
+  }, [
+
+    evalFingerprint,
+
+    editingContext,
+
+    activeBiomeSection,
+
+    mode,
+
+    viewMode,
+
+    autoRefresh,
+
+    resolution,
+
+    zoomEvalScale,
+
+    rangeMin,
+
+    rangeMax,
+
+    yLevel,
+
+    selectedPreviewNodeId,
+
+  ]);
+
+
+
+  latestPreviewEvalKeyRef.current = previewEvalKey;
+
+
+
   useEffect(() => {
-    // Only auto-evaluate when preview is visible and auto-refresh is on
-    if (viewMode === "graph" || !autoRefresh) return;
+
+    if (!previewEvalKey) {
+
+      const preview = usePreviewStore.getState();
+
+      if (preview.isLoading) preview.setLoading(false);
+
+      if (preview.previewError) preview.setPreviewError(null);
+
+      return;
+
+    }
+
+
+
+    const store = usePreviewStore.getState();
+
+    if (store.densityEvalKey === previewEvalKey && store.values) {
+
+      store.setLoading(false);
+
+      store.setPreviewError(null);
+
+      return;
+
+    }
+
+
 
     if (timerRef.current) clearTimeout(timerRef.current);
 
+    const keyForThisRun = previewEvalKey;
+
+
+
     timerRef.current = setTimeout(async () => {
+
+      const { nodes, edges, contentFields, outputNodeId } = useEditorStore.getState();
+
+      const projectPath = useProjectStore.getState().projectPath;
+
+      const preview = usePreviewStore.getState();
+
+      const liveMode = preview.mode;
+
+      const effectiveResolution = liveMode === "2d"
+        ? resolve2dPreviewResolutionForZoom(preview.resolution, zoomEvalScale)
+        : preview.resolution;
+
+
+
       if (nodes.length === 0) {
-        setValues(null, 0, 0);
-        setPreviewError(null);
+
+        preview.setValues(null, 0, 0);
+
+        preview.setPreviewError(null);
+
+        preview.setLoading(false);
+
+        usePreviewStore.setState({ densityEvalKey: null });
+
         return;
+
       }
+
+
 
       const evalId = ++evalIdRef.current;
-      setLoading(true);
-      setPreviewError(null);
 
-      const params = {
+      if (!preview.values && !preview.isLoading) preview.setLoading(true);
+
+      if (preview.previewError) preview.setPreviewError(null);
+
+
+
+      const evalOptions = await buildDensityEvalOptions({
         nodes,
         edges,
-        rangeMin,
-        rangeMax,
-        yLevel,
-        rootNodeId: selectedPreviewNodeId ?? outputNodeId ?? undefined,
-        options: { contentFields },
+        contentFields,
+        projectPath,
+      });
+
+      const params = {
+
+        nodes,
+
+        edges,
+
+        rangeMin: preview.rangeMin,
+
+        rangeMax: preview.rangeMax,
+
+        yLevel: preview.yLevel,
+
+        rootNodeId: preview.selectedPreviewNodeId ?? outputNodeId ?? undefined,
+
+        options: evalOptions,
+
       };
 
+
+
+      const steps = buildDensityPreviewEvalSteps(
+        liveMode === "2d" ? "2d" : "3d",
+        effectiveResolution,
+      );
+
+      const existingGridN = preview.values
+        ? Math.round(Math.sqrt(preview.values.length))
+        : 0;
+      const evalSteps = existingGridN > 0 && steps[steps.length - 1] > existingGridN
+        ? [steps[steps.length - 1]]
+        : steps;
+
+
+
       try {
-        // Progressive coarse-to-fine: show low-res result immediately, then refine
-        const steps = PROGRESSIVE_STEPS.filter((s) => s < resolution);
-        for (const step of steps) {
+
+        for (const step of evalSteps) {
+
           if (evalId !== evalIdRef.current) return;
-          const coarse = await evaluateInWorker({ ...params, resolution: step });
+
+          const result = await evaluateInWorker({ ...params, resolution: step });
+
           if (evalId === evalIdRef.current) {
-            setValues(coarse.values, coarse.minValue, coarse.maxValue, coarse.p02Value, coarse.p98Value);
+
+            preview.setValues(
+
+              result.values,
+
+              result.minValue,
+
+              result.maxValue,
+
+              result.p02Value,
+
+              result.p98Value,
+
+            );
+
           }
+
         }
 
-        if (evalId !== evalIdRef.current) return;
-        const result = await evaluateInWorker({ ...params, resolution });
+
 
         if (evalId === evalIdRef.current) {
-          setValues(result.values, result.minValue, result.maxValue, result.p02Value, result.p98Value);
+
+          usePreviewStore.setState({ densityEvalKey: keyForThisRun });
+
           usePreviewStore.getState().setFidelityScore(computeFidelityScore(nodes));
+
         }
+
       } catch (err) {
-        if (err === "cancelled") return; // expected
+
+        if (err === "cancelled") return;
+
         if (evalId === evalIdRef.current) {
-          setValues(null, 0, 0);
-          setPreviewError(`Preview evaluation failed: ${err}`);
+
+          preview.setValues(null, 0, 0);
+
+          preview.setPreviewError(`Preview evaluation failed: ${err}`);
+
+          usePreviewStore.setState({ densityEvalKey: null });
+
         }
+
       } finally {
-        if (evalId === evalIdRef.current) {
-          setLoading(false);
+
+        if (evalId === evalIdRef.current && usePreviewStore.getState().isLoading) {
+
+          usePreviewStore.getState().setLoading(false);
+
         }
+
       }
+
     }, debounceMs);
 
+
+
     return () => {
+
       if (timerRef.current) clearTimeout(timerRef.current);
-      cancelEvaluation();
+
+      if (latestPreviewEvalKeyRef.current !== keyForThisRun) {
+
+        evalIdRef.current += 1;
+
+        cancelEvaluation();
+
+      }
+
     };
-  }, [nodes, edges, contentFields, outputNodeId, resolution, rangeMin, rangeMax, yLevel, selectedPreviewNodeId, viewMode, autoRefresh, setValues, setLoading, setPreviewError, debounceMs]);
+
+  }, [previewEvalKey, debounceMs, zoomEvalScale]);
+
 }
+
+
 
 /**
- * Trigger a manual evaluation (ignores autoRefresh).
- */
-export function triggerManualEvaluation() {
-  const { resolution, rangeMin, rangeMax, yLevel, selectedPreviewNodeId, setValues, setLoading, setPreviewError } = usePreviewStore.getState();
-  const { nodes, edges, contentFields, outputNodeId } = useEditorStore.getState();
 
-  if (nodes.length === 0) {
-    setValues(null, 0, 0);
+ * Trigger a manual evaluation (ignores autoRefresh).
+
+ */
+
+export function triggerManualEvaluation() {
+  const preview = usePreviewStore.getState();
+  const { nodes, edges, contentFields, outputNodeId, editingContext, activeBiomeSection } = useEditorStore.getState();
+  const projectPath = useProjectStore.getState().projectPath;
+
+
+
+  if (isPropEditingContext(editingContext, activeBiomeSection)) {
+
+    preview.setLoading(false);
+
+    preview.setPreviewError(null);
+
     return;
+
   }
 
-  setLoading(true);
-  setPreviewError(null);
 
-  evaluateInWorker({
-    nodes,
-    edges,
-    resolution,
-    rangeMin,
-    rangeMax,
-    yLevel,
-    rootNodeId: selectedPreviewNodeId ?? outputNodeId ?? undefined,
-    options: { contentFields },
-  })
-    .then((result) => {
-      setValues(result.values, result.minValue, result.maxValue, result.p02Value, result.p98Value);
-    })
-    .catch((err) => {
-      if (err === "cancelled") return;
-      setValues(null, 0, 0);
-      setPreviewError(`Preview evaluation failed: ${err}`);
-    })
-    .finally(() => {
-      setLoading(false);
+
+  if (nodes.length === 0) {
+
+    preview.setValues(null, 0, 0);
+
+    usePreviewStore.setState({ densityEvalKey: null });
+
+    return;
+
+  }
+
+
+
+  const effectiveResolution = preview.mode === "2d"
+    ? resolve2dPreviewResolutionForZoom(preview.resolution, preview.canvasTransform.scale)
+    : preview.resolution;
+
+
+
+  preview.setLoading(true);
+
+  preview.setPreviewError(null);
+
+
+
+  void (async () => {
+    const evalOptions = await buildDensityEvalOptions({
+      nodes,
+      edges,
+      contentFields,
+      projectPath,
     });
+
+    evaluateInWorker({
+
+      nodes,
+
+      edges,
+
+      resolution: effectiveResolution,
+
+      rangeMin: preview.rangeMin,
+
+      rangeMax: preview.rangeMax,
+
+      yLevel: preview.yLevel,
+
+      rootNodeId: preview.selectedPreviewNodeId ?? outputNodeId ?? undefined,
+
+      options: evalOptions,
+
+    })
+
+    .then((result) => {
+
+      preview.setValues(result.values, result.minValue, result.maxValue, result.p02Value, result.p98Value);
+
+      usePreviewStore.setState({ densityEvalKey: "manual" });
+
+    })
+
+    .catch((err) => {
+
+      if (err === "cancelled") return;
+
+      preview.setValues(null, 0, 0);
+
+      preview.setPreviewError(`Preview evaluation failed: ${err}`);
+
+      usePreviewStore.setState({ densityEvalKey: null });
+
+    })
+
+    .finally(() => {
+
+      preview.setLoading(false);
+
+    });
+  })();
+
 }
+
+

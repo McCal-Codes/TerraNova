@@ -21,6 +21,12 @@ export default defineConfig({
     format: "es",
   },
   build: {
+    target:
+      process.env.TAURI_ENV_PLATFORM === "windows"
+        ? "chrome105"
+        : process.env.TAURI_ENV_PLATFORM === "macos"
+          ? "safari13"
+          : "chrome105",
     rollupOptions: {
       output: {
         manualChunks: {

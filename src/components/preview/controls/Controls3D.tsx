@@ -1,5 +1,6 @@
 import { usePreviewStore } from "@/stores/previewStore";
 import { SliderField } from "@/components/properties/SliderField";
+import { PreviewCheckbox, PreviewSidebarSection } from "./PreviewControlPrimitives";
 
 export function Controls3D() {
   const resolution = usePreviewStore((s) => s.resolution);
@@ -23,48 +24,68 @@ export function Controls3D() {
   const setShowSSAO = usePreviewStore((s) => s.setShowSSAO);
   const showEdgeOutline = usePreviewStore((s) => s.showEdgeOutline);
   const setShowEdgeOutline = usePreviewStore((s) => s.setShowEdgeOutline);
+  const show3DVolumeView = usePreviewStore((s) => s.show3DVolumeView);
+  const setShow3DVolumeView = usePreviewStore((s) => s.setShow3DVolumeView);
+  const cutawayEnabled = usePreviewStore((s) => s.cutawayEnabled);
+  const setCutawayEnabled = usePreviewStore((s) => s.setCutawayEnabled);
+  const cutawayLevel = usePreviewStore((s) => s.cutawayLevel);
+  const setCutawayLevel = usePreviewStore((s) => s.setCutawayLevel);
+  const voxelYMin = usePreviewStore((s) => s.voxelYMin);
+  const voxelYMax = usePreviewStore((s) => s.voxelYMax);
 
   return (
-    <>
-      <SliderField label="Resolution" value={resolution} min={16} max={512} step={16} onChange={setResolution} />
-      <SliderField label="Range Min" value={rangeMin} min={-256} max={0} step={1} onChange={(v) => setRange(v, rangeMax)} />
-      <SliderField label="Range Max" value={rangeMax} min={0} max={256} step={1} onChange={(v) => setRange(rangeMin, v)} />
-      <SliderField label="Y Level" value={yLevel} min={0} max={256} step={1} onChange={setYLevel} />
+    <PreviewSidebarSection title={show3DVolumeView ? "3D underground volume" : "3D heightfield"} headingId="preview-3d-heading">
+      <PreviewCheckbox
+        checked={show3DVolumeView}
+        onChange={setShow3DVolumeView}
+        label="Underground view (volume mesh)"
+        description="Surface heightfield cannot show caves; use volume mesh or Voxel mode."
+      />
+      {show3DVolumeView && (
+        <>
+          <PreviewCheckbox
+            checked={cutawayEnabled}
+            onChange={setCutawayEnabled}
+            label="Cutaway (hide above Y)"
+          />
+          {cutawayEnabled && (
+            <SliderField
+              label="Cutaway Y"
+              value={cutawayLevel}
+              min={voxelYMin}
+              max={voxelYMax}
+              step={1}
+              onChange={setCutawayLevel}
+            />
+          )}
+        </>
+      )}
+      {!show3DVolumeView && (
+        <SliderField label="Resolution" value={resolution} min={16} max={512} step={16} onChange={setResolution} />
+      )}
+      <SliderField label="Range min" value={rangeMin} min={-256} max={0} step={1} onChange={(v) => setRange(v, rangeMax)} />
+      <SliderField label="Range max" value={rangeMax} min={0} max={256} step={1} onChange={(v) => setRange(rangeMin, v)} />
+      <SliderField label="Y level (slice)" value={yLevel} min={0} max={256} step={1} onChange={setYLevel} />
+      <SliderField label="Height scale" value={heightScale3D} min={1} max={50} step={0.5} onChange={setHeightScale3D} />
 
-      <div className="flex flex-col gap-2 border-t border-tn-border pt-2">
-        <span className="text-[10px] text-tn-text-muted font-medium">3D Options</span>
-
-        <SliderField label="Height Scale" value={heightScale3D} min={1} max={50} step={0.5} onChange={setHeightScale3D} />
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showWaterPlane} onChange={(e) => setShowWaterPlane(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Water Plane
-        </label>
-
+      <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0">
+        <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">Scene</legend>
+        <PreviewCheckbox checked={showWaterPlane} onChange={setShowWaterPlane} label="Water plane" />
         {showWaterPlane && (
-          <SliderField label="Water Level" value={waterPlaneLevel} min={0} max={1} step={0.01} onChange={setWaterPlaneLevel} />
+          <SliderField
+            label="Water level"
+            value={waterPlaneLevel}
+            min={0}
+            max={1}
+            step={0.01}
+            onChange={setWaterPlaneLevel}
+          />
         )}
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showFog3D} onChange={(e) => setShowFog3D(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Fog
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showSky3D} onChange={(e) => setShowSky3D(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Sky
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showSSAO} onChange={(e) => setShowSSAO(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          SSAO
-        </label>
-
-        <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={showEdgeOutline} onChange={(e) => setShowEdgeOutline(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-          Edge Outline
-        </label>
-      </div>
-    </>
+        <PreviewCheckbox checked={showFog3D} onChange={setShowFog3D} label="Fog" />
+        <PreviewCheckbox checked={showSky3D} onChange={setShowSky3D} label="Sky" />
+        <PreviewCheckbox checked={showSSAO} onChange={setShowSSAO} label="SSAO" />
+        <PreviewCheckbox checked={showEdgeOutline} onChange={setShowEdgeOutline} label="Edge outline" />
+      </fieldset>
+    </PreviewSidebarSection>
   );
 }

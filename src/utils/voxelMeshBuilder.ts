@@ -265,6 +265,7 @@ export function buildVoxelMeshes(
   offsetX: number,
   offsetY: number,
   offsetZ: number,
+  volumeMaterialIds?: Uint8Array,
 ): VoxelMeshData[] {
   const n = resolution;
   const ys = ySlices;
@@ -275,13 +276,28 @@ export function buildVoxelMeshes(
   const matGrid = new Uint8Array(n * n * ys);
   matGrid.fill(255);
 
-  for (let i = 0; i < voxelData.count; i++) {
-    const bx = Math.round(voxelData.positions[i * 3]);
-    const by = Math.round(voxelData.positions[i * 3 + 1]);
-    const bz = Math.round(voxelData.positions[i * 3 + 2]);
-    if (bx < 0 || bx >= n || by < 0 || by >= ys || bz < 0 || bz >= n) continue;
-    const idx = by * n * n + bz * n + bx;
-    matGrid[idx] = voxelData.materialIds[i];
+  // Mark every solid voxel so exposed faces are found on the full volume shell.
+  for (let y = 0; y < ys; y++) {
+    const yOff = y * n * n;
+    for (let z = 0; z < n; z++) {
+      for (let x = 0; x < n; x++) {
+        const idx = yOff + z * n + x;
+        if (densities[idx] < SOLID_THRESHOLD) continue;
+        matGrid[idx] = volumeMaterialIds?.[idx] ?? 0;
+      }
+    }
+  }
+
+  // Surface voxels carry authoritative material IDs when volume grid is absent.
+  if (!volumeMaterialIds) {
+    for (let i = 0; i < voxelData.count; i++) {
+      const bx = Math.round(voxelData.positions[i * 3]);
+      const by = Math.round(voxelData.positions[i * 3 + 1]);
+      const bz = Math.round(voxelData.positions[i * 3 + 2]);
+      if (bx < 0 || bx >= n || by < 0 || by >= ys || bz < 0 || bz >= n) continue;
+      const idx = by * n * n + bz * n + bx;
+      matGrid[idx] = voxelData.materialIds[i];
+    }
   }
 
   // Collect quads per material: matId → array of quads

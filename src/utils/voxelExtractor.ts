@@ -206,6 +206,48 @@ export function smoothTerrainFill(
   return { densities: result, heightmap: smoothed };
 }
 
+/**
+ * Fill air gaps below the connected terrain body in each column.
+ * Preserves caves and overhangs above the highest connected solid (gap detection
+ * matches smoothTerrainFill). Prevents see-through holes when viewing from below.
+ */
+export function fillTerrainColumnBacking(
+  densities: Float32Array,
+  n: number,
+  ys: number,
+): Float32Array {
+  const result = new Float32Array(densities);
+
+  for (let z = 0; z < n; z++) {
+    for (let x = 0; x < n; x++) {
+      let highestSolid = -1;
+      let consecutiveAir = 0;
+
+      for (let y = 0; y < ys; y++) {
+        const idx = y * n * n + z * n + x;
+        if (result[idx] >= SOLID_THRESHOLD) {
+          highestSolid = y;
+          consecutiveAir = 0;
+        } else {
+          consecutiveAir++;
+          if (consecutiveAir >= GAP_THRESHOLD && highestSolid >= 0) break;
+        }
+      }
+
+      if (highestSolid < 0) continue;
+
+      for (let y = 0; y <= highestSolid; y++) {
+        const idx = y * n * n + z * n + x;
+        if (result[idx] < SOLID_THRESHOLD) {
+          result[idx] = 0;
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 /* ── Fluid configuration ─────────────────────────────────────────── */
 
 export interface FluidConfig {

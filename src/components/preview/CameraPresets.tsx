@@ -5,7 +5,7 @@ import { Vector3 } from "three";
 
 const PRESETS: { label: string; position: [number, number, number] }[] = [
   { label: "Top", position: [0, 50, 0.01] },
-  { label: "Iso", position: [30, 25, 30] },
+  { label: "Iso", position: [45, 38, 45] },
   { label: "Front", position: [0, 10, 50] },
 ];
 
@@ -51,7 +51,7 @@ export function CameraPresets() {
 
   return (
     <Html fullscreen style={{ pointerEvents: "none" }}>
-      <div className="absolute top-2 right-2 flex gap-1" style={{ pointerEvents: "auto" }}>
+      <div className="absolute bottom-2 left-2 flex gap-1" style={{ pointerEvents: "auto" }}>
         {PRESETS.map(({ label, position }) => (
           <button
             key={label}
@@ -62,7 +62,7 @@ export function CameraPresets() {
           </button>
         ))}
         <button
-          onClick={() => animateTo([30, 25, 30])}
+          onClick={() => animateTo([45, 38, 45])}
           className="px-1.5 py-0.5 text-[9px] rounded bg-tn-panel/80 text-tn-text-muted hover:text-tn-text border border-tn-border hover:bg-white/10 transition-colors"
         >
           Reset

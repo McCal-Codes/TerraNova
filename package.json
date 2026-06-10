@@ -10,10 +10,16 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint src/",
+    "fmt:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml",
+    "validate": "pnpm lint && pnpm build && pnpm exec vitest run && pnpm docs:check && cargo fmt --manifest-path tools/bridge-save/Cargo.toml --check && cargo test --manifest-path tools/bridge-save/Cargo.toml && cargo fmt --manifest-path tools/terranova-bridge/Cargo.toml --check && cargo test --manifest-path tools/terranova-bridge/Cargo.toml && cargo fmt --manifest-path src-tauri/Cargo.toml --check && cargo test --manifest-path src-tauri/Cargo.toml",
+    "bridge:plugin:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bridge-plugin-build.ps1",
     "docs:check": "vitest run src/docs/__tests__/docsIntegrity.test.tsx src/components/docs/__tests__/docsPanelUtils.test.ts src/components/docs/__tests__/DocsPanel.test.tsx",
     "test": "vitest",
+    "test:gallery": "vitest run src/dev/__tests__/shapePreviewGalleryCases.test.ts src/dev/__tests__/shapePreviewGallerySmoke.test.ts src/utils/shapePreview/__tests__",
     "tauri": "tauri",
-    "sync:hytale": "node scripts/sync-hytale-assets.mjs"
+    "sync:hytale": "node scripts/sync-hytale-assets.mjs",
+    "bridge:run": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bridge-run.ps1",
+    "bridge:build": "cargo build --release --manifest-path tools/terranova-bridge/Cargo.toml"
   },
   "dependencies": {
     "@codemirror/lang-json": "^6.0.2",

@@ -1,14 +1,17 @@
 import type { Node, Edge } from "@xyflow/react";
 import { createEvaluationContext, type EvaluationOptions } from "./densityEvaluator";
+import { evaluateDensityGrid3D, type VolumeGridParams, type VolumeGridResult } from "./volumeEvaluationCore";
+
+export type { VolumeGridParams, VolumeGridResult };
+export { evaluateDensityGrid3D, progressiveYSlices, buildProgressiveVolumeSteps } from "./volumeEvaluationCore";
 
 /* ── Types ────────────────────────────────────────────────────────── */
 
-export interface VolumeResult {
-  densities: Float32Array;
-  resolution: number;
-  ySlices: number;
-  minValue: number;
-  maxValue: number;
+export interface VolumeResult extends VolumeGridResult {}
+
+export interface VolumeEvalOptions extends EvaluationOptions {
+  /** When true, aborts between Y slices (worker cancel). */
+  shouldCancel?: () => boolean;
 }
 
 /* ── Main export ──────────────────────────────────────────────────── */
@@ -16,9 +19,6 @@ export interface VolumeResult {
 /**
  * Evaluate a density node graph over a 3D volume.
  * Layout: densities[y * n * n + z * n + x] (Y-major)
- *
- * x, z ∈ [rangeMin, rangeMax]
- * y ∈ [yMin, yMax]
  */
 export function evaluateDensityVolume(
   nodes: Node[],
@@ -30,52 +30,54 @@ export function evaluateDensityVolume(
   yMax: number,
   ySlices: number,
   rootNodeId?: string,
-  options?: EvaluationOptions,
+  options?: VolumeEvalOptions,
 ): VolumeResult {
-  const n = Math.max(1, resolution);
-  const ys = Math.max(1, ySlices);
-  const densities = new Float32Array(n * n * ys);
-
   const ctx = createEvaluationContext(nodes, edges, rootNodeId, options);
   if (!ctx) {
-    return { densities, resolution: n, ySlices: ys, minValue: 0, maxValue: 0 };
+    const n = Math.max(1, resolution);
+    const ys = Math.max(1, ySlices);
+    return {
+      densities: new Float32Array(n * n * ys),
+      resolution: n,
+      ySlices: ys,
+      minValue: 0,
+      maxValue: 0,
+    };
   }
 
-  const stepXZ = n > 1 ? (rangeMax - rangeMin) / (n - 1) : 0;
-  const stepY = ys > 1 ? (yMax - yMin) / (ys - 1) : 0;
-  let minVal = Infinity;
-  let maxVal = -Infinity;
+  return evaluateDensityGrid3D(
+    ctx,
+    { resolution, rangeMin, rangeMax, yMin, yMax, ySlices },
+    options?.shouldCancel,
+  );
+}
 
-  ctx.clearMemo();
-
-  for (let yi = 0; yi < ys; yi++) {
-    const wy = yMin + yi * stepY;
-    const yOffset = yi * n * n;
-
-    // Clear memo once per Y slice — cache keys include (x,y,z) so no cross-row
-    // reuse, but retaining the full 3D volume in cache (n*n*ys entries) would
-    // consume excessive memory for large volumes.
-    ctx.clearMemo();
-
-    for (let zi = 0; zi < n; zi++) {
-      const wz = rangeMin + zi * stepXZ;
-
-      for (let xi = 0; xi < n; xi++) {
-        const wx = rangeMin + xi * stepXZ;
-
-        const val = ctx.evaluate(ctx.rootId, wx, wy, wz);
-
-        const idx = yOffset + zi * n + xi;
-        densities[idx] = val;
-
-        if (val < minVal) minVal = val;
-        if (val > maxVal) maxVal = val;
-      }
-    }
+/**
+ * Evaluate multiple volume grids reusing one evaluation context (progressive passes).
+ */
+export function evaluateDensityVolumeSteps(
+  nodes: Node[],
+  edges: Edge[],
+  rootNodeId: string | undefined,
+  options: EvaluationOptions | undefined,
+  bounds: Pick<VolumeGridParams, "rangeMin" | "rangeMax" | "yMin" | "yMax">,
+  steps: Array<Pick<VolumeGridParams, "resolution" | "ySlices">>,
+  shouldCancel?: () => boolean,
+): VolumeResult[] {
+  const ctx = createEvaluationContext(nodes, edges, rootNodeId, options);
+  if (!ctx) {
+    return steps.map(({ resolution, ySlices }) => ({
+      densities: new Float32Array(Math.max(1, resolution) ** 2 * Math.max(1, ySlices)),
+      resolution: Math.max(1, resolution),
+      ySlices: Math.max(1, ySlices),
+      minValue: 0,
+      maxValue: 0,
+    }));
   }
 
-  if (!isFinite(minVal)) minVal = 0;
-  if (!isFinite(maxVal)) maxVal = 0;
-
-  return { densities, resolution: n, ySlices: ys, minValue: minVal, maxValue: maxVal };
+  return steps.map(({ resolution, ySlices }) => evaluateDensityGrid3D(
+    ctx,
+    { ...bounds, resolution, ySlices },
+    shouldCancel,
+  ));
 }

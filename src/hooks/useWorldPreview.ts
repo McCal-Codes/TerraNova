@@ -8,8 +8,13 @@ import {
   type ChunkDataResponse,
 } from "@/utils/ipc";
 import { buildWorldMeshes } from "@/utils/worldMeshBuilder";
+import {
+  applyLivePlayerToPreview,
+  livePlayerFromInfo,
+} from "@/utils/livePlayerTracking";
+import { useDevMetricsStore } from "@/stores/devMetricsStore";
 
-const FOLLOW_POLL_MS = 5000; // Poll player position every 5s
+const FOLLOW_POLL_MS = 3000;
 const CHUNK_FETCH_TIMEOUT_MS = 10_000; // Per-chunk fetch timeout (normal)
 const CHUNK_FORCE_LOAD_TIMEOUT_MS = 25_000; // Per-chunk fetch timeout (force-load)
 
@@ -86,15 +91,8 @@ export function useWorldPreview() {
     async function pollPlayer() {
       try {
         const info = await bridgePlayerInfo();
-        if (info.x != null && info.z != null) {
-          const cx = Math.floor(info.x / 32);
-          const cz = Math.floor(info.z / 32);
-          const store = usePreviewStore.getState();
-          if (store.worldCenterX !== cx || store.worldCenterZ !== cz) {
-            store.setWorldCenterX(cx);
-            store.setWorldCenterZ(cz);
-          }
-        }
+        const live = livePlayerFromInfo(info);
+        if (live) applyLivePlayerToPreview(live, { follow: true });
       } catch {
         // Player not available — ignore
       }
@@ -120,15 +118,12 @@ export function useWorldPreview() {
     bridgePlayerInfo()
       .then((info) => {
         if (cancelled) return;
-        if (info.x != null && info.z != null) {
-          const cx = Math.floor(info.x / 32);
-          const cz = Math.floor(info.z / 32);
-          const store = usePreviewStore.getState();
-          // Only update if still at default (0, 0) or first entry
-          if (store.worldCenterX === 0 && store.worldCenterZ === 0) {
-            store.setWorldCenterX(cx);
-            store.setWorldCenterZ(cz);
-          }
+        const live = livePlayerFromInfo(info);
+        if (!live) return;
+        applyLivePlayerToPreview(live, { follow: false });
+        const store = usePreviewStore.getState();
+        if (store.worldCenterX === 0 && store.worldCenterZ === 0) {
+          applyLivePlayerToPreview(live, { follow: true });
         }
       })
       .catch(() => {
@@ -173,9 +168,11 @@ export function useWorldPreview() {
     function startChunkLoading() {
     const evalId = ++evalIdRef.current;
     const store = usePreviewStore.getState();
+    const pipelineStart = performance.now();
 
     store.setWorldLoading(true);
     store.setWorldError(null);
+    store.setWorldDataSource(null);
     store.setWorldProgress(0, totalChunks);
 
     async function loadChunks() {
@@ -239,20 +236,54 @@ export function useWorldPreview() {
       if (cancelled || evalId !== evalIdRef.current) return;
 
       if (loadedChunks.length > 0) {
+        let saveCount = 0;
+        let syntheticCount = 0;
+        for (const c of loadedChunks) {
+          if (c.dataSource === "synthetic") syntheticCount++;
+          else saveCount++;
+        }
+        const dataSource =
+          saveCount === 0 ? "synthetic" : syntheticCount === 0 ? "save" : "mixed";
+        usePreviewStore.getState().setWorldDataSource(dataSource);
+        if (dataSource === "synthetic") {
+          usePreviewStore.getState().setWorldError(
+            `No saved chunks on disk around (${worldCenterX}, ${worldCenterZ}). Sidecar shows synthetic terrain — walk the area in-game, then reload preview.`,
+          );
+        } else {
+          usePreviewStore.getState().setWorldError(null);
+        }
+
         // Yield two frames so React can paint "all chunks loaded" before heavy mesh build
         usePreviewStore.getState().setWorldProgress(totalChunks, totalChunks);
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
         if (evalId !== evalIdRef.current) return;
 
-        const { meshes, sceneYMin, sceneScale, terrainSize } = buildWorldMeshes(
+        // Sidecar grows the palette as save chunks are decoded; refresh before meshing.
+        let paletteForMesh = blockPalette!;
+        try {
+          const fresh = await bridgeFetchPalette();
+          paletteForMesh = fresh.palette;
+          useBridgeStore.getState().setBlockPalette(fresh.palette);
+        } catch {
+          // keep palette from connect
+        }
+
+        const { meshes, sceneYMin, sceneScale, terrainSize, worldMidX, worldMidZ } =
+          buildWorldMeshes(
           loadedChunks,
-          blockPalette!,
+          paletteForMesh,
           worldCenterX,
           worldCenterZ,
           worldSurfaceDepth,
         );
         if (cancelled || evalId !== evalIdRef.current) return;
         sceneTransformRef.current = { yMin: sceneYMin, scale: sceneScale, terrainSize };
+        usePreviewStore.getState().setWorldSceneLayout({
+          sceneYMin,
+          sceneScale,
+          worldMidX,
+          worldMidZ,
+        });
         usePreviewStore.getState().setVoxelMeshData(meshes);
 
         // Set lava config immediately after mesh build to avoid timing race
@@ -269,10 +300,18 @@ export function useWorldPreview() {
 
         // Mark this fetch as cached
         lastFetchKeyRef.current = fetchKey;
+
+        useDevMetricsStore.getState().reportEval({
+          kind: "world",
+          durationMs: performance.now() - pipelineStart,
+          detail: `${loadedChunks.length}/${totalChunks} chunks · ${dataSource}`,
+          at: Date.now(),
+        });
       } else {
+        usePreviewStore.getState().setWorldDataSource(null);
         const hint = worldForceLoad
-          ? "Even with Generate Chunks enabled, no data was returned."
-          : "Enable \"Generate Chunks\" to load terrain without a nearby player.";
+          ? "Sidecar reads saved region files only — Generate Chunks has no effect until an in-server plugin ships."
+          : "Move in-game so Hytale writes chunks to the save, or center preview on a saved area.";
         const errorDetail = chunkErrors.length > 0
           ? `\n\nServer: ${chunkErrors[0]}`
           : "";

@@ -278,6 +278,22 @@ export async function listPackWizardBundleTemplates(): Promise<PackWizardBundleT
   return invoke<PackWizardBundleTemplate[]>("list_pack_wizard_bundle_templates");
 }
 
+export interface PackBackupResult {
+  backupPath: string;
+  filesCopied: number;
+  bytesCopied: number;
+}
+
+export async function backupPackDirectory(
+  packPath: string,
+  destination?: string,
+): Promise<PackBackupResult> {
+  return invoke<PackBackupResult>("backup_pack_directory", {
+    packPath,
+    destination: destination ?? null,
+  });
+}
+
 export async function showInFolder(path: string): Promise<void> {
   return invoke("show_in_folder", { path });
 }

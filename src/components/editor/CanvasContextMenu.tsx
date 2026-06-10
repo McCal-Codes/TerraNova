@@ -2,7 +2,7 @@ import { useReactFlow } from "@xyflow/react";
 import { ContextMenuOverlay, ContextMenuItem, ContextMenuSeparator } from "./ContextMenuPrimitives";
 import { useEditorStore } from "@/stores/editorStore";
 import { useUIStore } from "@/stores/uiStore";
-import { makeAuthorNoteText } from "@/utils/annotationUtils";
+import { makeAuthorNoteText, syncAnnotationNodeDimensions } from "@/utils/annotationUtils";
 
 interface CanvasContextMenuProps {
   x: number;
@@ -81,17 +81,21 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
           const id = `frame-${crypto.randomUUID()}`;
           const { nodes, setNodes, commitState } = useEditorStore.getState();
           setNodes([
-            {
+            syncAnnotationNodeDimensions({
               id,
               type: "frame",
               position: flowPos,
+              width: 300,
+              height: 200,
               data: { type: "frame", name: "", width: 300, height: 200 },
               draggable: true,
               selectable: true,
+              selected: true,
               zIndex: -1,
-            },
-            ...nodes,
+            }),
+            ...nodes.map((n) => ({ ...n, selected: false })),
           ]);
+          useEditorStore.getState().setSelectedNodeId(id);
           commitState("Add frame");
           onClose();
         }}

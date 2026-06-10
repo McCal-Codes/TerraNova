@@ -26,6 +26,7 @@ import { nodeTypes } from "@/nodes";
 import { CATEGORY_COLORS, AssetCategory } from "@/schema/types";
 import { getNodeType } from "@/utils/density/evalTypes";
 import { supportsShapePreviewCard } from "@/utils/shapePreview/shapePreviewProfile";
+import { annotationNodeSize, syncAnnotationNodeDimensions } from "@/utils/annotationUtils";
 import { NodeSearchDialog } from "./NodeSearchDialog";
 import { QuickAddDialog, type PendingConnection } from "./QuickAddDialog";
 import { RootDock } from "./RootDock";
@@ -103,11 +104,20 @@ function useResolvedNodes() {
   return useMemo(() => {
     const withAnnotations = typeResolved.map((node) => {
       if (node.type === "frame") {
+        const sized = syncAnnotationNodeDimensions(node);
+        const { width, height } = annotationNodeSize(sized);
         return {
-          ...node,
+          ...sized,
+          width,
+          height,
           selectable: false,
-          draggable: Boolean(node.selected),
-          dragHandle: node.selected ? ".frame-drag-handle" : undefined,
+          draggable: Boolean(sized.selected),
+          dragHandle: sized.selected ? ".frame-drag-handle" : undefined,
+          zIndex: -1,
+          style: {
+            ...(typeof sized.style === "object" && sized.style ? sized.style : {}),
+            pointerEvents: "none" as const,
+          },
         };
       }
       if (node.type === "comment") {

@@ -48,4 +48,21 @@ describe("buildAssetValidationBadge", () => {
 
     expect(candidates[0]).toBe("C:\\Pack\\Server\\Prop\\OakTreeLarge.json");
   });
+
+  it("resolves custom pack environment refs from HytaleGenerator paths", () => {
+    const candidates = findAssetReferenceCandidates(
+      "Env_McCal_Crownlands",
+      "environment",
+      {
+        environment: {
+          env_mccal_crownlands: [
+            "C:\\Pack\\Server\\HytaleGenerator\\Environments\\Env_McCal_Crownlands.json",
+          ],
+        },
+      },
+    );
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toContain("Env_McCal_Crownlands.json");
+  });
 });

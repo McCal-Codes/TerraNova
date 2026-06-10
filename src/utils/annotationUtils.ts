@@ -115,6 +115,8 @@ export function buildFrameAroundNodes(
       x: box.minX - pad,
       y: box.minY - pad - AUTO_FRAME_HEADER,
     },
+    width,
+    height,
     data: {
       type: "frame",
       name,
@@ -149,6 +151,14 @@ export function annotationNodeSize(node: Node): { width: number; height: number 
     return { width: data.width ?? 240, height: data.height ?? 110 };
   }
   return { width: data.width ?? 300, height: data.height ?? 200 };
+}
+
+/** Keep React Flow node bounds aligned with annotation data for hit-testing and resize. */
+export function syncAnnotationNodeDimensions(node: Node): Node {
+  if (!isAnnotationNode(node)) return node;
+  const { width, height } = annotationNodeSize(node);
+  if (node.width === width && node.height === height) return node;
+  return { ...node, width, height };
 }
 
 /** Frames behind graph nodes; comments above. */

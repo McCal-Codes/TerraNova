@@ -1,4 +1,5 @@
 import { Home, LayoutGrid, Clock, Plus, FolderOpen, Package } from "lucide-react";
+import { formatShortcut } from "@/utils/platform";
 
 export type SidebarTab = "home" | "templates" | "recent";
 
@@ -36,47 +37,55 @@ export function HomeSidebar({
       </div>
 
       {/* Nav tabs */}
-      <nav className="flex-1 py-3 px-2 flex flex-col gap-0.5">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => onTabChange(id)}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
-              activeTab === id
-                ? "bg-tn-accent/15 text-tn-accent font-medium"
-                : "text-tn-text-muted hover:bg-tn-bg hover:text-tn-text"
-            }`}
-          >
-            <Icon size={16} />
-            {label}
-          </button>
-        ))}
+      <nav className="flex-1 py-3 px-2 flex flex-col gap-0.5" aria-label="Home sections">
+        {TABS.map(({ id, label, icon: Icon }) => {
+          const selected = activeTab === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onTabChange(id)}
+              aria-current={selected ? "page" : undefined}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
+                selected
+                  ? "bg-tn-accent/15 text-tn-accent font-medium"
+                  : "text-tn-text-muted hover:bg-tn-bg hover:text-tn-text"
+              }`}
+            >
+              <Icon size={16} aria-hidden />
+              {label}
+            </button>
+          );
+        })}
       </nav>
 
       {/* Bottom actions */}
       <div className="p-3 border-t border-tn-border flex flex-col gap-2">
         <button
+          type="button"
           onClick={onCreatePack}
           className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-tn-accent text-tn-bg hover:opacity-90 transition-opacity"
         >
-          <Package size={15} />
+          <Package size={15} aria-hidden />
           Create Pack
         </button>
         <button
+          type="button"
           onClick={onNewProject}
           className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-tn-border text-tn-text-muted hover:bg-tn-bg hover:text-tn-text transition-colors"
         >
-          <Plus size={15} />
+          <Plus size={15} aria-hidden />
           New Project
-          <span className="ml-auto text-[10px] opacity-60">⌘N</span>
+          <span className="ml-auto text-[10px] opacity-60">{formatShortcut("Ctrl+N")}</span>
         </button>
         <button
+          type="button"
           onClick={onOpenProject}
           className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-tn-border text-tn-text-muted hover:bg-tn-bg hover:text-tn-text transition-colors"
         >
-          <FolderOpen size={15} />
+          <FolderOpen size={15} aria-hidden />
           Open
-          <span className="ml-auto text-[10px] opacity-60">⌘O</span>
+          <span className="ml-auto text-[10px] opacity-60">{formatShortcut("Ctrl+O")}</span>
         </button>
       </div>
     </div>

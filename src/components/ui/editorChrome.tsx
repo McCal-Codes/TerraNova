@@ -4,6 +4,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 /** Consistent Lucide sizing/stroke for editor chrome toolbars. */
 export const chromeIconClass = "h-4 w-4 shrink-0";
 
+/** Shared typography tokens for editor panels and chrome. */
+export const chromeTypography = {
+  panelTitle: "text-[11px] font-medium text-tn-text-muted uppercase tracking-wider",
+  panelBody: "text-[11px] text-tn-text-muted",
+  panelCaption: "text-[10px] text-tn-text-muted/70",
+  toolbarLabel: "text-[11px] font-medium",
+} as const;
+
 export function ToolbarDivider() {
   return <div className="mx-1 h-5 w-px shrink-0 bg-tn-border/80" aria-hidden />;
 }
@@ -29,14 +37,20 @@ export function ToolbarButton({
   icon,
   className = "",
   children,
+  title,
+  "aria-label": ariaLabel,
   ...props
 }: ToolbarButtonProps) {
   const base =
     "inline-flex h-7 min-w-0 items-center gap-1.5 rounded-md px-2 text-[11px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent";
+  const resolvedAriaLabel =
+    ariaLabel ?? (typeof title === "string" ? title : undefined);
 
   return (
     <button
       type="button"
+      title={title}
+      aria-label={resolvedAriaLabel}
       className={`${base} ${chromeButtonState({ active, disabled: props.disabled })} ${className}`}
       {...props}
     >

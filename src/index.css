@@ -114,10 +114,15 @@ body,
 
 /* Docs content styling */
 .docs-content {
+  container-type: inline-size;
+  container-name: docs-panel;
   color: var(--tn-text);
   font-size: 13px;
   line-height: 1.6;
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .docs-content[data-font-size="small"]  { font-size: 12px; }
@@ -126,6 +131,13 @@ body,
 
 .docs-reading-shell {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.docs-wide-block {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .docs-reading-shell > :not(.docs-wide-block) {
@@ -225,6 +237,8 @@ body,
   line-height: 1.25;
   font-weight: 700;
   letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .docs-content h1 {
@@ -385,11 +399,13 @@ body,
 
 .docs-content table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   margin: 1em 0;
   border-radius: 6px;
   overflow: hidden;
   border: 1px solid rgba(181, 147, 80, 0.18);
+  table-layout: fixed;
 }
 
 .docs-content th,
@@ -443,6 +459,45 @@ body,
 
 .docs-snippet-actions {
   align-self: flex-start;
+}
+
+/* Narrow docs panel (right sidebar) — reflow like Properties */
+@container docs-panel (max-width: 520px) {
+  .docs-content {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .docs-content .docs-reader-header {
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .docs-reading-shell > :not(.docs-wide-block),
+  .docs-reading-shell > .docs-wide-block {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .docs-content pre,
+  .docs-content[data-code-wrap="scroll"] pre {
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .docs-snippet-actions {
+    width: 100%;
+  }
+
+  .docs-snippet-actions > * {
+    flex: 1 1 0;
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 @media (max-width: 760px) {

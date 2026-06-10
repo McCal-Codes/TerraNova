@@ -133,7 +133,12 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
     setNodes(nodes.map((node) => (
       node.id !== id
         ? node
-        : { ...node, data: { ...node.data as object, width: params.width, height: params.height } }
+        : {
+            ...node,
+            width: params.width,
+            height: params.height,
+            data: { ...node.data as object, width: params.width, height: params.height },
+          }
     )));
     commitState("Resize frame");
     useProjectStore.getState().setDirty(true);

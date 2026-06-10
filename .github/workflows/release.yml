@@ -7,214 +7,29 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Git tag to build (e.g. v0.1.7)'
+        description: 'Git tag to build (e.g. v0.1.8-alpha.2)'
         required: true
         type: string
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: ubuntu-22.04
-            rust_target: ''
-          - platform: macos-latest
-            rust_target: aarch64-apple-darwin
-          - platform: macos-latest
-            rust_target: x86_64-apple-darwin
-          - platform: windows-latest
-            rust_target: ''
-
-    runs-on: ${{ matrix.platform }}
-    environment: Prod
-    permissions:
-      contents: write
-
-    env:
-      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-
+  resolve:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      tag: ${{ steps.v.outputs.tag }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          ref: ${{ inputs.tag || github.ref }}
-
-      - name: Install Linux system dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+      - id: v
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
-        with:
-          targets: ${{ matrix.rust_target }}
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
-        with:
-          workspaces: './src-tauri -> target'
-
-      - name: Sync version from git tag
-        env:
-          TAG_NAME: ${{ env.RELEASE_TAG }}
-        run: |
-          VERSION="${TAG_NAME#v}"
-          echo "Updating version to $VERSION"
-          VERSION="$VERSION" node -e "
-            const fs = require('fs');
-            const VERSION = process.env.VERSION;
-            // tauri.conf.json
-            const tc = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));
-            tc.version = VERSION;
-            fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tc, null, 2) + '\n');
-            // package.json
-            const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
-            pkg.version = VERSION;
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-            // Cargo.toml - replace first version line
-            let cargo = fs.readFileSync('src-tauri/Cargo.toml','utf8');
-            cargo = cargo.replace(/^version = \".*\"/m, 'version = \"' + VERSION + '\"');
-            fs.writeFileSync('src-tauri/Cargo.toml', cargo);
-          "
-        shell: bash
-
-      - name: Pin linuxdeploy to fix AppImage EGL rendering
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          TAURI_TOOLS="${XDG_CACHE_HOME:-$HOME/.cache}/tauri"
-          mkdir -p "$TAURI_TOOLS"
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20250213-2/linuxdeploy-x86_64.AppImage -O "$TAURI_TOOLS/linuxdeploy-x86_64.AppImage"
-          chmod +x "$TAURI_TOOLS/linuxdeploy-x86_64.AppImage"
-
-      - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build and release
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          includeUpdaterJson: true
-          updaterJsonPreferNsis: true
-          tagName: ${{ env.RELEASE_TAG }}
-          releaseName: 'TerraNova ${{ env.RELEASE_TAG }}'
-          releaseDraft: true
-          prerelease: true
-          args: ${{ matrix.rust_target != '' && format('--target {0}', matrix.rust_target) || '' }}
-
-      - name: Fix AppImage symlinks and repackage
-        if: matrix.platform == 'ubuntu-22.04'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          # Find the AppImage from the current build (narrow path to avoid stale cache)
-          APPIMAGE=$(find src-tauri/target -type f -path '*/bundle/appimage/*.AppImage' \
-            ! -name '*.sig' -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-)
-          if [ -z "$APPIMAGE" ]; then
-            echo "No AppImage found, skipping"
-            exit 0
-          fi
-          echo "Found AppImage: $APPIMAGE"
-
-          # Extract (clean any stale extraction first)
-          rm -rf squashfs-root
-          chmod +x "$APPIMAGE"
-          "$APPIMAGE" --appimage-extract
-
-          # Fix symlinks that use absolute CI paths or are broken.
-          # On the runner, absolute paths like /home/runner/work/... still resolve,
-          # so we must also check for absolute targets, not just broken links.
-          cd squashfs-root
-          while IFS= read -r link; do
-            TARGET=$(readlink "$link" || true)
-            [ -z "$TARGET" ] && continue
-            if [[ "$TARGET" = /* ]] || [ ! -e "$link" ]; then
-              BASENAME=$(basename "$TARGET")
-              # Search usr/ first, then the AppDir root (e.g. .DirIcon -> TerraNova.png)
-              REAL=$(find usr -type f -name "$BASENAME" | head -1)
-              [ -z "$REAL" ] && [ -f "$BASENAME" ] && REAL="$BASENAME"
-              if [ -n "$REAL" ]; then
-                echo "Fixing symlink: $link -> $TARGET"
-                rm "$link"
-                ln -s "$REAL" "$link"
-                echo "  -> $REAL"
-              else
-                echo "  WARNING: could not find replacement for $link ($BASENAME)"
-              fi
-            fi
-          done < <(find . -maxdepth 1 -type l)
-          cd ..
-
-          # Repackage with pinned appimagetool (--appimage-extract-and-run
-          # avoids libfuse2 dependency on the CI runner)
-          wget -q https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage -O appimagetool
-          chmod +x appimagetool
-          ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$APPIMAGE"
-
-          # Re-sign the repackaged AppImage for the Tauri updater.
-          # tauri-action installs the CLI via npm (@tauri-apps/cli), not cargo.
-          # The signer reads TAURI_SIGNING_PRIVATE_KEY from the environment.
-          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            pnpm tauri signer sign \
-              --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
-              --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" \
-              "$APPIMAGE"
-            echo "Re-signed: ${APPIMAGE}.sig"
-          fi
-
-          # Replace release assets with the fixed AppImage + signature
-          gh release upload "${{ env.RELEASE_TAG }}" "$APPIMAGE" --clobber
-          if [ -f "${APPIMAGE}.sig" ]; then
-            gh release upload "${{ env.RELEASE_TAG }}" "${APPIMAGE}.sig" --clobber
-          fi
-
-          # Update latest.json with the new signature so the Tauri updater
-          # validates against the repackaged AppImage, not the original.
-          if [ -f "${APPIMAGE}.sig" ]; then
-            LATEST_JSON=$(mktemp)
-            gh release download "${{ env.RELEASE_TAG }}" -p 'latest.json' -D "$(dirname "$LATEST_JSON")" -O "$LATEST_JSON" || true
-            if [ -f "$LATEST_JSON" ] && [ -s "$LATEST_JSON" ]; then
-              NEW_SIG=$(cat "${APPIMAGE}.sig")
-              node -e "
-                const fs = require('fs');
-                const latest = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-                const sig = process.argv[2];
-                for (const [key, val] of Object.entries(latest.platforms || {})) {
-                  if (val.url && val.url.includes('.AppImage')) {
-                    val.signature = sig;
-                  }
-                }
-                fs.writeFileSync(process.argv[1], JSON.stringify(latest, null, 2) + '\n');
-              " "$LATEST_JSON" "$NEW_SIG"
-              gh release upload "${{ env.RELEASE_TAG }}" "$LATEST_JSON#latest.json" --clobber
-              echo "Updated latest.json with new AppImage signature"
-            fi
-            rm -f "$LATEST_JSON"
-          fi
-
-          rm -rf squashfs-root appimagetool
-
-      - name: Verify macOS code signature
-        if: runner.os == 'macOS'
-        run: |
-          APP_PATH=$(find src-tauri/target -name "TerraNova.app" -type d | head -1)
-          if [ -n "$APP_PATH" ]; then
-            echo "Verifying signature on: $APP_PATH"
-            codesign -dvv "$APP_PATH" 2>&1
-            codesign --verify --deep --strict "$APP_PATH" 2>&1 || echo "Warning: Signature verification had issues"
-          fi
+  package:
+    needs: resolve
+    uses: ./.github/workflows/_package.yml
+    with:
+      version: ${{ needs.resolve.outputs.version }}
+      tag: ${{ needs.resolve.outputs.tag }}
+      publish: true
+    secrets: inherit

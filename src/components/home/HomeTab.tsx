@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Mountain } from "lucide-react";
+import { ArrowRight, BookOpen, Mountain } from "lucide-react";
 import { BUNDLED_TEMPLATES } from "@/data/templates";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { TemplateCard } from "./TemplateCard";
@@ -27,6 +27,7 @@ interface HomeTabProps {
   onRemoveProject: (path: string) => void;
   onSelectTemplate: (templateName: string) => void;
   onSwitchTab: (tab: string) => void;
+  onOpenLearn?: () => void;
 }
 
 export function HomeTab({
@@ -34,6 +35,7 @@ export function HomeTab({
   onRemoveProject,
   onSelectTemplate,
   onSwitchTab,
+  onOpenLearn,
 }: HomeTabProps) {
   const quickStartCount = useQuickStartCount();
   const quickStartTemplates = BUNDLED_TEMPLATES.slice(0, quickStartCount);
@@ -44,16 +46,28 @@ export function HomeTab({
     <div className="flex-1 overflow-y-auto p-8">
       {/* Quick Start */}
       <section className="mb-8">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 gap-2">
           <h2 className="text-sm font-medium text-tn-text-muted">
             Quick Start
           </h2>
-          <button
-            className="text-xs text-tn-text-muted hover:text-tn-accent flex items-center gap-1 transition-colors"
-            onClick={() => onSwitchTab("templates")}
-          >
-            All templates <ArrowRight size={12} />
-          </button>
+          <div className="flex items-center gap-3">
+            {onOpenLearn && (
+              <button
+                type="button"
+                className="text-xs text-tn-text-muted hover:text-tn-accent flex items-center gap-1 transition-colors"
+                onClick={onOpenLearn}
+              >
+                <BookOpen size={12} /> Learn
+              </button>
+            )}
+            <button
+              type="button"
+              className="text-xs text-tn-text-muted hover:text-tn-accent flex items-center gap-1 transition-colors"
+              onClick={() => onSwitchTab("templates")}
+            >
+              All templates <ArrowRight size={12} />
+            </button>
+          </div>
         </div>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2">
           {quickStartTemplates.map((t) => (
@@ -103,8 +117,9 @@ export function HomeTab({
               Welcome to TerraNova
             </h3>
             <p className="text-xs text-tn-text-muted max-w-[280px]">
-              Create your first world from a template above, or open an existing
-              asset pack to get started.
+              Use <strong className="font-medium text-tn-text">Create Pack</strong> in the
+              sidebar for a guided worldgen pack, pick a template above, or open an existing
+              asset pack.
             </p>
           </div>
         )}

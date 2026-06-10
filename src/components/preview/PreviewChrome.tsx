@@ -1,8 +1,8 @@
-import { memo, useCallback, type RefObject } from "react";
+import { memo, useCallback } from "react";
 import { Settings2 } from "lucide-react";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
-import { ChromeIconButton } from "@/components/ui/editorChrome";
+import { ToolbarButton } from "@/components/ui/editorChrome";
 import { PreviewModeToggleGroup } from "./controls/PreviewControlPrimitives";
 import { PreviewQuickToggles2D } from "./PreviewQuickToggles2D";
 import { previewChromeBarClass } from "./previewChromeStyles";
@@ -11,14 +11,12 @@ interface PreviewChromeProps {
   isPropContext?: boolean;
   settingsOpen: boolean;
   onSettingsOpenChange: (open: boolean) => void;
-  settingsButtonRef?: RefObject<HTMLButtonElement | null>;
 }
 
 export const PreviewChrome = memo(function PreviewChrome({
   isPropContext = false,
   settingsOpen,
   onSettingsOpenChange,
-  settingsButtonRef,
 }: PreviewChromeProps) {
   const mode = usePreviewStore((s) => s.mode);
   const setMode = usePreviewStore((s) => s.setMode);
@@ -52,14 +50,16 @@ export const PreviewChrome = memo(function PreviewChrome({
         )}
       </div>
 
-      <ChromeIconButton
-        ref={settingsButtonRef}
-        size="sm"
-        label={settingsOpen ? "Close preview settings" : "Open preview settings"}
+      <ToolbarButton
         active={settingsOpen}
         onClick={toggleSettings}
-        icon={<Settings2 className="h-3.5 w-3.5" strokeWidth={2} />}
-      />
+        title={settingsOpen ? "Hide preview settings" : "Show preview settings"}
+        aria-label={settingsOpen ? "Hide preview settings" : "Show preview settings"}
+        icon={<Settings2 className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />}
+        className="shrink-0"
+      >
+        Settings
+      </ToolbarButton>
     </div>
   );
 });

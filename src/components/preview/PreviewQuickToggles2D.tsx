@@ -1,7 +1,7 @@
 import { usePreviewStore } from "@/stores/previewStore";
 import { previewChip } from "./controls/PreviewControlPrimitives";
 
-/** Compact toggles for the preview toolbar — full labels live in the settings drawer. */
+/** Compact toggles for the preview toolbar — full controls live in the settings sidebar. */
 export function PreviewQuickToggles2D() {
   const usgsTopoStyle = usePreviewStore((s) => s.usgsTopoStyle);
   const setUsgsTopoStyle = usePreviewStore((s) => s.setUsgsTopoStyle);

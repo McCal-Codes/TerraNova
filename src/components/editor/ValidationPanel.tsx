@@ -1,12 +1,24 @@
 import type { KeyboardEvent } from "react";
-import { useMemo, useState } from "react";
-import { Search, X } from "lucide-react";
-import { useReactFlow } from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Copy, Search, X } from "lucide-react";
 import { useDiagnosticsStore } from "@/stores/diagnosticsStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
+import { useToastStore } from "@/stores/toastStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
+import { useNavigateToDiagnostic } from "@/hooks/useNavigateToDiagnostic";
+import { copyTextToClipboard } from "@/utils/devTools";
+import { formatIssuesForClipboard } from "@/utils/issuesClipboard";
 import type { GraphDiagnostic, DiagnosticSeverity } from "@/utils/graphDiagnostics";
+import {
+  normalizeDiagnosticSeverity,
+  summarizeDiagnosticsBySeverity,
+} from "@/utils/diagnosticSummary";
+import {
+  DIAGNOSTIC_SEVERITY_META,
+  DIAGNOSTIC_SEVERITY_ORDER,
+  formatSeverityCountParts,
+} from "@/components/diagnostics/diagnosticSeverityUi";
 import {
   fillDelimiterGaps,
   normalizeDelimiterRanges,
@@ -20,26 +32,7 @@ import {
   formatLegacyHitLabel,
   groupLegacyHitsByFile,
 } from "@/utils/projectLegacyScanner";
-
-const SEVERITY_ORDER: DiagnosticSeverity[] = ["error", "warning", "info"];
-
-const SEVERITY_COLORS: Record<DiagnosticSeverity, string> = {
-  error: "text-red-400",
-  warning: "text-yellow-400",
-  info: "text-blue-400",
-};
-
-const SEVERITY_ICONS: Record<DiagnosticSeverity, string> = {
-  error: "\u2716",
-  warning: "\u26A0",
-  info: "\u2139",
-};
-
-const SEVERITY_LABELS: Record<DiagnosticSeverity, string> = {
-  error: "Errors",
-  warning: "Warnings",
-  info: "Info",
-};
+import { chromeTypography } from "@/components/ui/editorChrome";
 
 export function ValidationPanel() {
   const diagnostics = useDiagnosticsStore((s) => s.diagnostics);
@@ -48,9 +41,6 @@ export function ValidationPanel() {
   const nodes = useEditorStore((s) => s.nodes);
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
   const setBiomeConfig = useEditorStore((s) => s.setBiomeConfig);
-  const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
-  const setEditingContext = useEditorStore((s) => s.setEditingContext);
-  const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
   const updateNodeField = useEditorStore((s) => s.updateNodeField);
   const setNodes = useEditorStore((s) => s.setNodes);
   const removeNode = useEditorStore((s) => s.removeNode);
@@ -58,16 +48,59 @@ export function ValidationPanel() {
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
   const projectPath = useProjectStore((s) => s.projectPath);
+  const currentFile = useProjectStore((s) => s.currentFile);
   const projectLegacyHits = useProjectLegacyStore((s) => s.hits);
   const projectScanBusy = useProjectLegacyStore((s) => s.busy);
+  const addToast = useToastStore((s) => s.addToast);
   const { openFile } = useTauriIO();
-  const reactFlow = useReactFlow();
+  const navigateToDiagnostic = useNavigateToDiagnostic();
   const [projectScanOpen, setProjectScanOpen] = useState(true);
   const [diagnosticFilter, setDiagnosticFilter] = useState("");
+  const [copyBusy, setCopyBusy] = useState(false);
+
+  useEffect(() => {
+    if (diagnostics.length === 0 && projectLegacyHits.length > 0) {
+      setProjectScanOpen(true);
+    }
+  }, [diagnostics.length, projectLegacyHits.length]);
+
+  const copyableIssueCount = diagnostics.length + projectLegacyHits.length;
+
+  const handleCopyAllIssues = useCallback(async () => {
+    if (copyBusy || copyableIssueCount === 0) return;
+    setCopyBusy(true);
+    const text = formatIssuesForClipboard({
+      diagnostics,
+      projectLegacyHits,
+      currentFile,
+    });
+    const copied = await copyTextToClipboard(text);
+    addToast(
+      copied
+        ? `Copied ${copyableIssueCount} issue${copyableIssueCount === 1 ? "" : "s"} to clipboard`
+        : "Could not copy issues to clipboard",
+      copied ? "success" : "error",
+    );
+    setCopyBusy(false);
+  }, [addToast, copyBusy, copyableIssueCount, currentFile, diagnostics, projectLegacyHits]);
+
+  const filteredLegacyHits = useMemo(() => {
+    const q = diagnosticFilter.trim().toLowerCase();
+    if (!q) return projectLegacyHits;
+    return projectLegacyHits.filter((hit) => {
+      const label = formatLegacyHitLabel(hit).toLowerCase();
+      return (
+        label.includes(q)
+        || hit.file.toLowerCase().includes(q)
+        || hit.typeKey.toLowerCase().includes(q)
+        || (hit.replacement?.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [diagnosticFilter, projectLegacyHits]);
 
   const projectLegacyByFile = useMemo(
-    () => groupLegacyHitsByFile(projectLegacyHits),
-    [projectLegacyHits],
+    () => groupLegacyHitsByFile(filteredLegacyHits),
+    [filteredLegacyHits],
   );
 
   const filteredDiagnostics = useMemo(() => {
@@ -82,51 +115,21 @@ export function ValidationPanel() {
     });
   }, [diagnostics, diagnosticFilter]);
 
-  // Group by severity
-  const grouped = new Map<DiagnosticSeverity, GraphDiagnostic[]>();
-  for (const d of filteredDiagnostics) {
-    const list = grouped.get(d.severity);
-    if (list) {
-      list.push(d);
-    } else {
-      grouped.set(d.severity, [d]);
+  const grouped = useMemo(() => {
+    const map = new Map<DiagnosticSeverity, GraphDiagnostic[]>();
+    for (const d of filteredDiagnostics) {
+      const severity = normalizeDiagnosticSeverity(d.severity);
+      const list = map.get(severity);
+      if (list) {
+        list.push(d);
+      } else {
+        map.set(severity, [d]);
+      }
     }
-  }
+    return map;
+  }, [filteredDiagnostics]);
 
-  const counts = {
-    error: grouped.get("error")?.length ?? 0,
-    warning: grouped.get("warning")?.length ?? 0,
-    info: grouped.get("info")?.length ?? 0,
-  };
-
-  function handleClick(d: GraphDiagnostic) {
-    if (d.nodeId) {
-      setSelectedNodeId(d.nodeId);
-      reactFlow.fitView({
-        nodes: [{ id: d.nodeId }],
-        padding: 0.3,
-        duration: 300,
-      });
-      return;
-    }
-
-    if (!d.biomeSection) return;
-
-    setEditingContext("Biome");
-    switchBiomeSection(d.biomeSection);
-
-    const sectionOutputId = useEditorStore.getState().biomeSections?.[d.biomeSection]?.outputNodeId ?? null;
-    if (sectionOutputId) {
-      setSelectedNodeId(sectionOutputId);
-      reactFlow.fitView({
-        nodes: [{ id: sectionOutputId }],
-        padding: 0.3,
-        duration: 300,
-      });
-    } else {
-      setSelectedNodeId(null);
-    }
-  }
+  const counts = summarizeDiagnosticsBySeverity(filteredDiagnostics);
 
   function updateDelimiterNode(
     nodeId: string,
@@ -348,10 +351,10 @@ export function ValidationPanel() {
     if (!diagnostic.nodeId && !diagnostic.biomeSection) return;
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    handleClick(diagnostic);
+    navigateToDiagnostic(diagnostic);
   }
 
-  if (filteredDiagnostics.length === 0 && projectLegacyHits.length === 0 && !projectScanBusy && !diagnosticFilter.trim()) {
+  if (diagnostics.length === 0 && projectLegacyHits.length === 0 && !projectScanBusy && !diagnosticFilter.trim()) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-tn-text-muted gap-2 px-4" role="status" aria-live="polite">
         <span className="text-2xl text-green-400" aria-hidden="true">{"\u2714"}</span>
@@ -368,11 +371,14 @@ export function ValidationPanel() {
     );
   }
 
-  const summaryParts = [
-    counts.error > 0 && `${counts.error} error${counts.error > 1 ? "s" : ""}`,
-    counts.warning > 0 && `${counts.warning} warning${counts.warning > 1 ? "s" : ""}`,
-    counts.info > 0 && `${counts.info} info`,
-  ].filter(Boolean);
+  const summaryParts = formatSeverityCountParts(counts);
+  const summaryLine = summaryParts.length > 0
+    ? summaryParts.join(", ")
+    : diagnosticFilter.trim()
+      ? "No matching issues"
+      : diagnostics.length === 0 && projectLegacyHits.length > 0
+        ? "No issues in this file"
+        : "No issues";
 
   const legacyDiagnostics = filteredDiagnostics.filter((d) => d.code === "legacy-node");
 
@@ -387,8 +393,8 @@ export function ValidationPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Summary header */}
-      <div className="shrink-0 px-3 py-2 border-b border-tn-border text-[11px] text-tn-text-muted flex flex-col gap-1.5">
-        {diagnostics.length > 0 && (
+      <div className={`shrink-0 px-3 py-2 border-b border-tn-border flex flex-col gap-1.5 ${chromeTypography.panelBody}`}>
+        {(diagnostics.length > 0 || projectLegacyHits.length > 0) && (
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tn-text-muted/60 pointer-events-none" aria-hidden />
             <input
@@ -411,12 +417,26 @@ export function ValidationPanel() {
             )}
           </div>
         )}
-        <div>
-          {summaryParts.length > 0 ? summaryParts.join(", ") : diagnosticFilter.trim() ? "No matching issues" : "No issues"}
-          {diagnosticFilter.trim() && diagnostics.length !== filteredDiagnostics.length && (
-            <span className="ml-1 text-[10px] text-tn-text-muted/70">
-              ({filteredDiagnostics.length} of {diagnostics.length})
-            </span>
+        <div className="flex items-center justify-between gap-2">
+          <span>
+            {summaryLine}
+            {diagnosticFilter.trim() && diagnostics.length !== filteredDiagnostics.length && (
+              <span className="ml-1 text-[10px] text-tn-text-muted/70">
+                ({filteredDiagnostics.length} of {diagnostics.length})
+              </span>
+            )}
+          </span>
+          {copyableIssueCount > 0 && (
+            <button
+              type="button"
+              onClick={() => { void handleCopyAllIssues(); }}
+              disabled={copyBusy}
+              aria-label={`Copy all ${copyableIssueCount} issues to clipboard`}
+              className="inline-flex shrink-0 items-center gap-1 rounded border border-tn-border bg-white/5 px-2 py-0.5 text-[10px] text-tn-text-muted hover:bg-white/10 hover:text-tn-text transition-colors disabled:opacity-50"
+            >
+              <Copy className="h-3 w-3" aria-hidden />
+              Copy all
+            </button>
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -443,18 +463,24 @@ export function ValidationPanel() {
 
       {/* Grouped diagnostics */}
       <div className="flex-1 overflow-y-auto">
-        {SEVERITY_ORDER.map((severity) => {
+        {diagnosticFilter.trim() && filteredDiagnostics.length === 0 && diagnostics.length > 0 && (
+          <p className="px-3 py-6 text-center text-[11px] text-tn-text-muted">
+            No issues match &ldquo;{diagnosticFilter.trim()}&rdquo;
+          </p>
+        )}
+        {DIAGNOSTIC_SEVERITY_ORDER.map((severity) => {
           const items = grouped.get(severity);
           if (!items || items.length === 0) return null;
+          const meta = DIAGNOSTIC_SEVERITY_META[severity];
           return (
             <div key={severity} className="mb-1">
-              <div className={`px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${SEVERITY_COLORS[severity]}`}>
-                {SEVERITY_LABELS[severity]} ({items.length})
+              <div className={`px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${meta.className}`}>
+                {meta.groupLabel} ({items.length})
               </div>
               {items.map((d, i) => (
                 <div
                   key={`${severity}-${i}`}
-                  onClick={d.nodeId || d.biomeSection ? () => handleClick(d) : undefined}
+                  onClick={d.nodeId || d.biomeSection ? () => navigateToDiagnostic(d) : undefined}
                   onKeyDown={(event) => handleIssueKeyDown(event, d)}
                   role={d.nodeId || d.biomeSection ? "button" : undefined}
                   tabIndex={d.nodeId || d.biomeSection ? 0 : -1}
@@ -463,8 +489,8 @@ export function ValidationPanel() {
                     d.nodeId || d.biomeSection ? "cursor-pointer" : "cursor-default"
                   }`}
                 >
-                  <span className={`shrink-0 ${SEVERITY_COLORS[severity]}`} aria-hidden="true">
-                    {SEVERITY_ICONS[severity]}
+                  <span className={`shrink-0 ${meta.className}`} aria-hidden="true">
+                    {meta.unicodeIcon}
                   </span>
                   <span className="flex-1 flex flex-col gap-0.5">
                     <span className="text-tn-text-muted leading-tight">{d.message}</span>
@@ -532,7 +558,12 @@ export function ValidationPanel() {
                 <p className="px-3 py-1 text-[11px] text-tn-text-muted">Open a project to scan pack JSON files.</p>
               )}
               {projectPath && !projectScanBusy && projectLegacyHits.length === 0 && (
-                <p className="px-3 py-1 text-[11px] text-tn-text-muted">No legacy or deprecated nodes in Server/HytaleGenerator JSON.</p>
+                <p className={`px-3 py-1 ${chromeTypography.panelBody}`}>No legacy or deprecated nodes in Server/HytaleGenerator JSON.</p>
+              )}
+              {projectPath && !projectScanBusy && projectLegacyHits.length > 0 && filteredLegacyHits.length === 0 && diagnosticFilter.trim() && (
+                <p className={`px-3 py-3 text-center ${chromeTypography.panelBody}`}>
+                  No project-wide issues match &ldquo;{diagnosticFilter.trim()}&rdquo;
+                </p>
               )}
               {[...projectLegacyByFile.entries()].map(([file, hits]) => (
                 <div key={file} className="px-3 py-1">

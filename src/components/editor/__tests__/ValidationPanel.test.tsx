@@ -1,20 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ValidationPanel } from "../ValidationPanel";
 import { useDiagnosticsStore } from "@/stores/diagnosticsStore";
 import { useEditorStore } from "@/stores/editorStore";
 
+const writeText = vi.fn().mockResolvedValue(undefined);
+const addToast = vi.fn();
+
 // Mock the stores
 vi.mock("@/stores/diagnosticsStore");
 vi.mock("@/stores/editorStore");
+vi.mock("@/stores/projectStore", () => ({
+  useProjectStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      projectPath: "C:/mods/Test/Server",
+      currentFile: "Server/HytaleGenerator/Biomes/Test.json",
+      setDirty: vi.fn(),
+    }),
+}));
+vi.mock("@/stores/toastStore", () => ({
+  useToastStore: (selector: (state: unknown) => unknown) =>
+    selector({ addToast }),
+}));
+const projectLegacyState = {
+  hits: [] as Array<{ file: string; typeKey: string; nodeId?: string; replacement?: string }>,
+  busy: false,
+  scan: vi.fn(),
+};
+
 vi.mock("@/stores/projectLegacyStore", () => ({
   useProjectLegacyStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      hits: [],
-      busy: false,
-      scan: vi.fn(),
-    }),
+    selector(projectLegacyState),
 }));
 vi.mock("@/hooks/useTauriIO", () => ({
   useTauriIO: () => ({
@@ -30,6 +47,13 @@ vi.mock("@xyflow/react", () => ({
 describe("ValidationPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    projectLegacyState.hits = [];
+    projectLegacyState.busy = false;
+    writeText.mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
     
     // Setup default mock returns
     vi.mocked(useDiagnosticsStore).mockImplementation((selector) => {
@@ -71,6 +95,21 @@ describe("ValidationPanel", () => {
   it("renders asset validation badge", () => {
     render(<ValidationPanel />);
     expect(screen.getByText("All assets validated")).toBeInTheDocument();
+  });
+
+  it("shows file-clean summary when only project-wide legacy hits exist", () => {
+    projectLegacyState.hits = [
+      {
+        file: "Server/HytaleGenerator/Biomes/Other.json",
+        typeKey: "SimplexRidgeNoise2D",
+        nodeId: "legacy-1",
+        replacement: "SimplexNoise2D",
+      },
+    ];
+
+    render(<ValidationPanel />);
+    expect(screen.getByText("No issues in this file")).toBeInTheDocument();
+    expect(screen.getByText(/Project-wide \(1\)/i)).toBeInTheDocument();
   });
 
   it("renders diagnostic items when present", () => {
@@ -127,8 +166,38 @@ describe("ValidationPanel", () => {
     });
 
     render(<ValidationPanel />);
-    const diagnosticItem = screen.getByRole("button");
+    const diagnosticItem = screen.getByRole("button", { name: /click to navigate to node/i });
     expect(diagnosticItem).toHaveAttribute("aria-label", expect.stringContaining("click to navigate to node"));
+  });
+
+  it("copies all issues to the clipboard", async () => {
+    vi.mocked(useDiagnosticsStore).mockImplementation((selector) => {
+      const state = {
+        diagnostics: [
+          {
+            code: "test-error",
+            severity: "error",
+            message: "Test error message",
+            nodeId: "node-1",
+          },
+        ],
+        assetValidationBadge: {
+          label: "Some issues",
+          detail: "1 error",
+        },
+        assetPathIndexByKind: {},
+      };
+      return selector(state as any);
+    });
+
+    render(<ValidationPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /copy all 1 issues/i }));
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledTimes(1);
+    });
+    expect(writeText.mock.calls[0][0]).toContain("Test error message");
+    expect(addToast).toHaveBeenCalledWith("Copied 1 issue to clipboard", "success");
   });
 
   it("severity icons are hidden from screen readers", () => {

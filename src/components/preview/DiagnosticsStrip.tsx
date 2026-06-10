@@ -1,84 +1,126 @@
-import { useState } from "react";
-import { AlertCircle, AlertTriangle, ChevronDown, ChevronRight, Info } from "lucide-react";
-import { useEditorStore } from "@/stores/editorStore";
+import { useId, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useDiagnosticsStore } from "@/stores/diagnosticsStore";
 import type { GraphDiagnostic } from "@/utils/graphDiagnostics";
+import {
+  normalizeDiagnosticSeverity,
+  summarizeDiagnosticsBySeverity,
+} from "@/utils/diagnosticSummary";
+import {
+  DIAGNOSTIC_SEVERITY_META,
+  formatSeverityAriaSummary,
+} from "@/components/diagnostics/diagnosticSeverityUi";
+import { useNavigateToDiagnostic } from "@/hooks/useNavigateToDiagnostic";
 
-const SEVERITY_META = {
-  error: { className: "text-red-400", Icon: AlertCircle },
-  warning: { className: "text-amber-400", Icon: AlertTriangle },
-  info: { className: "text-sky-400", Icon: Info },
-} as const;
+interface DiagnosticsStripProps {
+  embedded?: boolean;
+  /** Legacy hits in other pack files (shown when canvas diagnostics are empty). */
+  packWideIssueCount?: number;
+}
 
-export function DiagnosticsStrip({ embedded = false }: { embedded?: boolean }) {
-  const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
+export function DiagnosticsStrip({ embedded = false, packWideIssueCount = 0 }: DiagnosticsStripProps) {
+  const navigateToDiagnostic = useNavigateToDiagnostic();
   const diagnostics = useDiagnosticsStore((s) => s.diagnostics);
   const [expanded, setExpanded] = useState(false);
+  const listId = useId();
 
-  if (diagnostics.length === 0) return null;
-
-  const counts = diagnostics.reduce(
-    (acc, d) => {
-      acc[d.severity] = (acc[d.severity] ?? 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
+  const counts = useMemo(
+    () => summarizeDiagnosticsBySeverity(diagnostics),
+    [diagnostics],
   );
 
+  const hasCanvasIssues = diagnostics.length > 0;
+  const hasPackOnlyIssues = !hasCanvasIssues && packWideIssueCount > 0;
+  if (!hasCanvasIssues && !hasPackOnlyIssues) return null;
+
+  const ariaSummary = hasPackOnlyIssues
+    ? `${packWideIssueCount} project-wide issue${packWideIssueCount === 1 ? "" : "s"}`
+    : formatSeverityAriaSummary(counts);
+
   function handleDiagnosticClick(d: GraphDiagnostic) {
-    if (d.nodeId) {
-      setSelectedNodeId(d.nodeId);
+    if (d.nodeId || d.biomeSection) {
+      navigateToDiagnostic(d);
     }
+  }
+
+  function isNavigable(d: GraphDiagnostic): boolean {
+    return Boolean(d.nodeId || d.biomeSection);
   }
 
   const Chevron = expanded ? ChevronDown : ChevronRight;
 
-  const summary = (
+  const summary = hasPackOnlyIssues ? (
+    <span className="text-amber-300/90 whitespace-nowrap">
+      {packWideIssueCount} in other file{packWideIssueCount === 1 ? "" : "s"}
+    </span>
+  ) : (
     <span className="flex items-center gap-1.5 whitespace-nowrap">
-      {counts.error ? (
-        <span className="text-red-400">{counts.error} error{counts.error > 1 ? "s" : ""}</span>
-      ) : null}
-      {counts.warning ? (
-        <span className="text-amber-400">{counts.warning} warn{counts.warning > 1 ? "s" : ""}</span>
-      ) : null}
-      {counts.info ? (
-        <span className="text-sky-400/90">{counts.info} info</span>
-      ) : null}
+      {counts.error > 0 && (
+        <span className={DIAGNOSTIC_SEVERITY_META.error.className}>
+          {counts.error} {counts.error === 1 ? DIAGNOSTIC_SEVERITY_META.error.countLabel : DIAGNOSTIC_SEVERITY_META.error.countLabelPlural}
+        </span>
+      )}
+      {counts.warning > 0 && (
+        <span className={DIAGNOSTIC_SEVERITY_META.warning.className}>
+          {counts.warning} {counts.warning === 1 ? DIAGNOSTIC_SEVERITY_META.warning.countLabel : DIAGNOSTIC_SEVERITY_META.warning.countLabelPlural}
+        </span>
+      )}
+      {counts.info > 0 && (
+        <span className={DIAGNOSTIC_SEVERITY_META.info.className}>
+          {counts.info} {DIAGNOSTIC_SEVERITY_META.info.countLabel}
+        </span>
+      )}
     </span>
   );
+
+  const toggleButton = (
+    <button
+      type="button"
+      onClick={() => setExpanded(!expanded)}
+      aria-expanded={expanded}
+      aria-controls={hasCanvasIssues ? listId : undefined}
+      aria-label={`${expanded ? "Hide" : "Show"} issues: ${ariaSummary}`}
+      className={
+        embedded
+          ? "flex h-7 items-center gap-1.5 px-2.5 text-[11px] text-tn-text-muted transition-colors hover:bg-tn-surface/40 hover:text-tn-text"
+          : "flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-tn-text-muted transition-colors hover:bg-tn-surface/40 hover:text-tn-text"
+      }
+    >
+      <Chevron className={`${embedded ? "h-3 w-3" : "h-3.5 w-3.5"} shrink-0 opacity-70`} aria-hidden />
+      {summary}
+    </button>
+  );
+
+  const listItems = diagnostics.map((d, i) => {
+    const meta = DIAGNOSTIC_SEVERITY_META[normalizeDiagnosticSeverity(d.severity)];
+    const Icon = meta.Icon;
+    const navigable = isNavigable(d);
+    return (
+      <button
+        key={`${d.code ?? "issue"}-${i}`}
+        type="button"
+        onClick={() => handleDiagnosticClick(d)}
+        disabled={!navigable}
+        className={`flex w-full items-start gap-1.5 rounded px-1.5 py-1 text-left text-[11px] ${
+          navigable ? "cursor-pointer hover:bg-tn-surface/60" : "cursor-default opacity-90"
+        }`}
+      >
+        <Icon className={`mt-0.5 h-3 w-3 shrink-0 ${meta.className}`} aria-hidden />
+        <span className="text-tn-text-muted leading-snug">{d.message}</span>
+      </button>
+    );
+  });
 
   if (embedded) {
     return (
       <div className="relative shrink-0 border-l border-tn-border/60 bg-amber-950/15">
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="flex h-7 items-center gap-1.5 px-2.5 text-[10px] text-tn-text-muted transition-colors hover:bg-tn-surface/40 hover:text-tn-text"
-        >
-          <Chevron className="h-3 w-3 shrink-0 opacity-70" aria-hidden />
-          {summary}
-        </button>
-        {expanded && (
-          <div className="absolute right-0 top-full z-40 w-80 max-w-[calc(100vw-2rem)] border border-tn-border bg-tn-panel shadow-lg">
-            <div className="max-h-40 overflow-y-auto px-2 py-1.5">
-              {diagnostics.map((d, i) => {
-                const meta = SEVERITY_META[d.severity as keyof typeof SEVERITY_META] ?? SEVERITY_META.info;
-                const Icon = meta.Icon;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleDiagnosticClick(d)}
-                    className={`flex w-full items-start gap-1.5 rounded px-1.5 py-1 text-left text-[10px] hover:bg-tn-surface/60 ${
-                      d.nodeId ? "cursor-pointer" : "cursor-default"
-                    }`}
-                  >
-                    <Icon className={`mt-0.5 h-3 w-3 shrink-0 ${meta.className}`} aria-hidden />
-                    <span className="text-tn-text-muted leading-snug">{d.message}</span>
-                  </button>
-                );
-              })}
-            </div>
+        {toggleButton}
+        {expanded && hasCanvasIssues && (
+          <div
+            id={listId}
+            className="absolute right-0 top-full z-40 w-80 max-w-[calc(100vw-2rem)] border border-tn-border bg-tn-panel shadow-lg"
+          >
+            <div className="max-h-40 overflow-y-auto px-2 py-1.5">{listItems}</div>
           </div>
         )}
       </div>
@@ -87,34 +129,10 @@ export function DiagnosticsStrip({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className="shrink-0 border-b border-tn-border bg-amber-950/15">
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] text-tn-text-muted transition-colors hover:bg-tn-surface/40 hover:text-tn-text"
-      >
-        <Chevron className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-        {summary}
-      </button>
-
-      {expanded && (
-        <div className="max-h-32 overflow-y-auto border-t border-tn-border/50 px-2 pb-2 pt-1">
-          {diagnostics.map((d, i) => {
-            const meta = SEVERITY_META[d.severity as keyof typeof SEVERITY_META] ?? SEVERITY_META.info;
-            const Icon = meta.Icon;
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handleDiagnosticClick(d)}
-                className={`flex w-full items-start gap-1.5 rounded px-1.5 py-1 text-left text-[10px] hover:bg-tn-surface/60 ${
-                  d.nodeId ? "cursor-pointer" : "cursor-default"
-                }`}
-              >
-                <Icon className={`mt-0.5 h-3 w-3 shrink-0 ${meta.className}`} aria-hidden />
-                <span className="text-tn-text-muted leading-snug">{d.message}</span>
-              </button>
-            );
-          })}
+      {toggleButton}
+      {expanded && hasCanvasIssues && (
+        <div id={listId} className="max-h-32 overflow-y-auto border-t border-tn-border/50 px-2 pb-2 pt-1">
+          {listItems}
         </div>
       )}
     </div>

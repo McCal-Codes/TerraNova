@@ -33,7 +33,7 @@ National Map Accuracy Standards (historically) required that most tested points 
 | **Contour interval** | Spacing between those lines — smaller interval → more detail, busier map. |
 | **Terrain view** | Emphasizes the **surface boundary** (density crossing zero), closer to “where solid meets air” than a hypsometric tint. With **Topo** on, terrain mode keeps the USGS parchment map and draws a bold **d = 0** index contour instead of the flat green/air fill. |
 
-Enable **USGS topo style** and **Density contours** from the preview toolbar chips (**Topo**, **Contours**) or the **settings drawer** (gear icon) under **Display**, then tune **Contour interval** until ridges and basins read clearly without clutter. **Topo** and **Terrain** can be on together; turn **Topo** off if you prefer the classic binary solid/air threshold view.
+Enable **USGS topo style** and **Density contours** from the preview toolbar chips (**Topo**, **Contours**) or expand **Preview settings** (toolbar **Settings** button or the edge chevron in split view), then tune **Contour interval** until ridges and basins read clearly without clutter. **Topo** and **Terrain** can be on together; turn **Topo** off if you prefer the classic binary solid/air threshold view.
 
 ---
 
@@ -81,7 +81,7 @@ Surveyors verify maps in the field; cartographers also use **stereoscopic aerial
 
 Draw a cross-section across a ridge you care about; compare the profile shape to what you see in **3D** or **Voxel** preview.
 
-**Profile modes** (settings drawer → **Cross-section plot**):
+**Profile modes** (preview settings → **Cross-section plot**):
 
 | Mode | Axis | Best for |
 |------|------|----------|

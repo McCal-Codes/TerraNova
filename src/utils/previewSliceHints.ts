@@ -45,7 +45,7 @@ export function getUniformSlicePreviewHint(
   }
 
   if (type === "Sum" || type === "Product") {
-    return `Uniform at Y=${yLevel} on this slice — confirm Preview target is ${type} (settings drawer), not an upstream height-only node. Move Y slice or open Voxel / Vertical section for full-height variation.`;
+    return `Uniform at Y=${yLevel} on this slice — confirm Preview target is ${type} (preview settings sidebar), not an upstream height-only node. Move Y slice or open Voxel / Vertical section for full-height variation.`;
   }
 
   if (!type || Y_SLICE_UNIFORM_TYPES.has(type)) {

@@ -71,12 +71,31 @@ You run the script and force-push; agents must not force-push.
 - Before an alpha cut: rename Unreleased to `## [x.y.z-alpha.N] — date`, paste sections into the GitHub Release body, bump `fetchReleases` bundled fallback if needed
 - Gate: `pnpm changelog:check` (included in `pnpm validate`)
 
+## Releases and tags (GitHub + semver)
+
+Follow [GitHub tagging guidance](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository):
+
+| Kind | Tag example | GitHub release |
+|------|-------------|----------------|
+| Closed alpha | `v0.1.8-alpha.1` | **Prerelease**, **not** Latest |
+| Beta / RC | `v0.2.0-beta.3`, `v1.0.0-rc.1` | Prerelease, not Latest |
+| Stable | `v1.0.0` | Latest (when you publish the draft) |
+
+Rules:
+
+- Always prefix tags with **`v`** (`v1.0.0`, not `1.0.0`)
+- Non-production builds use a **prerelease suffix** after the patch: `-alpha.N`, `-beta.N`, `-rc.N`
+- Tag must match `package.json` version with the `v` prefix
+- Annotated tags: `git tag -a v0.1.8-alpha.1 -m "TerraNova 0.1.8-alpha.1 closed alpha"`
+- Push tag to trigger **Release** workflow: `git push origin v0.1.8-alpha.1`
+- CI sets `prerelease=true` and **`latest=false`** for alpha/beta/rc so stable `v0.1.5` stays Latest
+
 ## Alpha packaging
 
 Manual closed-alpha builds: **Actions → Alpha → Run workflow**
 
 1. Ensure `pnpm validate` passes and Unreleased is populated
-2. Enter version (e.g. `0.1.8-alpha.2`)
+2. Enter version (e.g. `0.1.8-alpha.2`) — workflow tag becomes `v0.1.8-alpha.2`
 3. Start with `publish: false` to verify builds; re-run with `publish: true` for a draft prerelease
 
 ## Hytale fidelity guidelines

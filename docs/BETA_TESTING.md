@@ -1,6 +1,6 @@
-# TerraNova closed beta testing
+# TerraNova closed alpha / beta testing
 
-This guide is for testers installing TerraNova from [McCal-Codes/TerraNova Releases](https://github.com/McCal-Codes/TerraNova/releases). You do not need Node.js or Rust unless you are building from source.
+This guide is for testers installing **0.1.8-alpha.1** (closed alpha) from [McCal-Codes/TerraNova Releases](https://github.com/McCal-Codes/TerraNova/releases). You do not need Node.js or Rust unless you are building from source.
 
 ## Prerequisites
 
@@ -19,14 +19,31 @@ Until the first **signed** McCal-Codes release ships, in-app auto-update may not
 
 ## First-run checklist
 
-1. Install and launch TerraNova.
+1. Install and launch TerraNova **0.1.8-alpha.1**.
 2. Complete **onboarding** (four steps):
    - Step 3: enable Hytale asset sync, confirm release path, run **Sync now** (progress modal appears).
    - Step 4: open a walkthrough from **Read guide** links (optional).
-3. On the home screen, try **Create Pack** (Simple or Advanced).
-4. Open a project and smoke the preview panel: **2D** → **3D** → **Voxel** on a terrain biome.
-5. **File → Export Asset Pack** and confirm output under `{Group}.{Name}/Server/HytaleGenerator/`.
-6. Optional: **Bridge** (`Ctrl+B`) with a local Hytale save and server mod folder.
+3. Read the **What to test** modal (alpha checklist) and work through its focus areas.
+4. On the home screen, try **Create Pack** (Simple or Advanced).
+5. Open a project and smoke the preview panel: expand **Settings** on the preview toolbar (or the edge chevron in split view), then **2D** → **3D** → **Voxel** on a terrain biome.
+6. **File → Export Asset Pack** and confirm output under `{Group}.{Name}/Server/HytaleGenerator/`.
+7. **Export** your pack and test in a Hytale save (Bridge is **not** in scope for the first alpha).
+
+### Alpha cadence and support
+
+- **Weekly alpha builds** are planned when possible — install new prereleases from [Releases](https://github.com/McCal-Codes/TerraNova/releases).
+- **Bridge** (live server sync) needs more work and is **not** part of the first closed-alpha test plan.
+- **Serious bugs or data-loss issues:** reach **@mcc_cal** on Discord in addition to the in-app bug reporter.
+
+## Pack backup (closed alpha)
+
+When you **open an existing pack** (File → Open, Recent, or Bridge → Open in editor), TerraNova asks whether to back up first:
+
+- **Back up & open** — full copy of the pack folder to `.terranova-backups/{PackName}-{timestamp}` next to the pack (or a folder you choose).
+- **Open without backup** — proceed immediately (not recommended for live save mods).
+- **Don't ask again for this pack** — remembers your choice for that pack path only.
+
+Restore a backup by copying the backup folder back over the mod folder while Hytale/TerraNova are closed.
 
 ## Bug reports
 
@@ -37,9 +54,10 @@ Use the in-app reporter (no developer mode required):
 
 Steps:
 
-1. Choose an **area** (Preview, Export, Bridge, etc.) and optional short summary.
-2. Click **Copy debug bundle** — JSON with version, OS, settings, open file, and validation hints.
-3. Click **Open GitHub issue** — paste the bundle into the **Session snapshot** field on the issue form.
+1. Choose an **area** (Preview, Export, Bridge, Onboarding, etc.).
+2. Fill **Steps to reproduce**, **Expected**, and **Actual** when you can.
+3. Click **Copy report** — header + structured JSON (paths redacted where possible).
+4. Click **Open GitHub issue** — version, OS, area, title, and steps are prefilled; paste JSON into **Session snapshot**.
 
 Issues are public; local paths in the bundle may include your username.
 
@@ -59,9 +77,32 @@ chmod +x TerraNova_*.AppImage
 
 If the AppImage fails to mount, install FUSE (`libfuse2` on Ubuntu/Debian) or extract with `--appimage-extract` and run `squashfs-root/AppRun`.
 
-## Maintainers: updater signing (before first beta tag)
+### Maintainer: history rewrite
 
-Auto-update requires a McCal-Codes signing keypair and matching pubkey in `src-tauri/tauri.conf.json`:
+To strip **unknown / AI agent** identities from git while **keeping** the five human GitHub contributors:
+
+```powershell
+# Requires: pip install git-filter-repo
+./scripts/rewrite-history-mccal.ps1
+git push origin main --force
+git push origin --force --tags
+```
+
+Preserved emails: McCal, nmang004, ZenithDevHQ, LeoWherle, derrickmehaffy (see `scripts/filter-repo-commit-callback.py`). Everything else is re-attributed to McCal.
+
+Re-publish release artifacts after rewrite if tags moved to new SHAs.
+
+### Maintainer: alpha packaging workflow
+
+Manual closed-alpha builds: **GitHub → Actions → Alpha → Run workflow**
+
+1. Ensure `pnpm validate` passes and `docs/CHANGELOG.md` Unreleased is populated
+2. Enter version (e.g. `0.1.8-alpha.2`); start with `publish: false` to verify builds
+3. Re-run with `publish: true` for a draft prerelease; paste CHANGELOG sections into the release body
+
+Tag-based releases still work via `git tag v0.1.8-alpha.N` push (see `.github/workflows/release.yml`).
+
+### Maintainer: updater signing (before first signed auto-update)
 
 ```bash
 pnpm tauri signer generate -w ~/.tauri/terranova-mccal.key
@@ -69,6 +110,6 @@ pnpm tauri signer generate -w ~/.tauri/terranova-mccal.key
 
 1. Add `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` to **McCal-Codes/TerraNova** repository secrets (see `.github/workflows/release.yml`).
 2. Replace `plugins.updater.pubkey` in `tauri.conf.json` with the generated public key.
-3. Tag a prerelease (e.g. `v0.1.7-beta.1`) and publish `latest.json` + signed artifacts from the release workflow.
+3. Tag a prerelease (e.g. `v0.1.8-alpha.1`) and publish `latest.json` + signed artifacts from the release workflow.
 
 Until that is done, document **manual download** for testers (see platform matrix above).

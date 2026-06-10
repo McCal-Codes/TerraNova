@@ -31,7 +31,7 @@ Run the full gate locally:
 pnpm validate
 ```
 
-That runs: `lint`, `build`, `vitest`, `cargo fmt --check`, and `cargo test`.
+That runs: `lint`, `build`, `vitest`, `docs:check`, `changelog:check`, `cargo fmt --check`, and `cargo test`.
 
 **Also run when you change:**
 
@@ -40,8 +40,44 @@ That runs: `lint`, `build`, `vitest`, `cargo fmt --check`, and `cargo test`.
 | Tauri shell, IPC, filesystem, updater | `pnpm tauri build --no-sign` |
 | UI/runtime behavior | Manual smoke in `pnpm tauri dev` |
 | Hytale import/export | `pnpm exec vitest run src/utils/__tests__/biomeRoundTrip.test.ts src/utils/__tests__/endToEndExport.test.ts` |
+| User-facing features or fixes | Add bullets under `## Unreleased` in [docs/CHANGELOG.md](docs/CHANGELOG.md) |
 
-CI (`.github/workflows/ci.yml`) runs lint, build, vitest, docs integrity, `cargo fmt --check`, and `cargo test` on every PR to `main`/`master`.
+CI (`.github/workflows/ci.yml`) runs `pnpm validate` plus a bridge-plugin jar build on every PR to `main`/`master`.
+
+## Commits
+
+- **Only McCal** creates new commits on this repo: `McCal <business@mcc-cal.com>`
+- **AI/agents must never run `git commit` or `git push`** — they prepare diffs; you review and commit locally
+- One-time hook setup: `pnpm setup:hooks` (sets repo-local `.githooks/commit-msg`)
+
+### History hygiene (optional)
+
+`scripts/rewrite-history-mccal.ps1` rewrites **unknown or agent** author/committer lines to McCal while **preserving** these human contributors (by email):
+
+| GitHub | Email |
+|--------|-------|
+| McCal-Codes | `business@mcc-cal.com` |
+| nmang004 | `nmang004@gmail.com` |
+| ZenithDevHQ | `scrubc1ty4ever@gmail.com`, `ZenithDevHQ@users.noreply.github.com` |
+| LeoWherle | `leo.v.rentmeister@gmail.com` |
+| derrickmehaffy | `derrickmehaffy@gmail.com` |
+
+You run the script and force-push; agents must not force-push.
+
+## Changelog
+
+- Canonical file: [docs/CHANGELOG.md](docs/CHANGELOG.md) (also in-app via Home → Learn → Changelog)
+- Add user-facing changes under `## Unreleased` as you work
+- Before an alpha cut: rename Unreleased to `## [x.y.z-alpha.N] — date`, paste sections into the GitHub Release body, bump `fetchReleases` bundled fallback if needed
+- Gate: `pnpm changelog:check` (included in `pnpm validate`)
+
+## Alpha packaging
+
+Manual closed-alpha builds: **Actions → Alpha → Run workflow**
+
+1. Ensure `pnpm validate` passes and Unreleased is populated
+2. Enter version (e.g. `0.1.8-alpha.2`)
+3. Start with `publish: false` to verify builds; re-run with `publish: true` for a draft prerelease
 
 ## Hytale fidelity guidelines
 
@@ -51,7 +87,7 @@ CI (`.github/workflows/ci.yml`) runs lint, build, vitest, docs integrity, `cargo
 - Preview is approximate for some node types (yellow badge); in-game testing remains the source of truth.
 - Preserve `$NodeEditorMetadata` (`$WorkspaceID`, `$Links`, `$FloatingNodes`, comments, frames) on round-trip.
 
-## Commits and planning docs
+## Planning docs (local-only)
 
 - Do not commit `tsconfig.tsbuildinfo` or local Cursor hook state unless intentional.
 - `AGENTS.md`, `docs/planning/`, `docs/AI_TRANSPARENCY.md`, and `.planning/` are **local-only** (gitignored). Keep them on your machine for agent workflows; do not add them to public PRs unless a maintainer explicitly asks.

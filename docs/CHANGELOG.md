@@ -1,31 +1,74 @@
 # Changelog
 
-All notable changes to [TerraNova](https://github.com/HyperSystems-Development/TerraNova) are documented in this file.
+All notable changes to [TerraNova](https://github.com/McCal-Codes/TerraNova) are documented in this file.
 
 ## Unreleased
 
-### Features
+_Next alpha cycle — add bullets here as features land._
 
-- **Hytale release asset sync** — Pointing TerraNova at the installed **release** `latest` folder (or its `Assets.zip`) extracts game assets into the local cache; pre-release remains available as an alternate channel in Settings
-- **Canvas annotation import** — Biome and density imports merge Hytale `$NodeEditorMetadata` comments and frames onto the graph after auto-layout; export writes native lowercase keys with PascalCase fallback
-- **Editor metadata preservation** — `$WorkspaceID`, `$Links`, and `$FloatingNodes` from imported files are kept across save and export when not edited on the canvas
-- **Block icons from synced cache** — Material fields show PNGs from `Common/Icons/ItemsGenerated` after sync (desktop app), with bundled icons as fallback
-- **Editor QoL** — Improved quick add and node search (prefixed types), toolbar actions, and canvas status strip
+## [0.1.8-alpha.1] — 2026-06-10 — Closed alpha
+
+First **McCal-Codes** closed-alpha build for Windows, macOS, and Linux testers. Install from [Releases](https://github.com/McCal-Codes/TerraNova/releases); see [docs/BETA_TESTING.md](BETA_TESTING.md) for platform notes and the first-run checklist.
+
+### What's New
+
+- **Closed alpha onboarding** — Four-step first-run wizard with in-app Hytale **release** asset sync (Browse + Sync now on Step 3) and walkthrough links on Step 4
+- **What to test modal** — After onboarding, alpha testers see a focus-area checklist (onboarding, Create Pack, preview, export/bridge, pack backup, bug reporter); dismiss once per `0.1.8-alpha.1` build
+- **Pack backup before open** — Closed-alpha prompt when opening an existing pack (Open, Recent); full folder copy to `.terranova-backups/` beside the pack, optional custom location, skip per pack
+- **Create Pack prefab picker** — Quick pick + category/subfolder browse dropdowns (no 7k-item wall); Advanced → Biome search, category chips, side-by-side 3D preview; Review confirms selection
+- **Bug reporter v2** — Structured debug bundle (schema v2), area hints, steps/expected/actual fields, path redaction, GitHub issue prefills; entry points in title bar, About, and ErrorBoundary
+- **McCal-Codes repo** — Releases, updater endpoint, and issue templates point at `McCal-Codes/TerraNova`
+- **Node palette memory** — Remembers expanded categories and density subcategories; auto-expands the category matching the current editing context
+- **Compare view** — 3D panes lazy-load Preview3D to avoid mounting WebGL until needed
+- **Issues panel** — Project-wide legacy section auto-expands when the canvas is clean but other pack files have hits; copy all issues to clipboard; filter applies to project-wide legacy hits
+- **Visual property editors** — Color pickers aligned with atmosphere editor patterns, including top-level **Color** on Tint:Constant nodes
+- **Docs panel** — Reflow and wrapping in the narrow sidebar, consistent with Properties
+- **Preview settings sidebar** — Collapsible settings rail restored in split view (click **Settings** on the preview toolbar or the edge chevron); labeled toolbar button replaces easy-to-miss gear-only drawer
+- **Pack backup settings** — Settings → General: prompt toggle, default backup parent folder, back up open project now, reset per-pack skip list
+- **Bug reporter attachments** — Capture preview screenshot and attach files; paths included in debug bundle for drag-and-drop onto GitHub issues
+- **GitHub issue templates** — Bug, feature, alpha feedback, documentation, and question forms on McCal-Codes/TerraNova
+
+### Features (since 0.1.7)
+
+- **Bridge stack** — Loopback sidecar, JVM plugin, live player/world discovery, mod pack listing, region chunk read path
+- **Atmosphere editors** — Simple/Advanced weather and environment editors with shared preview hour, forecast strips, and biome atmosphere tab
+- **Preview overhaul** — Evaluation host, 2D/3D/Voxel/world modes, shape SDF preview, cave cutaway + section profile, comparison view, performance tuning (adaptive DPR, lazy dialogs)
+- **Pack wizard** — Simple (Hytale-style Group/Name + templates) and Advanced (atmosphere import, starter prefab, reference biomes)
+- **Hytale asset sync** — Release `Assets.zip` / `latest` folder extraction; block icons and prefab catalog after sync
+- **Legacy scanner** — Project-wide deprecation hits with amber file-tree indicators and field-aware replace
+- **CI** — GitHub Actions mirror `pnpm validate` plus bridge-save, terranova-bridge, and bridge-plugin jobs
 
 ### Bug Fixes
 
-- **Material:Constant fields** — Prefixed material nodes no longer resolve to Tint `Constant` schema fields; `Material` shows the correct block ID editor
-- **Material export shape** — Constant material leaves export as `{ Solid, Fluid: "", SolidBottomUp: false }` to match release biomes
-- **Density preview — BaseHeight & CurveMapper** — BaseHeight evaluates as terrain anchor / distance offset (not constant zero); CurveMapper respects inline `Curve` fields; remappers no longer show misleading inline heatmap thumbnails
-- **CurveMapper export** — `CurveMapper`, `Inverter`, `Cache`, and other V2 single-input density types now map **Input** → Hytale **`Inputs[]`** on export (matches release biome JSON)
-- **Curve validation** — Connected **Curve** port or inline curve satisfies required `Curve` field; no false “requires Curve” when **Curve:Manual** is wired
+- **Material:Constant fields** — Prefixed material nodes resolve correct block ID editor (not Tint Constant)
+- **Material export shape** — Constant leaves export as `{ Solid, Fluid: "", SolidBottomUp: false }`
+- **Density preview — BaseHeight & CurveMapper** — Terrain anchor semantics; inline `Curve` respected; no misleading inline heatmap thumbnails on remappers
+- **CurveMapper export** — Single-input density types map **Input** → Hytale **`Inputs[]`**
+- **Curve validation** — Wired **Curve** port or inline curve satisfies required field
+- **Diagnostics counts** — Context strip and Issues badge use consistent severity normalization (no inflated error/warning totals)
+- **Environment asset lookup** — Custom pack environments under `Server/HytaleGenerator/Environments/` resolve correctly (fixes false `Env_McCal_*` unknown-environment warnings)
+- **Bug reporter** — Windows GitHub issue URL preserves query parameters; **Expected** maps to the issue template field; session snapshot JSON copied before opening GitHub; screenshot/file attachment capture with paths in bundle
+- **Preview HUD drag** — Material legend and performance timing overlay move with drag instead of inverting when anchored from right/bottom
+- **Frame diagnostics** — Frames and comments no longer show false “unreachable (dead node)” warnings in Issues
+- **Frame interaction** — Frames use click-through hit areas so graph nodes inside stay selectable; title bar selects/drags/resizes
+- **Validation** — Reduced false positives for custom environment references in biome atmosphere providers
+
+### Performance
+
+- **Diagnostics** — `useShallow` store subscriptions reduce spurious graph analysis re-runs
+- **Build** — Explicit Vite manual chunks for lazy-loaded dialogs and preview modules
 
 ### Documentation
 
-- **AGENTS.md** — Agent memory for recurring preferences (release-first assets, verification gates, no unsolicited commits)
-- **Hytale asset guide** — Environments tutorial updated for release `Assets.zip` layout and sync defaults
-- **Preview & curve copy** — Corrected BaseHeight/CurveMapper preview guidance, curve In/Out semantics, and troubleshooting examples (BaseHeight no longer documented as preview zero-return)
-- **Hytale CurveMapper conventions** — Reference doc (`hytale-curvemapper-conventions.md`) grounded in release templates plus community mod audit (`templates/references/`, Tropical Pirate Islands, McCal.Autmn Forest): inline JSON shape, editor port equivalents, canonical Sum stacks, anti-patterns; `scripts/audit-curvemapper.mjs` for re-checks
+- **docs/BETA_TESTING.md** — Closed-beta/alpha tester guide (platform matrix, first-run, bug reports, updater signing notes)
+- **CONTRIBUTING.md** — Contributor gate and note that agent/planning files stay local-only
+- **In-app docs** — Bridge reference, cave preview guide, CurveMapper conventions, terrain/preview copy updates
+
+### Known alpha limitations
+
+- In-app auto-update requires McCal-Codes Tauri signing keys on the first tagged release; until then, download builds manually from Releases
+- macOS builds are unsigned — use Right-click → Open on first launch
+- Bug reports are public on GitHub; debug bundles may include redacted local paths
 
 ## [0.1.7-pre.2] — 2026-03-18
 

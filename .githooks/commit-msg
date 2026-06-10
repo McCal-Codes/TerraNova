@@ -8,7 +8,7 @@ ALLOWED_EMAIL="business@mcc-cal.com"
 author=$(git var GIT_AUTHOR_IDENT 2>/dev/null || true)
 committer=$(git var GIT_COMMITTER_IDENT 2>/dev/null || true)
 
-blocked_pattern='cursor|copilot|openai|anthropic|agent|noreply\.github\.com|dependabot|github-actions'
+blocked_pattern='cursor|cursoragent|copilot|openai|anthropic|agent|noreply\.github\.com|dependabot|github-actions'
 
 check_ident() {
   role=$1
@@ -35,5 +35,11 @@ check_ident() {
 
 check_ident "author" "$author"
 check_ident "committer" "$committer"
+
+# Reject agent co-author trailers (prepare-commit-msg strips these; block if any remain).
+if grep -Eiq "^[Cc]o-[Aa]uthored-[Bb]y:.*($blocked_pattern)" "$1" 2>/dev/null; then
+  echo "commit-msg hook: remove agent Co-authored-by lines from the commit message" >&2
+  exit 1
+fi
 
 exit 0

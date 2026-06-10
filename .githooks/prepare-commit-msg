@@ -1,0 +1,13 @@
+#!/bin/sh
+# Remove agent co-author trailers before the commit message is finalized.
+
+msg_file=$1
+[ -f "$msg_file" ] || exit 0
+
+blocked='cursor|copilot|openai|anthropic|cursoragent|cursor agent|dependabot|github-actions|noreply\.github\.com'
+
+# Strip matching Co-authored-by / Co-Authored-by lines (IDE assistants inject these).
+sed -i.bak -E "/^[Cc]o-[Aa]uthored-[Bb]y:.*($blocked)/Id" "$msg_file"
+rm -f "$msg_file.bak"
+
+exit 0

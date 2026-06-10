@@ -15,6 +15,7 @@ ALLOWED_EMAILS = {
 
 AGENT_NEEDLES = (
     b"cursor",
+    b"cursoragent",
     b"copilot",
     b"openai",
     b"anthropic",

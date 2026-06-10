@@ -48,7 +48,7 @@ CI (`.github/workflows/ci.yml`) runs `pnpm validate` plus a bridge-plugin jar bu
 
 - **Only McCal** creates new commits on this repo: `McCal <business@mcc-cal.com>`
 - **AI/agents must never run `git commit` or `git push`** — they prepare diffs; you review and commit locally
-- One-time hook setup: `pnpm setup:hooks` (sets repo-local `.githooks/commit-msg`)
+- One-time hook setup: `pnpm setup:hooks` (`.githooks/prepare-commit-msg` strips agent `Co-authored-by` lines; `commit-msg` enforces McCal-only author/committer)
 
 ### History hygiene (optional)
 

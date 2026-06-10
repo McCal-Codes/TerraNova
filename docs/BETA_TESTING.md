@@ -102,14 +102,15 @@ Manual closed-alpha builds: **GitHub → Actions → Alpha → Run workflow**
 
 Tag-based releases still work via `git tag v0.1.8-alpha.N` push (see `.github/workflows/release.yml`).
 
-### Maintainer: updater signing (before first signed auto-update)
+### Maintainer: updater signing
 
 ```bash
-pnpm tauri signer generate -w ~/.tauri/terranova-mccal.key
+pnpm tauri signer generate -w ~/.tauri/terranova-mccal.key --ci
+pnpm setup:signing-secrets   # uploads full .key file + password to McCal-Codes/TerraNova secrets
 ```
 
-1. Add `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` to **McCal-Codes/TerraNova** repository secrets (see `.github/workflows/release.yml`).
-2. Replace `plugins.updater.pubkey` in `tauri.conf.json` with the generated public key.
-3. Tag a prerelease (e.g. `v0.1.8-alpha.1`) and publish `latest.json` + signed artifacts from the release workflow.
+1. `TAURI_SIGNING_PRIVATE_KEY` must be the **entire** private key file (including the untrusted comment line). Partial keys fail CI with `Missing comment in secret key`.
+2. `plugins.updater.pubkey` in `tauri.conf.json` must match the generated `.pub` file.
+3. Alpha/Release workflows with `sign=true` emit `latest.json` + signed artifacts for in-app updates.
 
-Until that is done, document **manual download** for testers (see platform matrix above).
+Local key (never commit): `%USERPROFILE%\.tauri\terranova-mccal.key`

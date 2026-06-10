@@ -7,6 +7,7 @@ dist/
 build/
 tsconfig.tsbuildinfo
 src-tauri/target/
+tools/**/target/
 
 # IDE
 .vscode/
@@ -35,6 +36,7 @@ hytale-assets/
 
 # Hytale pre-release template (license restrictions, not committed)
 templates/hytale-pre-release/
+templates/hytale-release/
 
 # AI agent workspace
 .serena/
@@ -49,3 +51,9 @@ docs/audit/
 
 # Instructions
 instructions.md
+
+# Local-only agent / planning artifacts (keep on disk, not in public repo)
+AGENTS.md
+docs/AI_TRANSPARENCY.md
+docs/planning/
+.planning/

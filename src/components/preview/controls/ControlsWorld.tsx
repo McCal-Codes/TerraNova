@@ -2,6 +2,12 @@ import { useState, useEffect } from "react";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import { SliderField } from "@/components/properties/SliderField";
+import {
+  applyLivePlayerToPreview,
+  chunkCoordsFromBlock,
+  livePlayerPositionSourceLabel,
+} from "@/utils/livePlayerTracking";
+import { bridgePositionSourceHint } from "@/utils/bridgeDiscovery";
 
 export function ControlsWorld() {
   const worldCenterX = usePreviewStore((s) => s.worldCenterX);
@@ -37,6 +43,16 @@ export function ControlsWorld() {
   const setShowEdgeOutline = usePreviewStore((s) => s.setShowEdgeOutline);
 
   const bridgeConnected = useBridgeStore((s) => s.connected);
+  const bridgeSidecar = useBridgeStore(
+    (s) =>
+      s.serverStatus?.bridge_mode === "sidecar" ||
+      s.serverStatus?.bridge_version?.includes("sidecar") === true,
+  );
+  const worldDataSource = usePreviewStore((s) => s.worldDataSource);
+  const worldLivePlayer = usePreviewStore((s) => s.worldLivePlayer);
+  const showWorldPlayerMarker = usePreviewStore((s) => s.showWorldPlayerMarker);
+  const setShowWorldPlayerMarker = usePreviewStore((s) => s.setShowWorldPlayerMarker);
+  const bridgeDiscovery = useBridgeStore((s) => s.discovery);
 
   // Local state for Center X/Z — commit to store on blur/Enter
   const [localCenterX, setLocalCenterX] = useState(String(worldCenterX));
@@ -72,6 +88,25 @@ export function ControlsWorld() {
         <p className="text-[10px] text-yellow-400">Connect to bridge to load world data</p>
       )}
 
+      {bridgeConnected && worldDataSource && (
+        <p
+          className={`text-[10px] leading-snug ${
+            worldDataSource === "save"
+              ? "text-emerald-400"
+              : worldDataSource === "mixed"
+                ? "text-amber-400"
+                : "text-amber-400"
+          }`}
+        >
+          Terrain:{" "}
+          {worldDataSource === "save"
+            ? "saved chunks from disk"
+            : worldDataSource === "mixed"
+              ? "mix of saved + synthetic chunks"
+              : "synthetic fallback (not on disk yet)"}
+        </p>
+      )}
+
       <div className="flex items-center gap-2">
         <div className="flex flex-col gap-0.5 flex-1">
           <label className="text-[10px] text-tn-text-muted">Center X</label>
@@ -103,19 +138,78 @@ export function ControlsWorld() {
       <SliderField label="Surface Depth" value={worldSurfaceDepth} min={4} max={40} step={4} onChange={setWorldSurfaceDepth} />
       <SliderField label="Lava Level" value={worldLavaLevel} min={0} max={200} step={1} onChange={setWorldLavaLevel} />
 
+      {bridgeConnected && worldLivePlayer && (
+        <div className="rounded border border-tn-border/80 bg-tn-panel/60 px-2 py-1.5 flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] text-tn-text-muted font-medium">Live player</span>
+            <button
+              type="button"
+              className="text-[10px] text-tn-accent hover:underline shrink-0"
+              onClick={() => applyLivePlayerToPreview(worldLivePlayer, { follow: true })}
+            >
+              Center preview
+            </button>
+          </div>
+          <span className="text-[10px] font-mono text-tn-text">
+            {Math.floor(worldLivePlayer.x)}, {Math.floor(worldLivePlayer.y)}, {Math.floor(worldLivePlayer.z)}
+            <span className="text-tn-text-muted/80 ml-1">
+              (chunk {chunkCoordsFromBlock(worldLivePlayer.x, worldLivePlayer.z).cx},{" "}
+              {chunkCoordsFromBlock(worldLivePlayer.x, worldLivePlayer.z).cz})
+            </span>
+          </span>
+          <span
+            className="text-[10px] text-tn-text-muted/90"
+            title={bridgePositionSourceHint(
+              bridgeDiscovery?.playerPositionSource ?? worldLivePlayer.source,
+            ) ?? undefined}
+          >
+            Source: {livePlayerPositionSourceLabel(
+              bridgeDiscovery?.playerPositionSource ?? worldLivePlayer.source,
+            )}
+          </span>
+        </div>
+      )}
+
       <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
         <input type="checkbox" checked={worldFollowPlayer} onChange={(e) => setWorldFollowPlayer(e.target.checked)} className="accent-tn-accent w-3 h-3" />
-        Follow Player
+        Follow player (recenter chunks)
       </label>
 
-      <div title="When enabled, the server will generate chunks that aren't loaded in memory. Slower but works without a nearby player.">
+      <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
+        <input
+          type="checkbox"
+          checked={showWorldPlayerMarker}
+          onChange={(e) => setShowWorldPlayerMarker(e.target.checked)}
+          disabled={!worldLivePlayer}
+          className="accent-cyan-400 w-3 h-3 disabled:opacity-40"
+        />
+        Show player marker in 3D
+      </label>
+
+      <div
+        title={
+          bridgeSidecar
+            ? "Sidecar reads saved *.region.bin files only — does not generate terrain."
+            : "When enabled, the server will generate chunks that aren't loaded in memory."
+        }
+      >
         <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-          <input type="checkbox" checked={worldForceLoad} onChange={(e) => setWorldForceLoad(e.target.checked)} className="accent-amber-400 w-3 h-3" />
+          <input
+            type="checkbox"
+            checked={worldForceLoad}
+            onChange={(e) => setWorldForceLoad(e.target.checked)}
+            disabled={bridgeSidecar}
+            className="accent-amber-400 w-3 h-3 disabled:opacity-40"
+          />
           Generate Chunks
         </label>
-        {worldForceLoad && (
+        {bridgeSidecar ? (
+          <p className="text-[10px] text-tn-text-muted/90 ml-[18px] mt-0.5">
+            N/A in sidecar mode — explore in-game so chunks save to disk.
+          </p>
+        ) : worldForceLoad ? (
           <p className="text-[10px] text-amber-400/80 ml-[18px] mt-0.5">Server will generate unloaded terrain</p>
-        )}
+        ) : null}
       </div>
 
       {isWorldLoading && (

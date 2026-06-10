@@ -1,10 +1,17 @@
 import { create } from "zustand";
 import type { ColormapId } from "@/utils/colormaps";
 import type { VoxelMeshData } from "@/utils/voxelMeshBuilder";
+import type { WorldMeshResult } from "@/utils/worldMeshBuilder";
+import type { LivePlayerCoords } from "@/utils/livePlayerTracking";
 import type { EvaluatedPosition } from "@/utils/positionEvaluator";
-import { useConfigStore } from "@/stores/configStore";
+import type { CellShapeGridResult } from "@/utils/shapePreview/cellShapeGrid";
+import type { ContourSegment } from "@/utils/shapePreview/marchingSquaresZeroContour";
+import { SDF_DEFAULT_VOXEL_Y } from "@/utils/shapePreview/sdfPreviewDefaults";
+import { readStoredPreviewDefaults } from "@/stores/configStore";
+import { initial2dPreviewResolution, clamp2dPreviewResolution } from "@/utils/previewResolution";
 
 export type PreviewMode = "2d" | "3d" | "voxel" | "world";
+export type PropPreviewMode = "placement" | "prefab3d";
 export type ViewMode = "graph" | "preview" | "split" | "compare" | "json";
 export type SplitDirection = "horizontal" | "vertical";
 
@@ -43,8 +50,14 @@ export interface CrossSectionLine {
   end: { x: number; z: number };
 }
 
+export type CrossSectionProfileMode = "plan" | "section";
+
 interface PreviewState {
   mode: PreviewMode;
+  /** Prop-layer preview: 2D placement scatter vs 3D prefab mesh (Props tab only). */
+  propPreviewMode: PropPreviewMode;
+  /** Browsed prefab path when graph has no Prop:Prefab (session-only, cleared per prop section). */
+  propManualPrefabPath: string | null;
   resolution: number;
   rangeMin: number;
   rangeMax: number;
@@ -57,6 +70,8 @@ interface PreviewState {
   p98Value: number;
   isLoading: boolean;
   previewError: string | null;
+  /** Cache key for the last completed 2D/3D density slice (`values`). */
+  densityEvalKey: string | null;
 
   viewMode: ViewMode;
   autoRefresh: boolean;
@@ -81,6 +96,24 @@ interface PreviewState {
 
   crossSectionLine: CrossSectionLine | null;
   showCrossSection: boolean;
+  /** Plan profile (fixed Y slice) vs vertical wall section through volume. */
+  crossSectionProfileMode: CrossSectionProfileMode;
+  verticalSectionDensities: Float32Array | null;
+  verticalSectionMeta: {
+    resolution: number;
+    ySlices: number;
+    yMin: number;
+    yMax: number;
+    rangeMin: number;
+    rangeMax: number;
+  } | null;
+  isVerticalSectionLoading: boolean;
+
+  /** Hide voxel geometry above this world Y (cutaway). */
+  cutawayEnabled: boolean;
+  cutawayLevel: number;
+  /** 3D heightfield vs underground volume mesh (reuses voxel pipeline). */
+  show3DVolumeView: boolean;
 
   voxelYMin: number;
   voxelYMax: number;
@@ -88,6 +121,10 @@ interface PreviewState {
   voxelResolution: number;
   voxelDensities: Float32Array | null;
   isVoxelLoading: boolean;
+  /** Resolution of the in-flight progressive pass (null when idle). */
+  voxelEvalProgressRes: number | null;
+  /** Resolution currently shown in the voxel mesh (during refine, below target). */
+  voxelDisplayedRes: number | null;
   voxelError: string | null;
   showThresholdView: boolean;
   showMaterialColors: boolean;
@@ -95,14 +132,25 @@ interface PreviewState {
   showMaterialLegend: boolean;
   voxelMaterials: Uint8Array | null;
   voxelPalette: Array<{ name: string; color: string }>;
+  /** Surface voxel count from last volume extract (for HUD). */
+  surfaceVoxelCount: number | null;
   voxelMeshData: VoxelMeshData[] | null;
+  /** Fingerprint of the graph + params used to build `voxelMeshData`. */
+  voxelEvalKey: string | null;
   fluidPlaneConfig: { type: "water" | "lava"; yPosition: number; size?: number } | null;
   showSSAO: boolean;
   showEdgeOutline: boolean;
   showHillShade: boolean;
+  /** USGS-style parchment map: brown contours, green wash, relief shading. */
+  usgsTopoStyle: boolean;
 
   autoFitYEnabled: boolean;
+  /** Automatically run fit-to-content when the graph changes (wide 3D probe). */
+  autoFitContentEnabled: boolean;
+  /** When true, terrain auto-fit anchors to ContentFields Base Y instead of profile zero-crossing. */
+  terrainRefUseBaseY: boolean;
   _autoFitGraphHash: string;
+  _autoFitContentGraphHash: string;
   _userManualYAdjust: boolean;
   isFitToContentRunning: boolean;
 
@@ -113,12 +161,19 @@ interface PreviewState {
   worldYMax: number;
   isWorldLoading: boolean;
   worldError: string | null;
+  /** Last World preview terrain provenance (from Bridge chunk responses). */
+  worldDataSource: "save" | "mixed" | "synthetic" | null;
   worldChunkCount: number;
   worldTotalChunks: number;
   worldFollowPlayer: boolean;
   worldSurfaceDepth: number;
   worldLavaLevel: number;
   worldForceLoad: boolean;
+  /** Last resolved in-game block position (Bridge discovery / player info). */
+  worldLivePlayer: LivePlayerCoords | null;
+  /** Layout from last `buildWorldMeshes` — maps block coords to scene space. */
+  worldSceneLayout: Pick<WorldMeshResult, "sceneYMin" | "sceneScale" | "worldMidX" | "worldMidZ"> | null;
+  showWorldPlayerMarker: boolean;
 
   showPositionOverlay: boolean;
   positionOverlayNodeId: string | null;
@@ -126,6 +181,17 @@ interface PreviewState {
   positionOverlayColor: string;
   positionOverlaySize: number;
   positionOverlaySeed: number;
+
+  showShapePreview: boolean;
+  showShapeCellMap: boolean;
+  showCellBoundaries: boolean;
+  showWallDistance: boolean;
+  showMeshSamples: boolean;
+  showSdfSurface: boolean;
+  shapePreviewSeed: number;
+  cellShapeGrid: CellShapeGridResult | null;
+  sdfZeroSegments: ContourSegment[];
+  shapePreviewMeshPoints: EvaluatedPosition[];
 
   compareNodeA: string | null;
   compareNodeB: string | null;
@@ -147,6 +213,8 @@ interface PreviewState {
 
   // Actions
   setMode: (mode: PreviewMode) => void;
+  setPropPreviewMode: (mode: PropPreviewMode) => void;
+  setPropManualPrefabPath: (path: string | null) => void;
   setResolution: (res: number) => void;
   setRange: (min: number, max: number) => void;
   setYLevel: (y: number) => void;
@@ -178,6 +246,15 @@ interface PreviewState {
 
   setCrossSectionLine: (line: CrossSectionLine | null) => void;
   setShowCrossSection: (show: boolean) => void;
+  setCrossSectionProfileMode: (mode: CrossSectionProfileMode) => void;
+  setVerticalSectionDensities: (
+    densities: Float32Array | null,
+    meta: PreviewState["verticalSectionMeta"],
+  ) => void;
+  setVerticalSectionLoading: (loading: boolean) => void;
+  setCutawayEnabled: (enabled: boolean) => void;
+  setCutawayLevel: (level: number) => void;
+  setShow3DVolumeView: (show: boolean) => void;
 
   setVoxelYMin: (y: number) => void;
   setVoxelYMax: (y: number) => void;
@@ -185,6 +262,7 @@ interface PreviewState {
   setVoxelResolution: (r: number) => void;
   setVoxelDensities: (d: Float32Array | null) => void;
   setVoxelLoading: (loading: boolean) => void;
+  setVoxelEvalProgressRes: (res: number | null) => void;
   setVoxelError: (error: string | null) => void;
   setShowThresholdView: (show: boolean) => void;
   setShowMaterialColors: (show: boolean) => void;
@@ -196,9 +274,13 @@ interface PreviewState {
   setShowSSAO: (show: boolean) => void;
   setShowEdgeOutline: (show: boolean) => void;
   setShowHillShade: (show: boolean) => void;
+  setUsgsTopoStyle: (enabled: boolean) => void;
 
   setAutoFitYEnabled: (enabled: boolean) => void;
+  setAutoFitContentEnabled: (enabled: boolean) => void;
+  setTerrainRefUseBaseY: (useBaseY: boolean) => void;
   _setAutoFitGraphHash: (hash: string) => void;
+  _setAutoFitContentGraphHash: (hash: string) => void;
   _setUserManualYAdjust: (manual: boolean) => void;
   setFitToContentRunning: (running: boolean) => void;
 
@@ -209,11 +291,17 @@ interface PreviewState {
   setWorldYMax: (y: number) => void;
   setWorldLoading: (loading: boolean) => void;
   setWorldError: (error: string | null) => void;
+  setWorldDataSource: (source: "save" | "mixed" | "synthetic" | null) => void;
   setWorldProgress: (loaded: number, total: number) => void;
   setWorldFollowPlayer: (follow: boolean) => void;
   setWorldSurfaceDepth: (depth: number) => void;
   setWorldLavaLevel: (level: number) => void;
   setWorldForceLoad: (forceLoad: boolean) => void;
+  setWorldLivePlayer: (player: LivePlayerCoords | null) => void;
+  setWorldSceneLayout: (
+    layout: Pick<WorldMeshResult, "sceneYMin" | "sceneScale" | "worldMidX" | "worldMidZ"> | null,
+  ) => void;
+  setShowWorldPlayerMarker: (show: boolean) => void;
 
   setShowPositionOverlay: (show: boolean) => void;
   setPositionOverlayNodeId: (id: string | null) => void;
@@ -221,6 +309,18 @@ interface PreviewState {
   setPositionOverlayColor: (color: string) => void;
   setPositionOverlaySize: (size: number) => void;
   setPositionOverlaySeed: (seed: number) => void;
+
+  setShowShapePreview: (show: boolean) => void;
+  setShowShapeCellMap: (show: boolean) => void;
+  setShowCellBoundaries: (show: boolean) => void;
+  setShowWallDistance: (show: boolean) => void;
+  setShowMeshSamples: (show: boolean) => void;
+  setShowSdfSurface: (show: boolean) => void;
+  setShapePreviewSeed: (seed: number) => void;
+  setCellShapeGrid: (grid: CellShapeGridResult | null) => void;
+  setSdfZeroSegments: (segments: ContourSegment[]) => void;
+  setShapePreviewMeshPoints: (points: EvaluatedPosition[]) => void;
+  applyShapePreviewPreset: (preset: "pcn" | "pcnMesh" | "sdf") => void;
 
   setCompareNodeA: (id: string | null) => void;
   setCompareNodeB: (id: string | null) => void;
@@ -264,6 +364,10 @@ const PERSIST_MAP: Record<string, string> = {
   fogDistanceScale: "tn-fogDistanceScale",
   fogMinSpan: "tn-fogMinSpan",
   showCrossSection: "tn-showCrossSection",
+  crossSectionProfileMode: "tn-crossSectionProfileMode",
+  cutawayEnabled: "tn-cutawayEnabled",
+  cutawayLevel: "tn-cutawayLevel",
+  show3DVolumeView: "tn-show3DVolumeView",
   voxelYMin: "tn-voxelYMin",
   voxelYMax: "tn-voxelYMax",
   voxelYSlices: "tn-voxelYSlices",
@@ -275,7 +379,10 @@ const PERSIST_MAP: Record<string, string> = {
   showSSAO: "tn-showSSAO",
   showEdgeOutline: "tn-showEdgeOutline",
   showHillShade: "tn-showHillShade",
+  usgsTopoStyle: "tn-usgsTopoStyle",
   autoFitYEnabled: "tn-autoFitYEnabled",
+  autoFitContentEnabled: "tn-autoFitContentEnabled",
+  terrainRefUseBaseY: "tn-terrainRefUseBaseY",
   worldCenterX: "tn-worldCenterX",
   worldCenterZ: "tn-worldCenterZ",
   worldRadius: "tn-worldRadius",
@@ -289,12 +396,20 @@ const PERSIST_MAP: Record<string, string> = {
   positionOverlayColor: "tn-positionOverlayColor",
   positionOverlaySize: "tn-positionOverlaySize",
   positionOverlaySeed: "tn-positionOverlaySeed",
+  showShapePreview: "tn-showShapePreview",
+  showShapeCellMap: "tn-showShapeCellMap",
+  showCellBoundaries: "tn-showCellBoundaries",
+  showWallDistance: "tn-showWallDistance",
+  showMeshSamples: "tn-showMeshSamples",
+  showSdfSurface: "tn-showSdfSurface",
+  shapePreviewSeed: "tn-shapePreviewSeed",
   compareNodeA: "tn-compareNodeA",
   compareNodeB: "tn-compareNodeB",
   compareModeA: "tn-compareModeA",
   compareModeB: "tn-compareModeB",
   linkCameras3D: "tn-linkCameras3D",
   splitDirection: "tn-splitDirection",
+  propPreviewMode: "tn-propPreviewMode",
   atmosphereSettings: "tn-atmosphereSettings",
   tintColors: "tn-tintColors",
 };
@@ -317,12 +432,17 @@ function getStoredFloat(key: string, fallback: number): number {
 }
 
 function hydratePersistedState() {
+  const configDefaults = readStoredPreviewDefaults();
   return {
     viewMode: (getStored("tn-viewMode") as ViewMode | null) ?? "graph",
     colormap: (getStored("tn-colormap") as ColormapId | null) ?? "blue-red",
     splitRatio: getStoredFloat("tn-splitRatio", 0.6),
     showInlinePreviews: getStoredBool("tn-showInlinePreviews", false),
-    showContours: getStoredBool("tn-showContours", false),
+    showContours: (() => {
+      const stored = getStored("tn-showContours");
+      if (stored !== null) return stored === "true";
+      return getStoredBool("tn-usgsTopoStyle", true);
+    })(),
     contourInterval: getStoredFloat("tn-contourInterval", 0.1),
     showStatistics: getStoredBool("tn-showStatistics", true),
     statisticsLogScale: getStoredBool("tn-statisticsLogScale", false),
@@ -334,10 +454,17 @@ function hydratePersistedState() {
     fogDistanceScale: getStoredFloat("tn-fogDistanceScale", 0.12),
     fogMinSpan: getStoredFloat("tn-fogMinSpan", 24),
     showCrossSection: getStoredBool("tn-showCrossSection", false),
+    crossSectionProfileMode: ((): CrossSectionProfileMode => {
+      const v = getStored("tn-crossSectionProfileMode");
+      return v === "section" ? "section" : "plan";
+    })(),
+    cutawayEnabled: getStoredBool("tn-cutawayEnabled", false),
+    cutawayLevel: getStoredFloat("tn-cutawayLevel", 60),
+    show3DVolumeView: getStoredBool("tn-show3DVolumeView", false),
     voxelYMin: getStoredFloat("tn-voxelYMin", 0),
     voxelYMax: getStoredFloat("tn-voxelYMax", 128),
-    voxelYSlices: getStoredFloat("tn-voxelYSlices", useConfigStore.getState().defaultVoxelYSlices),
-    voxelResolution: getStoredFloat("tn-voxelResolution", useConfigStore.getState().defaultVoxelRes),
+    voxelYSlices: getStoredFloat("tn-voxelYSlices", configDefaults.defaultVoxelYSlices),
+    voxelResolution: getStoredFloat("tn-voxelResolution", configDefaults.defaultVoxelRes),
     showThresholdView: getStoredBool("tn-showThresholdView", false),
     showMaterialColors: getStoredBool("tn-showMaterialColors", true),
     showVoxelWireframe: getStoredBool("tn-showVoxelWireframe", false),
@@ -345,7 +472,10 @@ function hydratePersistedState() {
     showSSAO: getStoredBool("tn-showSSAO", false),
     showEdgeOutline: getStoredBool("tn-showEdgeOutline", false),
     showHillShade: getStoredBool("tn-showHillShade", true),
+    usgsTopoStyle: getStoredBool("tn-usgsTopoStyle", true),
     autoFitYEnabled: getStoredBool("tn-autoFitYEnabled", true),
+    autoFitContentEnabled: getStoredBool("tn-autoFitContentEnabled", false),
+    terrainRefUseBaseY: getStoredBool("tn-terrainRefUseBaseY", false),
     worldCenterX: getStoredFloat("tn-worldCenterX", 0),
     worldCenterZ: getStoredFloat("tn-worldCenterZ", 0),
     worldRadius: getStoredFloat("tn-worldRadius", 2),
@@ -359,12 +489,24 @@ function hydratePersistedState() {
     positionOverlayColor: getStored("tn-positionOverlayColor") ?? "#22c55e",
     positionOverlaySize: getStoredFloat("tn-positionOverlaySize", 1.5),
     positionOverlaySeed: getStoredFloat("tn-positionOverlaySeed", 42),
+    showShapePreview: getStoredBool("tn-showShapePreview", false),
+    showShapeCellMap: getStoredBool("tn-showShapeCellMap", true),
+    showCellBoundaries: getStoredBool("tn-showCellBoundaries", true),
+    showWallDistance: getStoredBool("tn-showWallDistance", true),
+    showMeshSamples: getStoredBool("tn-showMeshSamples", true),
+    showSdfSurface: getStoredBool("tn-showSdfSurface", true),
+    shapePreviewSeed: getStoredFloat("tn-shapePreviewSeed", 42),
     compareNodeA: getStored("tn-compareNodeA") || null,
     compareNodeB: getStored("tn-compareNodeB") || null,
     compareModeA: (getStored("tn-compareModeA") as PreviewMode | null) ?? "2d",
     compareModeB: (getStored("tn-compareModeB") as PreviewMode | null) ?? "2d",
     linkCameras3D: getStoredBool("tn-linkCameras3D", true),
     splitDirection: (getStored("tn-splitDirection") as SplitDirection | null) ?? "horizontal",
+    propPreviewMode: (() => {
+      const v = getStored("tn-propPreviewMode");
+      return (v === "prefab3d" ? "prefab3d" : "placement") as PropPreviewMode;
+    })(),
+    propManualPrefabPath: null,
     atmosphereSettings: (() => {
       try {
         const raw = getStored("tn-atmosphereSettings");
@@ -423,10 +565,11 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
   };
 
   const hydrated = hydratePersistedState();
+  const configDefaults = readStoredPreviewDefaults();
 
   return {
     mode: "2d",
-    resolution: useConfigStore.getState().defaultPreviewRes,
+    resolution: initial2dPreviewResolution(configDefaults.defaultPreviewRes),
     rangeMin: -64,
     rangeMax: 64,
     yLevel: 64,
@@ -438,22 +581,37 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     p98Value: 1,
     isLoading: false,
     previewError: null,
+    densityEvalKey: null,
     autoRefresh: true,
     canvasTransform: { ...DEFAULT_CANVAS_TRANSFORM },
     crossSectionLine: null,
+    verticalSectionDensities: null,
+    verticalSectionMeta: null,
+    isVerticalSectionLoading: false,
     voxelDensities: null,
     isVoxelLoading: false,
+    voxelEvalProgressRes: null,
+    voxelDisplayedRes: null,
     voxelError: null,
     voxelMaterials: null,
     voxelPalette: [],
+    surfaceVoxelCount: null,
     voxelMeshData: null,
+    voxelEvalKey: null,
     fluidPlaneConfig: null,
     isWorldLoading: false,
     worldError: null,
+    worldDataSource: null,
     worldChunkCount: 0,
     worldTotalChunks: 0,
+    worldLivePlayer: null,
+    worldSceneLayout: null,
+    showWorldPlayerMarker: true,
     positionOverlayNodeId: null,
     positionOverlayPoints: [],
+    cellShapeGrid: null,
+    sdfZeroSegments: [],
+    shapePreviewMeshPoints: [],
     compareValuesA: null,
     compareValuesB: null,
     compareMinA: 0,
@@ -464,6 +622,7 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     compareLoadingB: false,
     fidelityScore: 100,
     _autoFitGraphHash: "",
+    _autoFitContentGraphHash: "",
     _userManualYAdjust: false,
     isFitToContentRunning: false,
 
@@ -471,26 +630,56 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     ...hydrated,
 
     // ── Actions ──
-    setMode: (mode) => originalSet({ mode }),
-    setResolution: (resolution) => originalSet({ resolution }),
+    setMode: (mode) => {
+      const state = usePreviewStore.getState();
+      if (mode === "2d") {
+        const resolution = clamp2dPreviewResolution(state.resolution);
+        if (resolution !== state.resolution) {
+          originalSet({ mode, resolution });
+          return;
+        }
+      }
+      originalSet({ mode });
+    },
+    setPropPreviewMode: (propPreviewMode) => persistedSet({ propPreviewMode }),
+    setPropManualPrefabPath: (propManualPrefabPath) => originalSet({ propManualPrefabPath }),
+    setResolution: (resolution) => {
+      const state = usePreviewStore.getState();
+      originalSet({
+        resolution: state.mode === "2d" ? clamp2dPreviewResolution(resolution) : resolution,
+      });
+    },
     setRange: (rangeMin, rangeMax) => originalSet({ rangeMin, rangeMax }),
     setYLevel: (yLevel) => originalSet({ yLevel }),
     setSelectedPreviewNodeId: (id) => originalSet({ selectedPreviewNodeId: id }),
     setValues: (values, minValue, maxValue, p02Value, p98Value) => originalSet({ values, minValue, maxValue, p02Value: p02Value ?? minValue, p98Value: p98Value ?? maxValue }),
-    setLoading: (isLoading) => originalSet({ isLoading }),
-    setPreviewError: (error) => originalSet({ previewError: error }),
+    setLoading: (isLoading) => originalSet((s) => (s.isLoading === isLoading ? s : { isLoading })),
+    setPreviewError: (error) => originalSet((s) => (s.previewError === error ? s : { previewError: error })),
     setAutoRefresh: (autoRefresh) => originalSet({ autoRefresh }),
     setCanvasTransform: (canvasTransform) => originalSet({ canvasTransform }),
     resetCanvasTransform: () => originalSet({ canvasTransform: { ...DEFAULT_CANVAS_TRANSFORM } }),
     setCrossSectionLine: (crossSectionLine) => originalSet({ crossSectionLine }),
+    setCrossSectionProfileMode: (crossSectionProfileMode) => persistedSet({ crossSectionProfileMode }),
+    setVerticalSectionDensities: (verticalSectionDensities, verticalSectionMeta) =>
+      originalSet({ verticalSectionDensities, verticalSectionMeta }),
+    setVerticalSectionLoading: (isVerticalSectionLoading) => originalSet({ isVerticalSectionLoading }),
+    setCutawayEnabled: (cutawayEnabled) => persistedSet({ cutawayEnabled }),
+    setCutawayLevel: (cutawayLevel) => persistedSet({ cutawayLevel }),
+    setShow3DVolumeView: (show3DVolumeView) => persistedSet({ show3DVolumeView }),
     setVoxelDensities: (voxelDensities) => originalSet({ voxelDensities }),
     setVoxelLoading: (isVoxelLoading) => originalSet({ isVoxelLoading }),
+    setVoxelEvalProgressRes: (voxelEvalProgressRes) => originalSet({ voxelEvalProgressRes }),
     setVoxelError: (voxelError) => originalSet({ voxelError }),
     setVoxelMaterials: (voxelMaterials, voxelPalette) => originalSet({ voxelMaterials, voxelPalette }),
-    setVoxelMeshData: (voxelMeshData) => originalSet({ voxelMeshData }),
+    setVoxelMeshData: (voxelMeshData) =>
+      originalSet({
+        voxelMeshData,
+        ...(voxelMeshData == null ? { surfaceVoxelCount: null } : {}),
+      }),
     setFluidPlaneConfig: (fluidPlaneConfig) => originalSet({ fluidPlaneConfig }),
     setWorldLoading: (isWorldLoading) => originalSet({ isWorldLoading }),
     setWorldError: (worldError) => originalSet({ worldError }),
+    setWorldDataSource: (worldDataSource) => originalSet({ worldDataSource }),
     setWorldProgress: (worldChunkCount, worldTotalChunks) => originalSet({ worldChunkCount, worldTotalChunks }),
     setPositionOverlayNodeId: (positionOverlayNodeId) => originalSet({ positionOverlayNodeId }),
     setPositionOverlayPoints: (positionOverlayPoints) => originalSet({ positionOverlayPoints }),
@@ -498,8 +687,9 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setCompareValuesB: (compareValuesB, compareMinB, compareMaxB) => originalSet({ compareValuesB, compareMinB, compareMaxB }),
     setCompareLoadingA: (compareLoadingA) => originalSet({ compareLoadingA }),
     setCompareLoadingB: (compareLoadingB) => originalSet({ compareLoadingB }),
-    setFidelityScore: (fidelityScore) => originalSet({ fidelityScore }),
+    setFidelityScore: (fidelityScore) => originalSet((s) => (s.fidelityScore === fidelityScore ? s : { fidelityScore })),
     _setAutoFitGraphHash: (_autoFitGraphHash) => originalSet({ _autoFitGraphHash }),
+    _setAutoFitContentGraphHash: (_autoFitContentGraphHash) => originalSet({ _autoFitContentGraphHash }),
     _setUserManualYAdjust: (_userManualYAdjust) => originalSet({ _userManualYAdjust }),
     setFitToContentRunning: (isFitToContentRunning) => originalSet({ isFitToContentRunning }),
 
@@ -531,7 +721,21 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setShowSSAO: (showSSAO) => persistedSet({ showSSAO }),
     setShowEdgeOutline: (showEdgeOutline) => persistedSet({ showEdgeOutline }),
     setShowHillShade: (showHillShade) => persistedSet({ showHillShade }),
+    setUsgsTopoStyle: (usgsTopoStyle) => {
+      if (usgsTopoStyle) {
+        persistedSet({ usgsTopoStyle: true, showContours: true, showHillShade: true });
+      } else {
+        persistedSet({ usgsTopoStyle: false });
+      }
+    },
     setAutoFitYEnabled: (autoFitYEnabled) => persistedSet({ autoFitYEnabled }),
+    setAutoFitContentEnabled: (autoFitContentEnabled) => {
+      persistedSet({ autoFitContentEnabled });
+      if (autoFitContentEnabled) {
+        originalSet({ _autoFitContentGraphHash: "", _userManualYAdjust: false });
+      }
+    },
+    setTerrainRefUseBaseY: (terrainRefUseBaseY) => persistedSet({ terrainRefUseBaseY }),
     setWorldCenterX: (worldCenterX) => persistedSet({ worldCenterX }),
     setWorldCenterZ: (worldCenterZ) => persistedSet({ worldCenterZ }),
     setWorldRadius: (worldRadius) => persistedSet({ worldRadius }),
@@ -541,10 +745,72 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setWorldSurfaceDepth: (worldSurfaceDepth) => persistedSet({ worldSurfaceDepth }),
     setWorldLavaLevel: (worldLavaLevel) => persistedSet({ worldLavaLevel }),
     setWorldForceLoad: (worldForceLoad) => persistedSet({ worldForceLoad }),
+    setWorldLivePlayer: (worldLivePlayer) => originalSet({ worldLivePlayer }),
+    setWorldSceneLayout: (worldSceneLayout) => originalSet({ worldSceneLayout }),
+    setShowWorldPlayerMarker: (showWorldPlayerMarker) => originalSet({ showWorldPlayerMarker }),
     setShowPositionOverlay: (showPositionOverlay) => persistedSet({ showPositionOverlay }),
     setPositionOverlayColor: (positionOverlayColor) => persistedSet({ positionOverlayColor }),
     setPositionOverlaySize: (positionOverlaySize) => persistedSet({ positionOverlaySize }),
     setPositionOverlaySeed: (positionOverlaySeed) => persistedSet({ positionOverlaySeed }),
+    setShowShapePreview: (showShapePreview) => persistedSet({ showShapePreview }),
+    setShowShapeCellMap: (showShapeCellMap) => persistedSet({ showShapeCellMap }),
+    setShowCellBoundaries: (showCellBoundaries) => persistedSet({ showCellBoundaries }),
+    setShowWallDistance: (showWallDistance) => persistedSet({ showWallDistance }),
+    setShowMeshSamples: (showMeshSamples) => persistedSet({ showMeshSamples }),
+    setShowSdfSurface: (showSdfSurface) => persistedSet({ showSdfSurface }),
+    setShapePreviewSeed: (shapePreviewSeed) => persistedSet({ shapePreviewSeed }),
+    setCellShapeGrid: (cellShapeGrid) => originalSet((s) => (
+      s.cellShapeGrid === cellShapeGrid ? s : { cellShapeGrid }
+    )),
+    setSdfZeroSegments: (sdfZeroSegments) => originalSet((s) => {
+      if (
+        s.sdfZeroSegments === sdfZeroSegments
+        || (s.sdfZeroSegments.length === 0 && sdfZeroSegments.length === 0)
+      ) {
+        return s;
+      }
+      return { sdfZeroSegments };
+    }),
+    setShapePreviewMeshPoints: (shapePreviewMeshPoints) => originalSet((s) => (
+      s.shapePreviewMeshPoints === shapePreviewMeshPoints
+      || (s.shapePreviewMeshPoints.length === 0 && shapePreviewMeshPoints.length === 0)
+        ? s
+        : { shapePreviewMeshPoints }
+    )),
+    applyShapePreviewPreset: (preset) => {
+      if (preset === "pcn") {
+        persistedSet({
+          showShapePreview: true,
+          showShapeCellMap: true,
+          showCellBoundaries: true,
+          showWallDistance: true,
+          showMeshSamples: false,
+          showSdfSurface: false,
+        });
+      } else if (preset === "pcnMesh") {
+        persistedSet({
+          showShapePreview: true,
+          showShapeCellMap: true,
+          showCellBoundaries: true,
+          showWallDistance: true,
+          showMeshSamples: true,
+          showSdfSurface: false,
+        });
+      } else {
+        persistedSet({
+          showShapePreview: true,
+          showCellBoundaries: false,
+          showWallDistance: false,
+          showMeshSamples: false,
+          showSdfSurface: true,
+          showVoxelWireframe: true,
+          autoFitYEnabled: false,
+          yLevel: 0,
+          voxelYMin: SDF_DEFAULT_VOXEL_Y.min,
+          voxelYMax: SDF_DEFAULT_VOXEL_Y.max,
+        });
+      }
+    },
     setCompareNodeA: (compareNodeA) => persistedSet({ compareNodeA }),
     setCompareNodeB: (compareNodeB) => persistedSet({ compareNodeB }),
     setCompareModeA: (compareModeA) => persistedSet({ compareModeA }),

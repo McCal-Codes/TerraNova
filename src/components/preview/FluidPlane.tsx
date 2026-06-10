@@ -62,7 +62,7 @@ function WaterSurface({ yPosition }: { yPosition: number }) {
   });
 
   return (
-    <mesh position={[0, yPosition, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+    <mesh position={[0, yPosition, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
       <planeGeometry args={[50, 50, 32, 32]} />
       <primitive object={material} attach="material" ref={materialRef} />
     </mesh>
@@ -73,7 +73,7 @@ function WaterSurface({ yPosition }: { yPosition: number }) {
 
 function LavaSurface({ yPosition, size = 50 }: { yPosition: number; size?: number }) {
   return (
-    <mesh position={[0, yPosition, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+    <mesh position={[0, yPosition, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
       <planeGeometry args={[size, size]} />
       <meshStandardMaterial
         color="#ff4500"
@@ -82,6 +82,7 @@ function LavaSurface({ yPosition, size = 50 }: { yPosition: number; size?: numbe
         transparent
         opacity={0.7}
         side={DoubleSide}
+        depthWrite={false}
         roughness={0.3}
       />
     </mesh>

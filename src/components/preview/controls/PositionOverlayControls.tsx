@@ -1,6 +1,12 @@
 import { usePreviewStore } from "@/stores/previewStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { SliderField } from "@/components/properties/SliderField";
+import {
+  PreviewCheckbox,
+  PreviewField,
+  PreviewSidebarSection,
+  previewSelectClass,
+} from "./PreviewControlPrimitives";
 
 export function PositionOverlayControls() {
   const showPositionOverlay = usePreviewStore((s) => s.showPositionOverlay);
@@ -17,30 +23,25 @@ export function PositionOverlayControls() {
   const positionNodes = nodes.filter((n) => (n.type ?? "").startsWith("Position:"));
 
   return (
-    <div className="flex flex-col gap-2 border-t border-tn-border pt-2">
-      <span className="text-[10px] text-tn-text-muted font-medium">Position Overlay</span>
-
-      <label className="flex items-center gap-1.5 text-[11px] text-tn-text-muted cursor-pointer">
-        <input
-          type="checkbox"
-          checked={showPositionOverlay}
-          onChange={(e) => setShowPositionOverlay(e.target.checked)}
-          className="accent-tn-accent w-3 h-3"
-        />
-        Show Positions
-      </label>
+    <PreviewSidebarSection title="Position overlay" headingId="preview-position-heading">
+      <PreviewCheckbox
+        checked={showPositionOverlay}
+        onChange={setShowPositionOverlay}
+        label="Show position samples"
+        description="Scatter plot on the 2D heatmap"
+      />
 
       {showPositionOverlay && (
         <>
-          <div className="flex flex-col gap-0.5">
-            <label className="text-[10px] text-tn-text-muted">Source</label>
+          <PreviewField label="Source node" htmlFor="position-overlay-source">
             <select
+              id="position-overlay-source"
               value={positionOverlayNodeId ?? "__auto__"}
               onChange={(e) => {
                 const val = e.target.value;
                 setPositionOverlayNodeId(val === "__auto__" ? null : val);
               }}
-              className="bg-tn-panel border border-tn-border rounded px-2 py-1 text-[11px] text-tn-text"
+              className={previewSelectClass}
             >
               <option value="__auto__">Auto-detect</option>
               {positionNodes.map((n) => {
@@ -53,18 +54,32 @@ export function PositionOverlayControls() {
                 );
               })}
             </select>
-          </div>
+          </PreviewField>
 
-          <SliderField label="Seed" value={positionOverlaySeed} min={0} max={999} step={1} onChange={setPositionOverlaySeed} />
-          <SliderField label="Dot Size" value={positionOverlaySize} min={0.5} max={5} step={0.5} onChange={setPositionOverlaySize} />
+          <SliderField
+            label="Seed"
+            value={positionOverlaySeed}
+            min={0}
+            max={999}
+            step={1}
+            onChange={setPositionOverlaySeed}
+          />
+          <SliderField
+            label="Dot size"
+            value={positionOverlaySize}
+            min={0.5}
+            max={5}
+            step={0.5}
+            onChange={setPositionOverlaySize}
+          />
 
           {positionOverlayPoints.length > 0 && (
-            <div className="text-[10px] text-tn-text-muted font-mono">
-              {positionOverlayPoints.length} positions
-            </div>
+            <p className="text-[10px] text-tn-text-muted tabular-nums">
+              {positionOverlayPoints.length.toLocaleString()} positions in range
+            </p>
           )}
         </>
       )}
-    </div>
+    </PreviewSidebarSection>
   );
 }

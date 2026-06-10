@@ -1,4 +1,5 @@
 import type { VoxelMaterial } from "@/utils/voxelExtractor";
+import { previewHudPanelClass } from "@/components/preview/previewChromeStyles";
 
 function RoughnessBar({ value }: { value: number }) {
   return (
@@ -10,7 +11,7 @@ function RoughnessBar({ value }: { value: number }) {
 
 export function MaterialLegend({ materials }: { materials: VoxelMaterial[] }) {
   return (
-    <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 px-2 py-1.5 bg-tn-panel/90 border border-tn-border rounded max-h-[60vh] overflow-y-auto">
+    <div className={`flex max-h-[50vh] min-w-[140px] flex-col gap-1 overflow-y-auto px-2 py-1.5 ${previewHudPanelClass}`}>
       <span className="text-[9px] text-tn-text-muted font-medium">Materials</span>
       {materials.map((mat, i) => {
         const roughness = mat.roughness ?? 0.8;

@@ -1,10 +1,12 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { usePreviewStore, type PreviewMode } from "@/stores/previewStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { useComparisonEvaluation } from "@/hooks/useComparisonEvaluation";
 import { Preview3D } from "./Preview3D";
-import { COLORMAPS } from "@/utils/colormaps";
 import { getColormap } from "@/utils/colormaps";
+import { ComparisonChrome } from "./ComparisonChrome";
+import { PreviewSettingsDrawer } from "./PreviewSettingsDrawer";
+import { ComparisonControls } from "./controls/ComparisonControls";
 
 function ComparePane({
   label,
@@ -36,16 +38,13 @@ function ComparePane({
     canvasRef.current = el;
   }, []);
 
-  // Density nodes (those that could produce output)
   const densityNodes = useMemo(() => nodes, [nodes]);
 
   return (
     <div className="flex-1 min-w-0 flex flex-col border-r border-tn-border last:border-r-0 overflow-hidden">
-      {/* Pane header */}
       <div className="shrink-0 flex items-center gap-2 px-2 py-1.5 bg-tn-surface border-b border-tn-border">
         <span className="text-[10px] font-bold text-tn-accent">{label}</span>
 
-        {/* Node selector */}
         <select
           value={nodeId ?? "__none__"}
           onChange={(e) => setNodeId(e.target.value === "__none__" ? null : e.target.value)}
@@ -63,11 +62,11 @@ function ComparePane({
           })}
         </select>
 
-        {/* 2D/3D/Voxel toggle */}
         <button
+          type="button"
           onClick={() => {
             const modes: ("2d" | "3d" | "voxel")[] = ["2d", "3d", "voxel"];
-            const idx = modes.indexOf(paneMode as any);
+            const idx = modes.indexOf(paneMode as "2d" | "3d" | "voxel");
             setPaneMode(modes[(idx + 1) % modes.length]);
           }}
           className="px-1.5 py-0.5 text-[9px] rounded bg-tn-panel text-tn-text-muted hover:text-tn-text border border-tn-border"
@@ -80,7 +79,6 @@ function ComparePane({
         )}
       </div>
 
-      {/* Preview area */}
       <div className="flex-1 min-h-0 relative">
         {!nodeId && (
           <div className="flex items-center justify-center h-full text-[11px] text-tn-text-muted">
@@ -130,17 +128,12 @@ function ComparePreview({
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   handle3DCanvasRef: (el: HTMLCanvasElement | null) => void;
 }) {
-  // For comparison panes, we render using the store values
-  // The store already has the main values set, but comparison uses its own values
-  // We render using the Heatmap2D/Preview3D which read from the store.
-  // For simplicity, each comparison pane renders a mini canvas directly.
-  const cm = getColormap(colormap as any);
+  const cm = getColormap(colormap as Parameters<typeof getColormap>[0]);
 
   if (mode === "3d") {
     return <Preview3D onCanvasRef={handle3DCanvasRef} />;
   }
 
-  // Simple inline 2D heatmap for comparison pane
   return (
     <div className="relative flex items-center justify-center h-full p-2">
       <canvas
@@ -181,7 +174,6 @@ function ComparePreview({
           height: "100%",
         }}
       />
-      {/* Min/Max legend */}
       <div className="absolute top-2 right-2 flex flex-col gap-0.5 text-[9px] text-tn-text-muted font-mono">
         <span>min: {minValue.toFixed(3)}</span>
         <span>max: {maxValue.toFixed(3)}</span>
@@ -192,6 +184,8 @@ function ComparePreview({
 
 export function ComparisonView() {
   useComparisonEvaluation();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
   const compareNodeA = usePreviewStore((s) => s.compareNodeA);
   const compareNodeB = usePreviewStore((s) => s.compareNodeB);
@@ -209,59 +203,16 @@ export function ComparisonView() {
   const compareMaxB = usePreviewStore((s) => s.compareMaxB);
   const compareLoadingA = usePreviewStore((s) => s.compareLoadingA);
   const compareLoadingB = usePreviewStore((s) => s.compareLoadingB);
-  const linkCameras3D = usePreviewStore((s) => s.linkCameras3D);
-  const setLinkCameras3D = usePreviewStore((s) => s.setLinkCameras3D);
-
-  const colormap = usePreviewStore((s) => s.colormap);
-  const setColormap = usePreviewStore((s) => s.setColormap);
-  const resolution = usePreviewStore((s) => s.resolution);
-  const setResolution = usePreviewStore((s) => s.setResolution);
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-tn-bg">
-      {/* Shared top bar */}
-      <div className="shrink-0 flex items-center gap-3 px-3 py-1.5 bg-tn-surface border-b border-tn-border">
-        <span className="text-[10px] text-tn-text-muted font-medium">Compare</span>
+      <ComparisonChrome
+        settingsOpen={settingsOpen}
+        onSettingsOpenChange={setSettingsOpen}
+        settingsButtonRef={settingsButtonRef}
+      />
 
-        <div className="flex items-center gap-1">
-          <label className="text-[10px] text-tn-text-muted">Colormap:</label>
-          <select
-            value={colormap}
-            onChange={(e) => setColormap(e.target.value as typeof colormap)}
-            className="bg-tn-panel border border-tn-border rounded px-1.5 py-0.5 text-[10px] text-tn-text"
-          >
-            {COLORMAPS.map((cm) => (
-              <option key={cm.id} value={cm.id}>{cm.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <label className="text-[10px] text-tn-text-muted">Res:</label>
-          <input
-            type="number"
-            value={resolution}
-            min={16}
-            max={512}
-            step={16}
-            onChange={(e) => setResolution(parseInt(e.target.value) || 128)}
-            className="w-14 px-1 py-0.5 text-[10px] bg-tn-panel border border-tn-border rounded text-right text-tn-text"
-          />
-        </div>
-
-        <label className="flex items-center gap-1 text-[10px] text-tn-text-muted cursor-pointer ml-auto">
-          <input
-            type="checkbox"
-            checked={linkCameras3D}
-            onChange={(e) => setLinkCameras3D(e.target.checked)}
-            className="accent-tn-accent w-3 h-3"
-          />
-          Link 3D Cameras
-        </label>
-      </div>
-
-      {/* Side-by-side panes */}
-      <div className="flex-1 min-h-0 flex">
+      <div className="relative flex-1 min-h-0 flex">
         <ComparePane
           label="A"
           nodeId={compareNodeA}
@@ -284,6 +235,15 @@ export function ComparisonView() {
           maxValue={compareMaxB}
           isLoading={compareLoadingB}
         />
+
+        <PreviewSettingsDrawer
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          returnFocusRef={settingsButtonRef}
+          title="Compare settings"
+        >
+          <ComparisonControls />
+        </PreviewSettingsDrawer>
       </div>
     </div>
   );

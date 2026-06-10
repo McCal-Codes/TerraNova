@@ -27,11 +27,8 @@ jobs:
           VERSION="${TAG#v}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if echo "$VERSION" | grep -qE '-(alpha|beta|rc)\.'; then
-            echo "sign=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "sign=true" >> "$GITHUB_OUTPUT"
-          fi
+          # Sign all tag releases when TAURI_SIGNING_* secrets are configured (alpha/beta/rc too).
+          echo "sign=true" >> "$GITHUB_OUTPUT"
 
       - name: Verify tag matches package.json
         run: |

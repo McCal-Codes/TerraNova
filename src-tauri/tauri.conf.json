@@ -55,6 +55,10 @@
       "nsis": {
         "installMode": "currentUser",
         "displayLanguageSelector": false
+      },
+      "wix": {
+        "language": "en-US",
+        "version": "0.1.8.1"
       }
     },
     "macOS": {

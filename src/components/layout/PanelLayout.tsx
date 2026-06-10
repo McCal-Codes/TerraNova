@@ -114,7 +114,7 @@ function BookmarkSection() {
       </button>
       {!collapsed && (
         <div id="bookmark-panel-content" className="h-[200px]">
-          <BookmarkPanel />
+          <BookmarkPanel embedded />
         </div>
       )}
     </div>

@@ -2,7 +2,12 @@ import { useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useUIStore, type Bookmark } from "@/stores/uiStore";
 
-export function BookmarkPanel() {
+interface BookmarkPanelProps {
+  /** Hide panel header when nested under a collapsible sidebar section. */
+  embedded?: boolean;
+}
+
+export function BookmarkPanel({ embedded = false }: BookmarkPanelProps) {
   const bookmarks = useUIStore((s) => s.bookmarks);
   const removeBookmark = useUIStore((s) => s.removeBookmark);
   const renameBookmark = useUIStore((s) => s.renameBookmark);
@@ -52,18 +57,33 @@ export function BookmarkPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-tn-border">
-        <span className="text-[11px] font-medium text-tn-text-muted uppercase tracking-wider">
-          Bookmarks
-        </span>
-        <button
-          onClick={handleSaveHere}
-          className="text-[10px] px-2 py-0.5 bg-tn-accent/20 text-tn-accent rounded hover:bg-tn-accent/30"
-          title="Save current viewport as a bookmark"
-        >
-          + Save Here
-        </button>
-      </div>
+      {!embedded && (
+        <div className="flex items-center justify-between px-3 py-2 border-b border-tn-border">
+          <span className="text-[11px] font-medium text-tn-text-muted uppercase tracking-wider">
+            Bookmarks
+          </span>
+          <button
+            onClick={handleSaveHere}
+            className="text-[10px] px-2 py-0.5 bg-tn-accent/20 text-tn-accent rounded hover:bg-tn-accent/30"
+            title="Save current viewport as a bookmark"
+            aria-label="Save current viewport as a bookmark"
+          >
+            + Save Here
+          </button>
+        </div>
+      )}
+      {embedded && (
+        <div className="flex justify-end px-2 py-1 border-b border-tn-border/60">
+          <button
+            onClick={handleSaveHere}
+            className="text-[10px] px-2 py-0.5 bg-tn-accent/20 text-tn-accent rounded hover:bg-tn-accent/30"
+            title="Save current viewport as a bookmark"
+            aria-label="Save current viewport as a bookmark"
+          >
+            + Save Here
+          </button>
+        </div>
+      )}
 
       {sortedBookmarks.length === 0 ? (
         <div className="flex-1 flex items-center justify-center px-4">

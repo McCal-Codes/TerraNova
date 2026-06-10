@@ -182,6 +182,12 @@ export function resolveImportNodeType(
 ): string {
   if (assetType.includes(":")) return assetType;
 
+  // Density graphs reuse bare Type names that also exist under other bundle categories.
+  if (importCategory === "density") {
+    if (assetType === "Constant") return "Constant";
+    if (assetType === "BaseHeight") return "BaseHeight";
+  }
+
   const bareBundlePrefix = editorPrefixFromBareBundleType(assetType);
   const schemaCategory = getSchemaCategory(assetType)
     ?? (bareBundlePrefix ? AssetCategory.Curve : null);

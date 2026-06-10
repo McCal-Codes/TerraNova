@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   filterPrefabPaths,
+  formatPrefabOptionLabel,
   getPrefabCategory,
   listPrefabCategories,
+  listPrefabSubcategories,
   PREFAB_CATEGORY_ALL,
 } from "../prefabCatalogFilters";
 
@@ -29,5 +31,26 @@ describe("prefabCatalogFilters", () => {
 
     const trees = filterPrefabPaths(paths, { category: "trees" });
     expect(trees).toHaveLength(2);
+  });
+
+  it("lists subfolders within a category", () => {
+    const blocksets = [
+      "Blocksets/08Rock_Sandstone/Ceiling/Rock_Sandstone_Ceiling_001",
+      "Blocksets/08Rock_Sandstone/Floor/Rock_Sandstone_Floor_001",
+      "Blocksets/Klops_Basalt/Main/Klops_Basalt_Main_001",
+    ];
+    expect(listPrefabSubcategories(blocksets, "Blocksets")).toEqual([
+      "08Rock_Sandstone",
+      "Klops_Basalt",
+    ]);
+  });
+
+  it("formats dropdown labels without repeating the category", () => {
+    const label = formatPrefabOptionLabel(
+      "Blocksets/08Rock_Sandstone/Ceiling/Rock_Sandstone_Ceiling_001",
+      "Blocksets",
+    );
+    expect(label).toContain("Ceiling");
+    expect(label).not.toMatch(/^Blocksets/);
   });
 });

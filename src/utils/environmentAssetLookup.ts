@@ -270,17 +270,55 @@ async function collectAssetReferenceNames(
   };
 }
 
+function mergeAssetReferenceCollections(
+  ...collections: AssetReferenceCollection[]
+): AssetReferenceCollection {
+  const names = new Map<string, string>();
+  const pathIndex: Record<string, string[]> = {};
+  for (const collection of collections) {
+    for (const name of collection.names) {
+      const key = name.toLowerCase();
+      if (!names.has(key)) {
+        names.set(key, name);
+      }
+    }
+    for (const [key, paths] of Object.entries(collection.pathIndex)) {
+      for (const path of paths) {
+        addPathIndexValue(pathIndex, key, path);
+      }
+    }
+  }
+  return {
+    names: [...names.values()],
+    pathIndex,
+  };
+}
+
 async function loadEnvironmentNames(serverRoot: string): Promise<AssetReferenceCollection> {
   const cacheKey = serverRoot.toLowerCase();
   const existing = ENVIRONMENT_LOOKUP_CACHE.get(cacheKey);
   if (existing) return existing;
 
-  const pending = listDirectory(joinPath(serverRoot, "Environments"))
-    .then((entries) => collectEnvironmentNames(entries))
-    .catch((error) => {
-      ENVIRONMENT_LOOKUP_CACHE.delete(cacheKey);
-      throw error;
-    });
+  const pending = (async () => {
+    const collections: AssetReferenceCollection[] = [];
+    for (const candidate of ASSET_DIRECTORY_CANDIDATES.environment) {
+      try {
+        const entries = await listDirectory(joinPath(serverRoot, candidate));
+        collections.push(collectEnvironmentNames(entries));
+      } catch {
+        // Try the next candidate path.
+      }
+    }
+    if (collections.length > 0) {
+      return mergeAssetReferenceCollections(...collections);
+    }
+
+    const rootEntries = await listDirectory(serverRoot);
+    return collectAssetReferenceNames(rootEntries, ASSET_DIRECTORY_CANDIDATES.environment);
+  })().catch((error) => {
+    ENVIRONMENT_LOOKUP_CACHE.delete(cacheKey);
+    throw error;
+  });
   ENVIRONMENT_LOOKUP_CACHE.set(cacheKey, pending);
   return pending;
 }

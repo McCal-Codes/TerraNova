@@ -165,7 +165,7 @@ const DEFAULT_SETTINGS: DocsSettings = {
   showFolderCount: false,
   readingWidth: "standard",
   fontSize: "default",
-  wrapCodeBlocks: false,
+  wrapCodeBlocks: true,
   showStickyHeader: false,
   showRelatedDocs: true,
   autoOpenFirstSearchResult: false,
@@ -2180,7 +2180,7 @@ export function DocsPanel() {
       return <code className={className} {...props}>{children}</code>;
     },
     h2: ({ id, children, ...props }: React.ComponentPropsWithoutRef<"h2">) => (
-      <h2 {...props} id={id} className="group flex items-center gap-2">
+      <h2 {...props} id={id} className="group flex min-w-0 flex-wrap items-center gap-2 break-words">
         {children}
         {id && (
           <HeadingAnchor id={id} size="h2" selectedSlug={selectedSlug} contentRef={contentRef} />
@@ -2188,7 +2188,7 @@ export function DocsPanel() {
       </h2>
     ),
     h3: ({ id, children, ...props }: React.ComponentPropsWithoutRef<"h3">) => (
-      <h3 {...props} id={id} className="group flex items-center gap-2">
+      <h3 {...props} id={id} className="group flex min-w-0 flex-wrap items-center gap-2 break-words">
         {children}
         {id && (
           <HeadingAnchor id={id} size="h3" selectedSlug={selectedSlug} contentRef={contentRef} />
@@ -2214,7 +2214,7 @@ export function DocsPanel() {
 
   return (
     <div
-      className="flex h-full"
+      className="flex h-full min-w-0 w-full overflow-hidden"
       onKeyDown={(e) => {
         if (!e.altKey) return;
         const target = e.target;
@@ -2559,7 +2559,7 @@ export function DocsPanel() {
         )}
       </div>
 
-      <div className="relative flex-1 flex flex-col min-h-0">
+      <div className="relative flex min-w-0 flex-1 flex-col min-h-0">
         {/* Reading progress bar */}
         {settings.showProgressBar && (
           <div className="h-0.5 w-full bg-tn-border shrink-0">
@@ -2604,7 +2604,7 @@ export function DocsPanel() {
         )}
 
         <div
-          className="flex-1 overflow-y-auto p-6 pb-16 docs-content"
+          className="docs-content flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-6 pb-16"
           id="docs-content"
           ref={contentRef}
           data-reading-width={settings.readingWidth}
@@ -2615,8 +2615,8 @@ export function DocsPanel() {
         {selectedSlug ? (
           <>
             <div className={`docs-reader-header z-20 mb-5 -mx-6 border-b border-tn-border/80 bg-[rgba(28,26,23,0.88)] px-6 py-4 backdrop-blur-md ${settings.showStickyHeader ? "sticky top-0" : ""}`}>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 min-w-0">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {sidebarCollapsed && (
                   <ChromeIconButton
                     size="sm"

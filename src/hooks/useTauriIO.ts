@@ -37,12 +37,15 @@ import {
 } from "@/utils/sectionAnnotationRouting";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { getDirname, findServerRoot, isPathInProject } from "@/utils/pathUtils";
+import { confirmOpenPackWithAlphaBackup } from "@/utils/openPackWithAlphaGuard";
+import { openProjectAtPath } from "@/utils/openProjectAtPath";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { useToastStore } from "@/stores/toastStore";
 import { emit } from "@/stores/storeEvents";
 import { loadPersistedHistory } from "@/stores/editorStore";
 import type { BiomeConfig, BiomeSectionData, SectionHistoryEntry } from "@/stores/editorStore";
 import { extractMaterialConfig } from "@/utils/materialResolver";
+import { normalizeDensitySectionNodeTypes } from "@/utils/densitySectionNodes";
 import { normalizeMaterialSectionNodeTypes } from "@/utils/materialSectionNodes";
 import { sanitizeGraphNodesAndEdges } from "@/utils/sanitizeGraphNodes";
 import { useUIStore } from "@/stores/uiStore";
@@ -156,7 +159,7 @@ async function extractBiomeSections(
         rootNode.data = { ...(rootNode.data as Record<string, unknown>), _outputNode: true, _biomeField: "Terrain" };
         terrainOutputId = rootNode.id;
       }
-      const layoutedNodes = await layoutSection(nodes, edges, "Terrain");
+      const layoutedNodes = normalizeDensitySectionNodeTypes(await layoutSection(nodes, edges, "Terrain"));
       // layoutedNodes and edges are freshly created — no clone needed
       const terrainInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges, outputNodeId: terrainOutputId, label: "Initial" };
       sections["Terrain"] = { nodes: layoutedNodes, edges, outputNodeId: terrainOutputId, history: [terrainInitial], historyIndex: 0 };
@@ -357,15 +360,14 @@ export function useTauriIO() {
       if (!selected) return;
 
       const path = typeof selected === "string" ? selected : selected;
-      setProjectPath(path);
+      const ok = await confirmOpenPackWithAlphaBackup(path);
+      if (!ok) return;
 
-      const entries = await listDirectory(path);
-      setDirectoryTree(entries.map(mapDirEntry));
-      useRecentProjectsStore.getState().addProject(path);
+      await openProjectAtPath(path);
     } catch (err) {
       setLastError(`Failed to open asset pack: ${err}`);
     }
-  }, [setProjectPath, setDirectoryTree, setLastError]);
+  }, [setLastError]);
 
   const handleSaveAssetPack = useCallback(async () => {
     setLastError(null);
@@ -708,6 +710,13 @@ export function useTauriIO() {
           // Load first section into canvas
           const firstKey = sectionKeys[0] ?? null;
           let firstSection = firstKey ? sections[firstKey] : null;
+          if (firstSection && firstKey === "Terrain") {
+            const normalizedNodes = normalizeDensitySectionNodeTypes(firstSection.nodes);
+            if (normalizedNodes !== firstSection.nodes) {
+              firstSection = { ...firstSection, nodes: normalizedNodes };
+              sections.Terrain = firstSection;
+            }
+          }
 
           // Atomic state update — sets ALL biome state at once to avoid race conditions.
           // Sections already have their initial history entry from extractBiomeSections(),

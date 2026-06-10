@@ -9,6 +9,7 @@ import {
   loosenNodesRelative,
   LOOSEN_SCALE_DEFAULT,
   nodesEligibleForFraming,
+  syncAnnotationNodeDimensions,
 } from "@/utils/annotationUtils";
 import { resolveAutoFrameSectionTitle } from "@/utils/importAnnotations";
 import { useSettingsStore } from "../settingsStore";
@@ -502,7 +503,7 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
 
       mutateAndCommit(() => ({
         nodes: [
-          frame,
+          syncAnnotationNodeDimensions(frame),
           ...workingNodes.map((n) => ({ ...n, selected: false })),
         ],
         selectedNodeId: frame.id,

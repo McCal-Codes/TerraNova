@@ -147,7 +147,7 @@ export function DocumentationDialog({ open, onClose }: DocumentationDialogProps)
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="docs-content flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-6">
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="animate-pulse text-tn-text-muted">Loading...</div>
@@ -187,7 +187,7 @@ function MarkdownContent({ content }: { content: string }) {
 
   return (
     <div
-      className="space-y-4 text-sm text-tn-text leading-relaxed"
+      className="docs-reading-shell space-y-4 text-sm text-tn-text leading-relaxed break-words"
       dangerouslySetInnerHTML={{ __html: rendered }}
     />
   );
@@ -197,7 +197,7 @@ function renderMarkdown(md: string): string {
   return (
     md
       // Code blocks
-      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-tn-surface p-3 rounded-md overflow-x-auto font-mono text-xs"><code>$2</code></pre>')
+      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-tn-surface p-3 rounded-md overflow-x-hidden whitespace-pre-wrap break-words font-mono text-xs"><code>$2</code></pre>')
       // Inline code
       .replace(/`([^`]+)`/g, '<code class="bg-tn-surface px-1.5 py-0.5 rounded text-xs font-mono">$1</code>')
       // Headers

@@ -7,6 +7,7 @@ import {
   isAnnotationNode,
   isGraphNode,
   layerCanvasNodes,
+  syncAnnotationNodeDimensions,
 } from "@/utils/annotationUtils";
 
 interface BBox {
@@ -140,7 +141,7 @@ export function buildAnnotationNodesFromImportMetadata(
   }
 
   for (const group of metadata.hytaleGroups ?? []) {
-    nodes.push({
+    nodes.push(syncAnnotationNodeDimensions({
       id: `frame-${crypto.randomUUID()}`,
       type: "frame",
       position: { x: group.x, y: group.y },
@@ -153,7 +154,7 @@ export function buildAnnotationNodesFromImportMetadata(
       draggable: true,
       selectable: true,
       zIndex: -1,
-    });
+    }));
   }
 
   return nodes;

@@ -29,6 +29,7 @@ export default defineConfig({
           : "chrome105",
     rollupOptions: {
       output: {
+        onlyExplicitManualChunks: true,
         manualChunks: {
           three: ["three", "@react-three/fiber", "@react-three/drei", "@react-three/postprocessing", "postprocessing"],
           xyflow: ["@xyflow/react"],

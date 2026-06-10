@@ -13,8 +13,8 @@ export function PackWizardHelpCard() {
         </li>
         <li>
           <strong className="font-medium text-tn-text">Advanced → Biome</strong> lets you pick a surface
-          block for the basic template and a starter prefab — filter by folder, pick from the list, and the
-          3D preview updates live (sync Hytale assets first).
+          block and an optional starter prefab — use Quick pick or Browse (category, then search) with a
+          live 3D preview (sync Hytale assets first).
         </li>
         <li>
           Simple mode lists every bundled starter under templates/ (Forest Hills, Eldritch Spirelands, and more).

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
 import { ALL_DEFAULTS, type CategoryDefaultsEntry } from "@/schema/defaults";
@@ -20,6 +20,67 @@ import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 
 const SNIPPET_COLOR = "#a78bfa";
 const ROOT_PALETTE_COLOR = "#8B4450";
+const PALETTE_EXPANDED_KEY = "terranova:palette-expanded-categories";
+const PALETTE_DENSITY_SUBS_KEY = "terranova:palette-expanded-density-subs";
+
+function allCategoriesCollapsed(): Set<AssetCategory> {
+  return new Set(Object.values(AssetCategory));
+}
+
+function loadPaletteCollapsed(): Set<AssetCategory> {
+  const collapsed = allCategoriesCollapsed();
+  try {
+    const raw = localStorage.getItem(PALETTE_EXPANDED_KEY);
+    if (!raw) return collapsed;
+    const expanded = JSON.parse(raw) as string[];
+    for (const cat of expanded) {
+      if ((Object.values(AssetCategory) as string[]).includes(cat)) {
+        collapsed.delete(cat as AssetCategory);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return collapsed;
+}
+
+function persistPaletteExpanded(collapsed: Set<AssetCategory>) {
+  try {
+    const expanded = (Object.values(AssetCategory) as AssetCategory[]).filter(
+      (cat) => !collapsed.has(cat),
+    );
+    localStorage.setItem(PALETTE_EXPANDED_KEY, JSON.stringify(expanded));
+  } catch {
+    /* ignore */
+  }
+}
+
+function loadDensitySubsCollapsed(): Set<DensitySubcategory> {
+  const allSubs = new Set(DENSITY_SUB_ORDER);
+  try {
+    const raw = localStorage.getItem(PALETTE_DENSITY_SUBS_KEY);
+    if (!raw) return new Set();
+    const expanded = JSON.parse(raw) as string[];
+    const collapsed = new Set(allSubs);
+    for (const sub of expanded) {
+      if ((Object.values(DensitySubcategory) as string[]).includes(sub)) {
+        collapsed.delete(sub as DensitySubcategory);
+      }
+    }
+    return collapsed;
+  } catch {
+    return new Set();
+  }
+}
+
+function persistDensitySubsExpanded(collapsedSubs: Set<DensitySubcategory>) {
+  try {
+    const expanded = DENSITY_SUB_ORDER.filter((sub) => !collapsedSubs.has(sub));
+    localStorage.setItem(PALETTE_DENSITY_SUBS_KEY, JSON.stringify(expanded));
+  } catch {
+    /* ignore */
+  }
+}
 
 /** Human-readable category labels */
 const CATEGORY_LABELS: Partial<Record<AssetCategory, string>> = {
@@ -149,9 +210,9 @@ const CONTEXT_TO_CATEGORY: Record<string, AssetCategory> = {
 
 export function NodePalette() {
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsed] = useState<Set<AssetCategory>>(() => new Set(Object.values(AssetCategory)));
+  const [collapsed, setCollapsed] = useState<Set<AssetCategory>>(loadPaletteCollapsed);
   const [snippetsCollapsed, setSnippetsCollapsed] = useState<Set<string>>(() => new Set(SNIPPET_CATALOG.map((s) => s.category)));
-  const [collapsedSubs, setCollapsedSubs] = useState<Set<DensitySubcategory>>(() => new Set());
+  const [collapsedSubs, setCollapsedSubs] = useState<Set<DensitySubcategory>>(loadDensitySubsCollapsed);
   const addNode = useEditorStore((s) => s.addNode);
   const addSnippet = useEditorStore((s) => s.addSnippet);
   const setDirty = useProjectStore((s) => s.setDirty);
@@ -194,11 +255,23 @@ export function NodePalette() {
     ? [contextCategory, ...baseCategoryOrder.filter((c) => c !== contextCategory)]
     : baseCategoryOrder;
 
+  useEffect(() => {
+    if (!contextCategory || hasSearch) return;
+    setCollapsed((prev) => {
+      if (!prev.has(contextCategory)) return prev;
+      const next = new Set(prev);
+      next.delete(contextCategory);
+      persistPaletteExpanded(next);
+      return next;
+    });
+  }, [contextCategory, hasSearch]);
+
   const toggleCategory = useCallback((cat: AssetCategory) => {
     setCollapsed((prev) => {
       const next = new Set(prev);
       if (next.has(cat)) next.delete(cat);
       else next.add(cat);
+      persistPaletteExpanded(next);
       return next;
     });
   }, []);
@@ -208,6 +281,7 @@ export function NodePalette() {
       const next = new Set(prev);
       if (next.has(sub)) next.delete(sub);
       else next.add(sub);
+      persistDensitySubsExpanded(next);
       return next;
     });
   }, []);

@@ -9,18 +9,25 @@ import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { FlowDirection } from "@/constants";
-import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets, type AssetStalenessInfo } from "@/utils/ipc";
+import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, type AssetStalenessInfo } from "@/utils/ipc";
+import { formatHytaleSyncToast, runHytaleAssetSync } from "@/utils/hytaleAssetSyncAction";
+import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolders";
+import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
+import { useBugReportStore } from "@/stores/bugReportStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { WhatsNewDialog, WHATS_NEW_SUPPRESS_KEY } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
 import { SystemSettingsPanel, type SystemTab } from "./ConfigurationDialog";
 import { KeyboardShortcutsPanel } from "./KeyboardShortcutsDialog";
-import { clearBlockIconCache } from "@/utils/blockIconUrl";
-import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolders";
-import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
 import { clearHardwareDetectionCache, detectHardware, type HardwareInfo } from "@/utils/hardwareDetect";
 import { isTauriRuntime } from "@/utils/platform";
+import { getAppVersion } from "@/utils/fetchReleases";
+import { copyTextToClipboard } from "@/utils/devTools";
+import { buildBugReportBundle } from "@/utils/bugReport";
+import { useDeveloperMode } from "@/hooks/useDeveloperMode";
+import { useDevMetricsStore } from "@/stores/devMetricsStore";
+import { DevSettingRow } from "@/components/dev/devUi";
 
 function getWhatsNewSuppressed(): boolean {
   try { return localStorage.getItem(WHATS_NEW_SUPPRESS_KEY) === "true"; } catch { return false; }
@@ -96,8 +103,17 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const setHytaleCommonAssetsPath = useSettingsStore((s) => s.setHytaleCommonAssetsPath);
   const developerMode = useSettingsStore((s) => s.developerMode);
   const setDeveloperMode = useSettingsStore((s) => s.setDeveloperMode);
+  const autoEnableDeveloperModeInDev = useSettingsStore((s) => s.autoEnableDeveloperModeInDev);
+  const setAutoEnableDeveloperModeInDev = useSettingsStore((s) => s.setAutoEnableDeveloperModeInDev);
+  const showDevToolsDock = useSettingsStore((s) => s.showDevToolsDock);
+  const setShowDevToolsDock = useSettingsStore((s) => s.setShowDevToolsDock);
   const debugWorkerLogging = useSettingsStore((s) => s.debugWorkerLogging);
   const setDebugWorkerLogging = useSettingsStore((s) => s.setDebugWorkerLogging);
+  const showNodeIdsOnCanvas = useSettingsStore((s) => s.showNodeIdsOnCanvas);
+  const setShowNodeIdsOnCanvas = useSettingsStore((s) => s.setShowNodeIdsOnCanvas);
+  const showPerformanceOverlay = useDevMetricsStore((s) => s.showPerformanceOverlay);
+  const setShowPerformanceOverlay = useDevMetricsStore((s) => s.setShowPerformanceOverlay);
+  const devActive = useDeveloperMode();
   const addToast = useToastStore((s) => s.addToast);
   const recentProjects = useRecentProjectsStore((s) => s.projects);
   const clearRecentProjects = useRecentProjectsStore((s) => s.clearAll);
@@ -126,7 +142,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
       return;
     }
 
-    void getVersion().then(setAppVersion).catch(() => setAppVersion(""));
+    void getAppVersion().then(setAppVersion).catch(() => setAppVersion(""));
     void resolveDefaultPreReleaseAssetsPath().then(setExamplePreReleasePath).catch(() => setExamplePreReleasePath(""));
     void resolveDefaultReleaseAssetsPath().then(setExampleReleasePath).catch(() => setExampleReleasePath(""));
   }, []);
@@ -236,24 +252,14 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
       // we avoid doing a potentially expensive pre-count on the UI thread.
       setSyncingHytaleAssets(true);
 
-      const result = await syncHytaleAssets(
-        activeHytaleSourcePath,
-        hytaleCommonAssetsEnabled ? hytaleCommonAssetsPath : null,
-      );
-      clearAvailableHytaleAssetFoldersCache("hytale-assets");
-      clearHytaleAssetsInFolderCache("hytale-assets");
-      clearBlockIconCache();
-      setHytaleAssetCacheRoot(result.cacheRoot);
-      void checkHytaleAssetStaleness(activeHytaleSourcePath)
-        .then(setStalenessInfo)
-        .catch(() => setStalenessInfo(null));
-      const overlaySummary = result.commonOverlayFilesWritten > 0
-        ? ` plus ${result.commonOverlayFilesWritten} Common overlay file${result.commonOverlayFilesWritten === 1 ? "" : "s"}`
-        : "";
-      addToast(
-        `Synced ${result.filesWritten} Hytale asset file${result.filesWritten === 1 ? "" : "s"}${overlaySummary} into the TerraNova cache.`,
-        "success",
-      );
+      const { result, cacheRoot, staleness } = await runHytaleAssetSync({
+        sourcePath: activeHytaleSourcePath,
+        commonOverlayEnabled: hytaleCommonAssetsEnabled,
+        commonOverlayPath: hytaleCommonAssetsPath,
+      });
+      setHytaleAssetCacheRoot(cacheRoot);
+      setStalenessInfo(staleness);
+      addToast(formatHytaleSyncToast(result), "success");
     } catch (error) {
       addToast(`Failed to sync Hytale assets: ${error}`, "error");
     } finally {
@@ -689,37 +695,83 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Mode</label>
-                  <button
-                    onClick={() => setDeveloperMode(!developerMode)}
-                    className={`text-left px-3 py-2 rounded border text-sm ${
-                      developerMode ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                    }`}
-                  >
-                    <span className="font-medium">Enable developer mode</span>
-                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{developerMode ? "On" : "Off"}</span>
-                    <p className="mt-0.5 text-xs text-tn-text-muted">Keeps debug-oriented controls easy to find without changing normal user defaults.</p>
-                  </button>
+                <div className="rounded border border-tn-border/60 bg-tn-bg/40 px-3 divide-y divide-tn-border/40">
+                  <p className="text-xs font-medium text-tn-text-muted uppercase tracking-wider py-2">Mode</p>
+                  <DevSettingRow
+                    label="Developer mode"
+                    description="Enables debug controls in production builds."
+                    checked={developerMode}
+                    onChange={setDeveloperMode}
+                  />
+                  {import.meta.env.DEV && (
+                    <DevSettingRow
+                      label="Auto-enable in dev builds"
+                      description="Turn on developer tooling when running pnpm tauri dev."
+                      checked={autoEnableDeveloperModeInDev}
+                      onChange={setAutoEnableDeveloperModeInDev}
+                    />
+                  )}
                 </div>
 
-                {!developerMode ? (
+                {devActive && (
+                  <p className="text-xs text-emerald-400/90 px-1">
+                    Developer tooling is active{import.meta.env.DEV && !developerMode ? " (dev build)" : ""}.
+                  </p>
+                )}
+
+                {!devActive ? (
                   <div className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 text-xs text-tn-text-muted">
-                    Enable developer mode to reveal cache controls, hardware diagnostics, and verbose worker logging.
+                    Enable developer mode to access logging, diagnostics, and the optional tools below.
                   </div>
                 ) : (
                   <>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Logging</label>
+                    <div className="rounded border border-tn-border/60 bg-tn-bg/40 px-3 divide-y divide-tn-border/40">
+                      <p className="text-xs font-medium text-tn-text-muted uppercase tracking-wider py-2">Tools</p>
+                      <DevSettingRow
+                        label="Verbose worker logging"
+                        description="Log preview worker steps, import resolution, and layout changes to the console (off by default)."
+                        checked={debugWorkerLogging}
+                        onChange={setDebugWorkerLogging}
+                      />
+                      <DevSettingRow
+                        label="Developer tools panel"
+                        description="Bottom dock for store snapshots and export diff."
+                        checked={showDevToolsDock}
+                        onChange={setShowDevToolsDock}
+                      />
+                      <DevSettingRow
+                        label="Preview timing overlay"
+                        description="Live elapsed + last eval time for 2D, voxel, and world preview (developer mode)."
+                        checked={showPerformanceOverlay}
+                        onChange={setShowPerformanceOverlay}
+                      />
+                      <DevSettingRow
+                        label="Node IDs on canvas"
+                        description="Show UUIDs under nodes (pairs with the properties inspector)."
+                        checked={showNodeIdsOnCanvas}
+                        onChange={setShowNodeIdsOnCanvas}
+                      />
+                    </div>
+
+                    <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-3 flex flex-col gap-2">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wider text-tn-text-muted">Session snapshot</p>
+                        <p className="mt-1 text-xs text-tn-text-muted">
+                          Copy project path, open file, graph counts, validation summary, preview state, and Bridge status as JSON for bug reports.
+                        </p>
+                      </div>
                       <button
-                        onClick={() => setDebugWorkerLogging(!debugWorkerLogging)}
-                        className={`text-left px-3 py-2 rounded border text-sm ${
-                          debugWorkerLogging ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                        }`}
+                        type="button"
+                        onClick={() => {
+                          void buildBugReportBundle().then((snap) =>
+                            copyTextToClipboard(JSON.stringify(snap, null, 2)).then((ok) => {
+                              addToast(ok ? "Copied debug bundle" : "Could not copy debug bundle", ok ? "success" : "error");
+                            }),
+                          );
+                        }}
+                        className="self-start px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
                       >
-                        <span className="font-medium">Verbose worker logging</span>
-                        <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{debugWorkerLogging ? "On" : "Off"}</span>
-                        <p className="mt-0.5 text-xs text-tn-text-muted">Logs worker startup, timeouts, and fallback behavior from density and volume previews.</p>
+                        Copy session snapshot
                       </button>
                     </div>
 
@@ -863,6 +915,19 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                     <span className="font-medium">Auto-check for updates</span>
                     <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{autoCheckUpdates ? "On" : "Off"}</span>
                     <p className="text-xs text-tn-text-muted mt-0.5">Automatically check for new versions on launch</p>
+                  </button>
+                </div>
+
+                {/* Support */}
+                <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
+                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Support</label>
+                  <button
+                    type="button"
+                    onClick={() => useBugReportStore.getState().requestOpen()}
+                    className="text-left px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm"
+                  >
+                    <span className="font-medium">Report a bug</span>
+                    <p className="text-xs text-tn-text-muted mt-0.5">Copy a debug bundle and open the GitHub issue form</p>
                   </button>
                 </div>
 

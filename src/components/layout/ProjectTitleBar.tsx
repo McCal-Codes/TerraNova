@@ -11,7 +11,8 @@ import { resolveKeybinding } from "@/config/keybindings";
 import { exportAssetPack, exportCurrentJson } from "@/utils/exportAssetPack";
 import { isMac, isTauriRuntime } from "@/utils/platform";
 import { ChevronRight } from "lucide-react";
-import { openUrl } from "@/utils/ipc";
+import { useBugReportStore } from "@/stores/bugReportStore";
+import { CurrentContextBanner } from "./CurrentContextBanner";
 
 interface MenuItemProps {
   label: string;
@@ -111,6 +112,7 @@ function MenuDropdown({ label, children }: { label: string; children: ReactNode 
 interface ProjectTitleBarProps {
   onCloseProject: () => void;
   onNewProject: () => void;
+  onCreatePack?: () => void;
   onSettings: () => void;
   onShortcuts: () => void;
   onExportSvg: () => void;
@@ -119,6 +121,7 @@ interface ProjectTitleBarProps {
 export function ProjectTitleBar({
   onCloseProject,
   onNewProject,
+  onCreatePack,
   onSettings,
   onShortcuts,
   onExportSvg,
@@ -201,6 +204,13 @@ export function ProjectTitleBar({
         <MenuDropdown label="File">
           <MenuSubmenu label="New">
             <MenuItem label="Project..." onClick={onNewProject} shortcut={resolveKeybinding("newProject")} />
+            {onCreatePack && (
+              <MenuItem
+                label="Pack (Wizard)..."
+                onClick={onCreatePack}
+                shortcut={resolveKeybinding("createPack")}
+              />
+            )}
             <MenuItem label="Biome..." onClick={newBiome} />
             <MenuItem label="Instance Folder..." onClick={newInstance} />
           </MenuSubmenu>
@@ -212,7 +222,7 @@ export function ProjectTitleBar({
           <MenuSeparator />
           <MenuItem label="Export Asset Pack..." onClick={exportAssetPack} shortcut={resolveKeybinding("exportPack")} />
           <MenuItem label="Export Current JSON..." onClick={exportCurrentJson} shortcut={resolveKeybinding("exportJson")} />
-          <MenuItem label="Export SVG..." onClick={onExportSvg} shortcut={resolveKeybinding("exportSvg")} />
+          <MenuItem label="Export Graph..." onClick={onExportSvg} shortcut={resolveKeybinding("exportSvg")} />
         </MenuDropdown>
 
         <MenuDropdown label="Edit">
@@ -361,7 +371,7 @@ export function ProjectTitleBar({
           <MenuSeparator />
           <MenuItem
             label="File a Bug Report"
-            onClick={() => openUrl("https://github.com/HyperSystems-Development/TerraNova/issues/new?template=BUG_REPORT.yml")}
+            onClick={() => useBugReportStore.getState().requestOpen()}
           />
         </MenuDropdown>
 
@@ -380,6 +390,13 @@ export function ProjectTitleBar({
             shortcut={resolveKeybinding("toggleHelpMode")}
           />
         </MenuDropdown>
+      </div>
+
+      <div
+        className="flex flex-1 min-w-0 items-center justify-center px-3 pointer-events-auto"
+        {...(showWindowControls ? { "data-tauri-drag-region": true } : {})}
+      >
+        <CurrentContextBanner variant="titlebar" />
       </div>
 
       {showWindowControls && (

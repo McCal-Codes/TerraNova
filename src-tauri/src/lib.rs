@@ -50,6 +50,7 @@ pub fn run() {
             io_commands::create_blank_project,
             io_commands::create_pack_wizard,
             io_commands::list_pack_wizard_bundle_templates,
+            io_commands::backup_pack_directory,
             io_commands::show_in_folder,
             io_commands::open_url,
             io_commands::path_exists,

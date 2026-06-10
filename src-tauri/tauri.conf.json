@@ -7,7 +7,8 @@
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
     "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build"
+    "beforeBuildCommand": "pnpm build",
+    "removeUnusedCommands": true
   },
   "app": {
     "windows": [
@@ -65,7 +66,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/HyperSystems-Development/TerraNova/releases/latest/download/latest.json"
+        "https://github.com/McCal-Codes/TerraNova/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJFNzdDQjZBN0IyNzhEODkKUldTSmpTZDdhc3QzdmtaZTNocC9hMVpOTjVHU2lEc2grczJuUWF2UGlSeXM2YWtWZ2pLUDF1Wm4K",
       "windows": {

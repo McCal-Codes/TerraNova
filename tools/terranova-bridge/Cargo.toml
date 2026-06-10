@@ -1,0 +1,25 @@
+[package]
+name = "terranova-bridge"
+version = "0.1.0"
+description = "Loopback HTTP bridge for TerraNova editor ↔ Hytale save (sidecar MVP)"
+edition = "2021"
+rust-version = "1.77"
+
+[[bin]]
+name = "terranova-bridge"
+path = "src/main.rs"
+
+[dependencies]
+bridge-save = { path = "../bridge-save" }
+axum = { version = "0.8", features = ["json"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4"] }
+zstd = "0.13"
+bson = "2"
+byteorder = "1"

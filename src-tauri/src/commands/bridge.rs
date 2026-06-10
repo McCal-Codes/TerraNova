@@ -1,6 +1,64 @@
+use std::path::PathBuf;
+
 use crate::bridge::client::{BridgeClient, BridgeState};
+use crate::bridge::discover::{self, BridgeDiscovery};
+use crate::bridge::live_player;
 use crate::bridge::types::*;
 use crate::io::path_scope;
+use bridge_save::BridgeDebugSnapshot;
+
+#[tauri::command]
+pub async fn bridge_debug_snapshot(
+    save_name: Option<String>,
+    save_root: Option<String>,
+    mod_pack_path: Option<String>,
+    host: Option<String>,
+    port: Option<u16>,
+    state: tauri::State<'_, BridgeState>,
+) -> Result<BridgeDebugSnapshot, String> {
+    let save = save_name.unwrap_or_else(|| "Worldgen V1".to_string());
+    let host = host.unwrap_or_else(|| "127.0.0.1".to_string());
+    let port = port.unwrap_or(7854);
+    let (save_root_path, _, _, _) =
+        discover::resolve_save_root(&save, save_root.as_deref(), mod_pack_path.as_deref());
+    let port_open = discover::is_port_open(&host, port);
+    let sidecar_root = if let Ok(client) = state.get_client().await {
+        client
+            .status()
+            .await
+            .ok()
+            .and_then(|s| s.save_root)
+            .map(PathBuf::from)
+    } else {
+        None
+    };
+    Ok(bridge_save::collect_snapshot(
+        &save_root_path,
+        port_open,
+        sidecar_root.as_deref(),
+    ))
+}
+
+#[tauri::command]
+pub async fn bridge_discover(
+    save_name: Option<String>,
+    save_root: Option<String>,
+    mod_pack_path: Option<String>,
+    host: Option<String>,
+    port: Option<u16>,
+) -> Result<BridgeDiscovery, String> {
+    let save = save_name.unwrap_or_else(|| "Worldgen V1".to_string());
+    let host = host.unwrap_or_else(|| "127.0.0.1".to_string());
+    let port = port.unwrap_or(7854);
+    Ok(discover::discover_bridge(
+        &save,
+        &host,
+        port,
+        save_root.as_deref(),
+        mod_pack_path.as_deref(),
+    )
+    .await)
+}
 
 #[tauri::command]
 pub async fn bridge_connect(
@@ -65,6 +123,23 @@ pub async fn bridge_player_info(
     state: tauri::State<'_, BridgeState>,
 ) -> Result<PlayerInfo, String> {
     let client = state.get_client().await?;
+    if let Ok(status) = client.status().await {
+        if let Some(root) = status.save_root {
+            let path = PathBuf::from(root);
+            if let Some(live) = live_player::resolve_live_player_from_save(&path, true) {
+                return Ok(PlayerInfo {
+                    name: live.name,
+                    uuid: live.uuid,
+                    x: live.x,
+                    y: live.y,
+                    z: live.z,
+                    world: Some(live.world_id),
+                    world_label: Some(live.label),
+                    position_source: live.position_source.map(|s| s.to_string()),
+                });
+            }
+        }
+    }
     client.player_info().await
 }
 

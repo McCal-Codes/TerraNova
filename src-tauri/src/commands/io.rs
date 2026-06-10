@@ -113,12 +113,63 @@ pub fn export_asset_file(path: String, content: Value) -> Result<(), String> {
 #[tauri::command]
 pub fn write_text_file(path: String, content: String) -> Result<(), String> {
     path_scope::validate_path_str(&path)?;
+    write_text_file_impl(&path, &content)
+}
+
+/// Write a user-exported text file from a save-dialog path.
+/// The path is trusted because it comes from a user-confirmed OS save dialog,
+/// so this bypasses project path-scope validation (see `write_text_file`).
+#[tauri::command]
+pub fn export_text_file(path: String, content: String) -> Result<(), String> {
+    if path.is_empty() {
+        return Err("Export path is empty".into());
+    }
+    if path.contains("..") {
+        return Err("Invalid export path".into());
+    }
+
     let file_path = Path::new(&path);
+    if let Some(parent) = file_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+        // Best-effort: allow follow-up writes in the same folder this session.
+        path_scope::register_allowed_root(parent);
+    }
+
+    write_text_file_impl(&path, &content)
+}
+
+#[cfg(test)]
+mod export_text_tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_export_path(name: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("terranova-export-test-{name}-{nanos}.svg"))
+    }
+
+    #[test]
+    fn export_text_file_writes_outside_registered_project_roots() {
+        let path = temp_export_path("outside-root");
+        let content = "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>";
+        export_text_file(path.to_string_lossy().into_owned(), content.to_string())
+            .expect("export should succeed");
+        let written = fs::read_to_string(&path).expect("read export");
+        assert_eq!(written, content);
+        let _ = fs::remove_file(&path);
+    }
+}
+
+fn write_text_file_impl(path: &str, content: &str) -> Result<(), String> {
+    let file_path = Path::new(path);
     if let Some(parent) = file_path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
     }
     let temp_path = file_path.with_extension("tmp");
-    fs::write(&temp_path, &content).map_err(|e| format!("Failed to write: {}", e))?;
+    fs::write(&temp_path, content).map_err(|e| format!("Failed to write: {}", e))?;
     if let Err(e) = fs::rename(&temp_path, file_path) {
         let _ = fs::remove_file(&temp_path);
         return Err(format!("Failed to rename: {}", e));
@@ -291,6 +342,25 @@ pub fn check_hytale_asset_staleness(
     ))
 }
 
+/// Scan Common/Blocks and Common/BlockTextures into resolver indexes.
+#[tauri::command]
+pub fn scan_hytale_block_asset_index() -> Result<crate::io::block_assets::BlockAssetIndex, String> {
+    let index = crate::io::block_assets::scan_hytale_block_asset_index()?;
+    Ok(index)
+}
+
+/// Resolve a prefab JSON path under project Server/Prefabs or hytale-assets cache.
+#[tauri::command]
+pub fn resolve_hytale_prefab_path(
+    relative_path: String,
+    project_root: Option<String>,
+) -> Result<String, String> {
+    let resolved =
+        crate::io::block_assets::resolve_prefab_path(&relative_path, project_root.as_deref())?;
+    path_scope::register_allowed_root(resolved.parent().unwrap_or(resolved.as_path()));
+    Ok(resolved.to_string_lossy().to_string())
+}
+
 // ── Project creation commands ───────────────────────────────────────────────
 
 /// Create a blank project with the minimal HytaleGenerator folder structure.
@@ -428,6 +498,27 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+/// Create a worldgen pack from the Create Pack wizard configuration.
+#[tauri::command]
+pub fn create_pack_wizard(
+    app: tauri::AppHandle,
+    config: crate::io::pack_wizard::PackWizardConfig,
+) -> Result<crate::io::pack_wizard::PackWizardResult, String> {
+    path_scope::register_allowed_root(Path::new(&config.target_path));
+    let resource_dir = app.path().resource_dir().ok();
+    crate::io::pack_wizard::create_pack_wizard(config, resource_dir).map_err(|e| e.to_string())
+}
+
+/// Bundled biome/world template folders for the Create Pack wizard.
+#[tauri::command]
+pub fn list_pack_wizard_bundle_templates(
+    app: tauri::AppHandle,
+) -> Result<Vec<crate::io::pack_wizard::PackWizardBundleTemplate>, String> {
+    let resource_dir = app.path().resource_dir().ok();
+    crate::io::pack_wizard::list_pack_wizard_bundle_templates(resource_dir)
+        .map_err(|e| e.to_string())
 }
 
 /// Create a new project from a bundled template.

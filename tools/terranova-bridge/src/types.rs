@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerStatus {
@@ -8,11 +9,11 @@ pub struct ServerStatus {
     pub port: u16,
     #[serde(default)]
     pub singleplayer: bool,
-    /// Sidecar / plugin may report which save folder it serves.
     #[serde(default)]
     pub save_root: Option<String>,
     #[serde(default)]
     pub bridge_mode: Option<String>,
+    /// Feature flags for the editor (e.g. `save_chunks`, `queue_console_commands`).
     #[serde(default)]
     pub capabilities: Vec<String>,
 }
@@ -31,10 +32,10 @@ pub struct PlayerInfo {
     pub y: Option<f64>,
     pub z: Option<f64>,
     pub world: Option<String>,
-    #[serde(default)]
+    /// Human label from universe/worlds/.../InstanceData.json when present.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub world_label: Option<String>,
-    /// per_world | server_log | player_save
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position_source: Option<String>,
 }
 
@@ -76,12 +77,11 @@ pub struct ChunkDataResponse {
     pub size_z: i32,
     pub blocks: Vec<i32>,
     pub heightmap: Vec<i16>,
-    /// `"save"` when read from `*.region.bin`, `"synthetic"` when sidecar fallback.
     #[serde(default)]
     pub data_source: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockPaletteResponse {
-    pub palette: std::collections::HashMap<String, String>,
+    pub palette: HashMap<String, String>,
 }

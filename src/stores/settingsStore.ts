@@ -181,6 +181,22 @@ function getStoredShowNodeIdsOnCanvas(): boolean {
   return false;
 }
 
+function getStoredPackBackupPromptEnabled(): boolean {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.packBackupPromptEnabled === "boolean") {
+    return parsed.packBackupPromptEnabled;
+  }
+  return true;
+}
+
+function getStoredPackBackupParentFolder(): string {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.packBackupParentFolder === "string") {
+    return parsed.packBackupParentFolder.trim();
+  }
+  return "";
+}
+
 function getStoredDeveloperMode(): boolean {
   const parsed = getStoredSettingsObject();
   if (typeof parsed?.developerMode === "boolean") {
@@ -250,6 +266,8 @@ function persistSettings(settings: {
   showDevToolsDock: boolean;
   debugWorkerLogging: boolean;
   showNodeIdsOnCanvas: boolean;
+  packBackupPromptEnabled: boolean;
+  packBackupParentFolder: string;
 }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -279,6 +297,8 @@ interface SettingsState {
   showDevToolsDock: boolean;
   debugWorkerLogging: boolean;
   showNodeIdsOnCanvas: boolean;
+  packBackupPromptEnabled: boolean;
+  packBackupParentFolder: string;
   setFlowDirection: (dir: FlowDirection) => void;
   setAutoLayoutOnOpen: (value: boolean) => void;
   setAutoCheckUpdates: (value: boolean) => void;
@@ -302,6 +322,8 @@ interface SettingsState {
   setShowDevToolsDock: (value: boolean) => void;
   setDebugWorkerLogging: (value: boolean) => void;
   setShowNodeIdsOnCanvas: (value: boolean) => void;
+  setPackBackupPromptEnabled: (value: boolean) => void;
+  setPackBackupParentFolder: (value: string) => void;
 }
 
 function getAllSettings(state: SettingsState) {
@@ -326,6 +348,8 @@ function getAllSettings(state: SettingsState) {
     showDevToolsDock: state.showDevToolsDock,
     debugWorkerLogging: state.debugWorkerLogging,
     showNodeIdsOnCanvas: state.showNodeIdsOnCanvas,
+    packBackupPromptEnabled: state.packBackupPromptEnabled,
+    packBackupParentFolder: state.packBackupParentFolder,
   };
 }
 
@@ -350,6 +374,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   showDevToolsDock: getStoredShowDevToolsDock(),
   debugWorkerLogging: getStoredDebugWorkerLogging(),
   showNodeIdsOnCanvas: getStoredShowNodeIdsOnCanvas(),
+  packBackupPromptEnabled: getStoredPackBackupPromptEnabled(),
+  packBackupParentFolder: getStoredPackBackupParentFolder(),
 
   setFlowDirection: (dir) => {
     set({ flowDirection: dir });
@@ -471,5 +497,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setShowNodeIdsOnCanvas: (value) => {
     set({ showNodeIdsOnCanvas: value });
     persistSettings(getAllSettings({ ...get(), showNodeIdsOnCanvas: value }));
+  },
+
+  setPackBackupPromptEnabled: (value) => {
+    set({ packBackupPromptEnabled: value });
+    persistSettings(getAllSettings({ ...get(), packBackupPromptEnabled: value }));
+  },
+
+  setPackBackupParentFolder: (value) => {
+    set({ packBackupParentFolder: value });
+    persistSettings(getAllSettings({ ...get(), packBackupParentFolder: value }));
   },
 }));

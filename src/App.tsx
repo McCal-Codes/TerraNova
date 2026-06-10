@@ -21,6 +21,7 @@ import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
 import { SettingsDialog, type SettingsTab } from "@/components/dialogs/SettingsDialog";
 import { BugReportDialog } from "@/components/dialogs/BugReportDialog";
+import { AlphaPackBackupDialog } from "@/components/dialogs/AlphaPackBackupDialog";
 import { useBugReportStore } from "@/stores/bugReportStore";
 import type { SystemTab } from "@/components/dialogs/ConfigurationDialog";
 import { saveRef } from "@/utils/saveRef";
@@ -273,6 +274,7 @@ export default function App() {
           <Toast />
         </div>
         <BugReportHost />
+        <AlphaPackBackupDialog />
       </>
     );
   }
@@ -299,6 +301,7 @@ export default function App() {
       <GlobalLoader />
       <SyncProgressModal />
       <BugReportHost />
+      <AlphaPackBackupDialog />
     </ReactFlowProvider>
   );
 }

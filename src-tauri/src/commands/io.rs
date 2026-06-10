@@ -661,8 +661,14 @@ pub fn open_url(url: String) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        Command::new("cmd")
-            .args(["/c", "start", "", &url])
+        // Do NOT use `cmd /c start "" <url>`: the URL is passed unquoted (it
+        // contains no spaces), so cmd.exe treats each `&` query-parameter
+        // separator as a command separator and truncates the URL at the first
+        // `&`. That silently drops every prefilled GitHub issue-form field.
+        // `rundll32 url.dll,FileProtocolHandler` receives the URL as a single
+        // argv argument with no shell parsing, preserving `&` intact.
+        Command::new("rundll32")
+            .args(["url.dll,FileProtocolHandler", &url])
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -684,6 +690,17 @@ pub fn open_url(url: String) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+/// Copy a pack directory to a timestamped backup folder before alpha edits.
+#[tauri::command]
+pub fn backup_pack_directory(
+    pack_path: String,
+    destination: Option<String>,
+) -> Result<crate::io::pack_backup::PackBackupResult, String> {
+    let pack = PathBuf::from(&pack_path);
+    let dest = destination.map(PathBuf::from);
+    crate::io::pack_backup::backup_pack_directory(&pack, dest.as_deref())
 }
 
 /// Reveal a file or folder in the OS file explorer.

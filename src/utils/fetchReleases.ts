@@ -112,53 +112,51 @@ function bundledAlphaRelease(): ReleaseData {
     name: "0.1.8 Closed Alpha",
     sections: [
       {
-        title: "What's New",
+        title: "Highlights",
         items: [
           {
-            label: "Closed alpha build",
+            label: "Closed alpha on McCal-Codes",
             description:
-              "First McCal-Codes closed alpha with onboarding asset sync, Create Pack prefab picker, pack backup, and in-app bug reporter.",
+              "First prerelease for Windows, macOS, and Linux — tag v0.1.8-alpha.1. See Releases for installers.",
           },
           {
-            label: "What to test checklist",
+            label: "Onboarding + asset sync",
             description:
-              "After onboarding, alpha testers see a focus-area checklist (onboarding, pack wizard, preview, export/bridge, pack backup, bug reports).",
+              "Four-step wizard; Step 3 syncs Hytale release assets in-app with auto-filled Common overlay path.",
           },
           {
-            label: "Preview settings sidebar",
+            label: "Pack backup",
             description:
-              "Collapsible settings rail in split view — expand via toolbar Settings or the edge chevron.",
+              "Prompt before opening existing packs; full copy to .terranova-backups with per-pack skip.",
+          },
+          {
+            label: "Signed updater",
+            description:
+              "This build ships signed updater metadata when installed from the GitHub prerelease.",
           },
         ],
       },
       {
-        title: "Features",
+        title: "Create Pack & editor",
         items: [
           {
-            label: "Onboarding asset sync",
-            description: "Step 3 runs Hytale release sync in-wizard with Browse and Sync now.",
-          },
-          {
-            label: "Home Learn dialog",
-            description: "Walkthroughs open from onboarding Step 4 and Home → Learn.",
-          },
-          {
             label: "Visual prefab picker",
-            description: "Create Pack Advanced → Biome: search, category chips, and live 3D preview.",
-          },
-          {
-            label: "Pack backup settings",
             description:
-              "Settings → General: prompt toggle, default backup folder, back up open project, reset skip list.",
+              "Quick pick, category browse, search chips, and 3D preview — no scrolling 7k prefabs.",
           },
           {
-            label: "Bug reporter attachments",
+            label: "Property field editors",
             description:
-              "Capture preview screenshots and attach files; paths copy into the debug bundle for GitHub drag-and-drop.",
+              "Structured editors for curves, switch cases, nested constants/colors, and imported refs.",
           },
           {
-            label: "Bug reporter v2",
-            description: "Area-specific hints, steps/expected/actual fields, redacted paths, structured debug bundle.",
+            label: "Preview settings sidebar",
+            description:
+              "Collapsible rail in split view — toolbar Settings button or edge chevron.",
+          },
+          {
+            label: "Issues clipboard",
+            description: "Copy all diagnostics to clipboard; click issues to jump to nodes.",
           },
         ],
       },
@@ -166,8 +164,20 @@ function bundledAlphaRelease(): ReleaseData {
         title: "Fixes",
         items: [
           {
+            label: "Asset sync modal",
+            description: "Failed sync no longer traps the UI behind a black backdrop.",
+          },
+          {
+            label: "Bridge save paths",
+            description: "Discovers your Hytale saves — no hardcoded developer defaults.",
+          },
+          {
+            label: "Frame nodes",
+            description: "Selectable nodes inside frames; fewer false dead-node warnings.",
+          },
+          {
             label: "Preview HUD drag",
-            description: "Material legend and timing overlay no longer move opposite to the drag direction.",
+            description: "Legend and timing overlay move with drag when anchored right/bottom.",
           },
         ],
       },
@@ -175,17 +185,18 @@ function bundledAlphaRelease(): ReleaseData {
         title: "Testing",
         items: [
           {
-            label: "Report bugs in-app",
+            label: "What to test modal",
             description:
-              "Settings → File a Bug Report — copy bundle, attach screenshots, open McCal-Codes GitHub with prefilled fields.",
+              "Alpha checklist after onboarding — onboarding, pack wizard, preview, export, backup, bug reporter.",
           },
           {
-            label: "GitHub templates",
-            description: "Bug, feature, alpha feedback, docs, and question templates on McCal-Codes/TerraNova.",
+            label: "Bug reporter v2",
+            description:
+              "Screenshots, file attachments, debug bundle v2, McCal-Codes GitHub prefills.",
           },
           {
-            label: "Beta guide",
-            description: "See docs/BETA_TESTING.md for platform install notes and first-run checklist.",
+            label: "Alpha guide",
+            description: "docs/BETA_TESTING.md — install matrix, first-run steps, Gatekeeper notes.",
           },
         ],
       },

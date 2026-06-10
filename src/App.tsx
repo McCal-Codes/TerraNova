@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { lazy, Suspense, useState, useRef, useEffect, useCallback, useMemo, type ComponentType } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ReactFlowProvider } from "@xyflow/react";
@@ -11,7 +11,6 @@ import { ProjectTitleBar } from "@/components/layout/ProjectTitleBar";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { PanelLayout } from "@/components/layout/PanelLayout";
 import { DragGhost } from "@/components/editor/DragGhost";
-import { DocsPanel } from "@/components/docs/DocsPanel";
 import { HomeScreen } from "@/components/home/HomeScreen";
 import { Toast } from "@/components/ui/Toast";
 import { LoadingDialog } from "@/components/ui/LoadingDialog";
@@ -21,8 +20,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
 import { SettingsDialog, type SettingsTab } from "@/components/dialogs/SettingsDialog";
+import { BugReportDialog } from "@/components/dialogs/BugReportDialog";
+import { useBugReportStore } from "@/stores/bugReportStore";
 import type { SystemTab } from "@/components/dialogs/ConfigurationDialog";
-import { ExportSvgDialog } from "@/components/dialogs/ExportSvgDialog";
 import { saveRef } from "@/utils/saveRef";
 import { isMac, isTauriRuntime } from "@/utils/platform";
 import { checkForUpdates } from "@/utils/updater";
@@ -33,9 +33,19 @@ import { useReactFlow } from "@xyflow/react";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { useGlobalKeyboardShortcuts } from "@/hooks/useGlobalKeyboardShortcuts";
 import { useInstantSave } from "@/hooks/useInstantSave";
+import { useProjectLegacyScan } from "@/hooks/useProjectLegacyScan";
 import { useSessionRestore } from "@/hooks/useSessionRestore";
-
 type PendingAction = "window-close" | "close-project";
+
+const DocsPanel = lazy(() =>
+  import("@/components/docs/DocsPanel").then((m) => ({ default: m.DocsPanel })),
+);
+const CreatePackWizardDialog = lazy(() =>
+  import("@/components/dialogs/CreatePackWizardDialog").then((m) => ({ default: m.CreatePackWizardDialog })),
+);
+const ExportSvgDialog = lazy(() =>
+  import("@/components/dialogs/ExportSvgDialog").then((m) => ({ default: m.ExportSvgDialog })),
+);
 
 export default function App() {
   // Remove splash once React has mounted — the real wait is bundle loading,
@@ -55,6 +65,7 @@ export default function App() {
   const pendingRef = useRef<PendingAction>("close-project");
 
   const [showNewProject, setShowNewProject] = useState(false);
+  const [showCreatePack, setShowCreatePack] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [settingsSystemTab, setSettingsSystemTab] = useState<SystemTab>("cpu");
@@ -245,17 +256,24 @@ export default function App() {
     return <DocsSmokeHarness />;
   }
 
+  if (isShapePreviewGalleryRoute()) {
+    return <ShapePreviewGalleryHarnessLazy />;
+  }
+
   if (projectPath === null) {
     return (
-      <div className="flex flex-col h-screen bg-tn-bg text-tn-text">
-        <SimpleTitleBar />
-        <HomeScreen />
-        {dialog}
-        <LoadingDialog open={loading} message="Loading, please wait..." />
-        <GlobalLoader />
-        <SyncProgressModal />
-        <Toast />
-      </div>
+      <>
+        <div className="flex flex-col h-screen bg-tn-bg text-tn-text">
+          <SimpleTitleBar />
+          <HomeScreen />
+          {dialog}
+          <LoadingDialog open={loading} message="Loading, please wait..." />
+          <GlobalLoader />
+          <SyncProgressModal />
+          <Toast />
+        </div>
+        <BugReportHost />
+      </>
     );
   }
 
@@ -265,6 +283,8 @@ export default function App() {
         requestCloseProject={requestCloseProject}
         showNewProject={showNewProject}
         setShowNewProject={setShowNewProject}
+        showCreatePack={showCreatePack}
+        setShowCreatePack={setShowCreatePack}
         showSettings={showSettings}
         setShowSettings={setShowSettings}
         settingsTab={settingsTab}
@@ -278,7 +298,17 @@ export default function App() {
       <LoadingDialog open={loading} message="Loading, please wait..." />
       <GlobalLoader />
       <SyncProgressModal />
+      <BugReportHost />
     </ReactFlowProvider>
+  );
+}
+
+function BugReportHost() {
+  const open = useBugReportStore((s) => s.open);
+  const errorContext = useBugReportStore((s) => s.errorContext);
+  const close = useBugReportStore((s) => s.close);
+  return (
+    <BugReportDialog open={open} onClose={close} errorContext={errorContext} />
   );
 }
 
@@ -286,6 +316,45 @@ function isDocsSmokeRoute(): boolean {
   if (!import.meta.env.DEV) return false;
   try {
     return new URLSearchParams(window.location.search).get("docs-smoke") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function ShapePreviewGalleryHarnessLazy() {
+  const [Harness, setHarness] = useState<ComponentType | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  useEffect(() => {
+    void import("@/dev/ShapePreviewGalleryHarness")
+      .then((mod) => {
+        setHarness(() => mod.ShapePreviewGalleryHarness);
+        setLoadError(null);
+      })
+      .catch((err) => {
+        setLoadError(err instanceof Error ? err.message : String(err));
+      });
+  }, []);
+  if (loadError) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-tn-bg p-6 text-sm text-red-400">
+        Shape preview gallery failed to load: {loadError}
+      </div>
+    );
+  }
+  if (!Harness) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-tn-bg text-sm text-tn-text-muted">
+        Loading shape preview gallery…
+      </div>
+    );
+  }
+  return <Harness />;
+}
+
+function isShapePreviewGalleryRoute(): boolean {
+  if (!import.meta.env.DEV) return false;
+  try {
+    return new URLSearchParams(window.location.search).get("shape-preview-gallery") === "1";
   } catch {
     return false;
   }
@@ -303,7 +372,9 @@ function DocsSmokeHarness() {
   return (
     <div className="h-screen bg-tn-bg text-tn-text">
       <div className="mx-auto flex h-full max-w-6xl flex-col border-x border-tn-border bg-tn-surface">
-        <DocsPanel />
+        <Suspense fallback={<div className="flex flex-1 items-center justify-center text-sm text-tn-text-muted">Loading docs…</div>}>
+          <DocsPanel />
+        </Suspense>
       </div>
     </div>
   );
@@ -313,6 +384,8 @@ function ProjectEditor({
   requestCloseProject,
   showNewProject,
   setShowNewProject,
+  showCreatePack,
+  setShowCreatePack,
   showSettings,
   setShowSettings,
   settingsTab,
@@ -326,6 +399,8 @@ function ProjectEditor({
   requestCloseProject: () => void;
   showNewProject: boolean;
   setShowNewProject: (show: boolean) => void;
+  showCreatePack: boolean;
+  setShowCreatePack: (show: boolean) => void;
   showSettings: boolean;
   setShowSettings: (show: boolean) => void;
   settingsTab: SettingsTab;
@@ -346,12 +421,14 @@ function ProjectEditor({
   useGlobalKeyboardShortcuts({
     onCloseProject: requestCloseProject,
     onNewProject: () => setShowNewProject(true),
+    onCreatePack: () => setShowCreatePack(true),
     onSettings: () => openSettings("general"),
     onExportSvg: () => setShowExportSvg(true),
   });
 
   // Auto-save on edit when instant save is enabled
   useInstantSave();
+  useProjectLegacyScan();
 
   return (
     <>
@@ -359,6 +436,7 @@ function ProjectEditor({
         <ProjectTitleBar
           onCloseProject={requestCloseProject}
           onNewProject={() => setShowNewProject(true)}
+          onCreatePack={() => setShowCreatePack(true)}
           onSettings={() => openSettings("general")}
           onShortcuts={() => openSettings("shortcuts")}
           onExportSvg={() => setShowExportSvg(true)}
@@ -372,6 +450,11 @@ function ProjectEditor({
       <Toast />
       {dialog}
       <NewProjectDialog open={showNewProject} onClose={() => setShowNewProject(false)} />
+      {showCreatePack && (
+        <Suspense fallback={null}>
+          <CreatePackWizardDialog open onClose={() => setShowCreatePack(false)} />
+        </Suspense>
+      )}
       <SettingsDialog
         open={showSettings}
         onClose={() => setShowSettings(false)}
@@ -387,15 +470,26 @@ function ExportSvgDialogWrapper({ open, onClose }: { open: boolean; onClose: () 
   const reactFlow = useReactFlow();
 
   async function handleExportSvg(options: SvgExportOptions) {
-    try {
-      const { generateSvg, writeSvgToFile } = await import("@/utils/exportSvg");
-      const svgString = generateSvg(reactFlow, options);
-      await writeSvgToFile(svgString);
-    } catch (err) {
-      if (import.meta.env.DEV) console.error("Export SVG failed:", err);
-      useToastStore.getState().addToast("Export SVG failed", "error");
-    }
+    const { exportGraphAsSvg } = await import("@/utils/exportSvg");
+    return exportGraphAsSvg(reactFlow, options);
   }
 
-  return <ExportSvgDialog open={open} onClose={onClose} onExport={handleExportSvg} />;
+  async function handleExportPng(options: SvgExportOptions) {
+    const { exportGraphAsPng } = await import("@/utils/exportSvg");
+    return exportGraphAsPng(reactFlow, options);
+  }
+
+  if (!open) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <ExportSvgDialog
+        open
+        onClose={onClose}
+        onExportSvg={handleExportSvg}
+        onExportPng={handleExportPng}
+        reactFlow={reactFlow}
+      />
+    </Suspense>
+  );
 }

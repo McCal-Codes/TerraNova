@@ -15,7 +15,7 @@ This guide is for testers installing **0.1.8-alpha.1** (closed alpha) from [McCa
 | **macOS** | `.dmg` (Apple Silicon and Intel builds when published) | App is not Apple-notarized yet — see [Gatekeeper](#macos-gatekeeper) |
 | **Linux** | `.AppImage` (x86_64) | `chmod +x TerraNova_*.AppImage`; FUSE may be required on some distros |
 
-Until the first **signed** McCal-Codes release ships, in-app auto-update may not work — download new builds manually from Releases.
+**Updates:** `v0.1.8-alpha.1` ships signed updater metadata. In-app update works once you install from the published **prerelease** on [Releases](https://github.com/McCal-Codes/TerraNova/releases). Until you are on that build, download installers manually.
 
 ## First-run checklist
 
@@ -61,6 +61,8 @@ Steps:
 
 Issues are public; local paths in the bundle may include your username.
 
+**Not a crash?** Use the [Alpha feedback](https://github.com/McCal-Codes/TerraNova/issues/new?template=ALPHA_FEEDBACK.yml) template for “confusing”, “missing”, or “works great” notes.
+
 ## macOS Gatekeeper
 
 If macOS blocks the app (“unverified developer”):
@@ -91,6 +93,19 @@ git push origin --force --tags
 Preserved emails: McCal, nmang004, ZenithDevHQ, LeoWherle, derrickmehaffy (see `scripts/filter-repo-commit-callback.py`). Everything else is re-attributed to McCal.
 
 Re-publish release artifacts after rewrite if tags moved to new SHAs.
+
+### Maintainer: announce to testers (copy/paste)
+
+```text
+TerraNova 0.1.8-alpha.1 is up (closed alpha prerelease).
+
+Install: https://github.com/McCal-Codes/TerraNova/releases — pick v0.1.8-alpha.1 (prerelease, not Latest).
+Windows: .msi/.exe · macOS: .dmg (Right-click → Open first time) · Linux: .AppImage
+
+First run: complete onboarding → Step 3 asset sync → read “What to test” checklist.
+Please use in-app bug reporter (screenshots help) or Alpha feedback on GitHub.
+Bridge/live sync is NOT in scope for this cut — export your pack and test in-game.
+```
 
 ### Maintainer: alpha packaging workflow
 

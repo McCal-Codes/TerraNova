@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   normalizePoints,
   toOutputFormat,
+  toPointsOutputFormat,
   evalConstant,
   evalPower,
   evalStepFunction,
@@ -35,6 +36,21 @@ describe("normalizePoints", () => {
 
   it("handles empty arrays", () => {
     expect(normalizePoints([])).toEqual([]);
+  });
+
+  it("handles {Y, Out} FunctionForY points", () => {
+    const pts = normalizePoints([
+      { Y: 8, Out: 1 },
+      { Y: 72, Out: -0.42 },
+    ]);
+    expect(pts).toEqual([
+      { x: 8, y: 1 },
+      { x: 72, y: -0.42 },
+    ]);
+    expect(toPointsOutputFormat(pts, "yOut")).toEqual([
+      { Y: 8, Out: 1 },
+      { Y: 72, Out: -0.42 },
+    ]);
   });
 });
 

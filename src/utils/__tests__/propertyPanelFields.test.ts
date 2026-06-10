@@ -2,8 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   curveSpecDefaults,
   getOrderedFieldKeys,
+  isBareManualCurveSpec,
+  isConstantColorNodeColorField,
+  isConstantColorSpec,
+  isConstantValueSpec,
+  isImportedRefSpec,
+  isFunctionForYFieldKey,
+  isSwitchCasesArray,
+  isFunctionForYSpec,
+  isInOutPointsArray,
   isInlineCurveFieldKey,
   isInlineCurveSpec,
+  isVector2Spec,
+  inferCurvePointFormat,
   matchesFieldFilter,
   resolvePropertyPanelTypeKey,
   shouldSkipPropertyField,
@@ -15,10 +26,54 @@ describe("propertyPanelFields", () => {
     expect(resolvePropertyPanelTypeKey("default", "SimplexNoise2D")).toBe("SimplexNoise2D");
   });
 
+  it("detects FunctionForY height envelopes", () => {
+    const spec = {
+      Points: [
+        { Y: 8, Out: 1 },
+        { Y: 20, Out: 0.36 },
+      ],
+    };
+    expect(isFunctionForYSpec(spec)).toBe(true);
+    expect(isFunctionForYFieldKey("FunctionForY", spec)).toBe(true);
+    expect(isFunctionForYFieldKey("Curve", spec)).toBe(false);
+  });
+
   it("detects inline curve specs", () => {
     expect(isInlineCurveSpec({ Type: "Manual", Points: [] })).toBe(true);
     expect(isInlineCurveSpec({ Type: "NotACurve" })).toBe(false);
     expect(isInlineCurveFieldKey("Curve", { Type: "Manual", Points: [] })).toBe(true);
+  });
+
+  it("detects bare manual curve objects and point arrays", () => {
+    const bare = { Points: [{ In: 0, Out: 1 }, { In: 1, Out: 0 }] };
+    expect(isBareManualCurveSpec(bare)).toBe(true);
+    expect(isBareManualCurveSpec({ Type: "Manual", Points: bare.Points })).toBe(false);
+    expect(isInOutPointsArray(bare.Points)).toBe(true);
+    expect(inferCurvePointFormat(bare.Points)).toBe("inOut");
+  });
+
+  it("detects nested constant and 2D vectors", () => {
+    expect(isConstantValueSpec({ Type: "Constant", Value: 0.5 })).toBe(true);
+    expect(isConstantValueSpec({ Type: "Constant", Color: "#fff" })).toBe(false);
+    expect(isConstantColorSpec({ Type: "Constant", Color: "#fff" })).toBe(true);
+    expect(isVector2Spec({ x: 1, y: 2 })).toBe(true);
+  });
+
+  it("detects Tint:Constant node Color field for color picker", () => {
+    expect(isConstantColorNodeColorField("Tint:Constant", "Constant", "Color")).toBe(true);
+    expect(isConstantColorNodeColorField("Tint:Gradient", "Gradient", "From")).toBe(false);
+    expect(isConstantColorNodeColorField("Material:Constant", "Constant", "Color")).toBe(false);
+  });
+
+  it("detects imported refs and switch cases", () => {
+    expect(isImportedRefSpec({ Type: "Imported", Name: "Env_Test" })).toBe(true);
+    expect(isImportedRefSpec({ Type: "Imported", Name: "X", Extra: 1 })).toBe(false);
+    expect(
+      isSwitchCasesArray([
+        { State: "surface", InputIndex: 0 },
+        { State: "caves", InputIndex: 1 },
+      ]),
+    ).toBe(true);
   });
 
   it("orders fields by schema with extras last", () => {

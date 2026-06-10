@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
-import { Lock, LockOpen, HelpCircle, Copy } from "lucide-react";
+import { Lock, LockOpen, HelpCircle, Copy, Search, X } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { useFieldChange } from "@/hooks/useFieldChange";
 import { SliderField } from "./SliderField";
+import { ColorPickerField } from "./ColorPickerField";
 import { VectorField } from "./VectorField";
 import { RangeField } from "./RangeField";
 import { ToggleField } from "./ToggleField";
@@ -38,6 +39,13 @@ import {
 import type { WeightedPrefabPathEntry } from "@/utils/weightedAssignmentSummary";
 import { ShapePreviewCard } from "./ShapePreviewCard";
 import { InlineCurveField } from "./InlineCurveField";
+import { FunctionForYField } from "./FunctionForYField";
+import { BareManualCurveField } from "./BareManualCurveField";
+import { NestedConstantField } from "./NestedConstantField";
+import { NestedConstantColorField } from "./NestedConstantColorField";
+import { ImportedRefField } from "./ImportedRefField";
+import { SwitchCasesField } from "./SwitchCasesField";
+import { renderPropertyPanelArrayItem } from "./propertyPanelArrayItem";
 import { supportsShapePreviewCard } from "@/utils/shapePreview/shapePreviewProfile";
 import { AssetInspectorPanel, resolveAssetInspectorMode } from "./AssetInspectorPanel";
 import { POSITION_TYPE_NAMES } from "@/utils/positionEvaluator";
@@ -66,12 +74,25 @@ import {
   isAuthorNoteText,
   makeAuthorNoteText,
   stripAuthorNotePrefix,
+  syncAnnotationNodeDimensions,
 } from "@/utils/annotationUtils";
 import {
   getFieldDefaultValue,
   getOrderedFieldKeys,
   isInlineCurveFieldKey,
+  isFunctionForYFieldKey,
+  isBareManualCurveSpec,
+  isConstantColorNodeColorField,
+  isConstantColorSpec,
+  isConstantValueSpec,
+  isImportedRefSpec,
+  isInOutPointsArray,
+  isSwitchCasesArray,
+  isVector2Spec,
+  isVector3Spec,
+  inferCurvePointFormat,
   matchesFieldFilter,
+  type SwitchCaseEntry,
   resolvePropertyPanelTypeKey,
   shouldSkipPropertyField,
   type PropertyFieldVisibilityContext,
@@ -453,9 +474,11 @@ export function PropertyPanel() {
   const updateAnnotationData = useCallback((updates: Record<string, unknown>) => {
     if (!selectedNodeId) return;
     const { nodes, setNodes } = useEditorStore.getState();
-    setNodes(nodes.map((node) => (
-      node.id !== selectedNodeId ? node : { ...node, data: { ...node.data as object, ...updates } }
-    )));
+    setNodes(nodes.map((node) => {
+      if (node.id !== selectedNodeId) return node;
+      const next = { ...node, data: { ...node.data as object, ...updates } };
+      return syncAnnotationNodeDimensions(next);
+    }));
   }, [selectedNodeId]);
 
   const commitAnnotationChange = useCallback((label: string) => {
@@ -623,6 +646,7 @@ export function PropertyPanel() {
                 setDirty(true);
               }}
               title={isLocked ? "Unlock node" : "Lock node position"}
+              aria-label={isLocked ? "Unlock node" : "Lock node position"}
               className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full border transition-colors ${
                 isLocked
                   ? "bg-amber-500/20 border-amber-500/60 text-amber-400"
@@ -634,6 +658,7 @@ export function PropertyPanel() {
             <button
               onClick={toggleHelpMode}
               title={helpMode ? "Exit help mode (?)" : "Toggle help mode (?)"}
+              aria-label={helpMode ? "Exit help mode" : "Toggle help mode"}
               className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full border transition-colors ${
                 helpMode
                   ? "bg-tn-accent/20 border-tn-accent/60 text-tn-accent"
@@ -653,6 +678,7 @@ export function PropertyPanel() {
                 void navigator.clipboard.writeText(JSON.stringify(exportFields, null, 2));
               }}
               title="Copy node fields as JSON"
+              aria-label="Copy node fields as JSON"
               className="w-5 h-5 shrink-0 flex items-center justify-center rounded-full border border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-accent transition-colors"
             >
               <Copy className="h-3 w-3" />
@@ -680,6 +706,7 @@ export function PropertyPanel() {
         <button
           className="mt-1.5 flex items-center gap-1.5 group w-full text-left px-2 py-1 rounded bg-tn-bg/50 border border-tn-border/30 hover:border-tn-border/60 transition-colors"
           title="Click to copy node ID"
+          aria-label="Copy node ID"
           onClick={() => {
             void navigator.clipboard.writeText(selectedNode.id).then(() => {
               setIdCopied(true);
@@ -926,13 +953,30 @@ export function PropertyPanel() {
       )}
 
       {showFieldFilter && !isAnnotationNode && (
-        <input
-          type="search"
-          value={fieldFilter}
-          onChange={(e) => setFieldFilter(e.target.value)}
-          placeholder="Filter fields…"
-          className="w-full px-2 py-1 text-xs bg-tn-bg/50 border border-tn-border/50 rounded focus:outline-none focus:border-tn-accent/60 placeholder:text-tn-text-muted/40"
-        />
+        <div className="relative">
+          <Search
+            className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-tn-text-muted/60 pointer-events-none"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={fieldFilter}
+            onChange={(e) => setFieldFilter(e.target.value)}
+            placeholder="Filter fields…"
+            aria-label="Filter fields"
+            className="w-full rounded border border-tn-border/50 bg-tn-bg/50 py-1 pl-8 pr-7 text-xs focus:border-tn-accent/60 focus:outline-none placeholder:text-tn-text-muted/40"
+          />
+          {fieldFilter && (
+            <button
+              type="button"
+              onClick={() => setFieldFilter("")}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-tn-text-muted hover:text-tn-text"
+              aria-label="Clear field filter"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       )}
 
       {fieldFilter.trim() && visibleFieldKeys.length === 0 && !isAnnotationNode && (
@@ -1002,6 +1046,19 @@ export function PropertyPanel() {
               </FieldWrapper>
             );
           }
+          if (isConstantColorNodeColorField(typeKey, typeName, key)) {
+            return (
+              <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
+                <ColorPickerField
+                  label={fieldLabel}
+                  value={value}
+                  description={description}
+                  onChange={(v) => handleContinuousChange(key, v)}
+                  onBlur={handleBlur}
+                />
+              </FieldWrapper>
+            );
+          }
           return (
             <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <TextField
@@ -1015,19 +1072,21 @@ export function PropertyPanel() {
             </FieldWrapper>
           );
         }
-        if (
-          typeof value === "object" &&
-          value !== null &&
-          "x" in (value as Record<string, unknown>)
-        ) {
-          const v = value as { x: number; y: number; z: number };
+        if (isVector3Spec(value) || isVector2Spec(value)) {
+          const is3d = isVector3Spec(value);
           return (
             <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <VectorField
                 label={fieldLabel}
-                value={v}
+                value={value}
+                includeZ={is3d}
                 description={description}
-                onChange={(v) => handleContinuousChange(key, v)}
+                onChange={(v) => {
+                  handleContinuousChange(
+                    key,
+                    is3d ? v : { x: v.x, y: v.y },
+                  );
+                }}
                 onBlur={handleBlur}
               />
             </FieldWrapper>
@@ -1143,8 +1202,6 @@ export function PropertyPanel() {
                     const color = typeof tint.Color === "string" ? tint.Color : "#5b9e28";
                     const minVal = typeof range.MinInclusive === "number" ? range.MinInclusive : -1;
                     const maxVal = typeof range.MaxExclusive === "number" ? range.MaxExclusive : 1;
-                    // Normalize to 6-digit hex for the color input (strip alpha if present)
-                    const hexForPicker = /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#5b9e28";
                     return (
                       <div key={idx} className="rounded border border-tn-border bg-tn-bg/40 overflow-hidden">
                         {/* Band color header strip */}
@@ -1162,43 +1219,19 @@ export function PropertyPanel() {
                             >x</button>
                           </div>
 
-                          {/* Color row: large swatch + picker trigger + hex input */}
-                          <div className="flex items-center gap-1.5">
-                            <label className="relative cursor-pointer shrink-0" title="Pick color">
-                              <div
-                                className="w-7 h-7 rounded border border-tn-border/80 shadow-sm"
-                                style={{ backgroundColor: color }}
-                              />
-                              <input
-                                type="color"
-                                value={hexForPicker}
-                                onChange={(e) => {
-                                  const next = delimiters.map((d, i) => i === idx ? {
-                                    ...d,
-                                    Tint: { Type: "Constant", ...(d.Tint as Record<string, unknown>), Color: e.target.value },
-                                  } : d);
-                                  handleContinuousChange("Delimiters", next);
-                                }}
-                                onBlur={handleBlur}
-                                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                              />
-                            </label>
-                            <input
-                              type="text"
-                              value={color}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                const next = delimiters.map((d, i) => i === idx ? {
-                                  ...d,
-                                  Tint: { Type: "Constant", ...(d.Tint as Record<string, unknown>), Color: v },
-                                } : d);
-                                handleContinuousChange("Delimiters", next);
-                              }}
-                              onBlur={handleBlur}
-                              placeholder="#rrggbb"
-                              className="flex-1 text-[10px] bg-tn-bg border border-tn-border rounded px-1.5 py-1 text-tn-text font-mono"
-                            />
-                          </div>
+                          <ColorPickerField
+                            label={`Band ${idx + 1} color`}
+                            hideLabel
+                            value={color}
+                            onChange={(v) => {
+                              const next = delimiters.map((d, i) => i === idx ? {
+                                ...d,
+                                Tint: { Type: "Constant", ...(d.Tint as Record<string, unknown>), Color: v },
+                              } : d);
+                              handleContinuousChange("Delimiters", next);
+                            }}
+                            onBlur={handleBlur}
+                          />
 
                           {/* Range row */}
                           <div className="flex items-center gap-1.5">
@@ -1353,12 +1386,85 @@ export function PropertyPanel() {
               </FieldWrapper>
             );
           }
+          if (key === "SwitchCases" || isSwitchCasesArray(value)) {
+            const cases = value as SwitchCaseEntry[];
+            return (
+              <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
+                <SwitchCasesField
+                  label={fieldLabel}
+                  value={cases}
+                  description={description}
+                  onChange={(next) => handleDiscreteChange(key, next)}
+                  onBlur={handleBlur}
+                />
+              </FieldWrapper>
+            );
+          }
+          if (isInOutPointsArray(value)) {
+            const pointFormat = inferCurvePointFormat(value);
+            const axisLabels =
+              pointFormat === "yOut" ? { x: "Y", y: "Out" } : { x: "In", y: "Out" };
+            return (
+              <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
+                <CurveCanvas
+                  label={`${fieldLabel} (${value.length})`}
+                  points={value}
+                  onChange={(pts) => handleContinuousChange(key, pts)}
+                  onCommit={() => {
+                    flushPendingSnapshot();
+                    commitState(`Edit ${key} on ${typeName}`);
+                  }}
+                />
+                <CurvePointList
+                  points={value}
+                  pointFormat={pointFormat}
+                  axisLabels={axisLabels}
+                  onChange={(pts) => handleContinuousChange(key, pts)}
+                  onCommit={() => {
+                    flushPendingSnapshot();
+                    commitState(`Edit ${key} on ${typeName}`);
+                  }}
+                />
+              </FieldWrapper>
+            );
+          }
           return (
             <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
               <ArrayField
                 label={fieldLabel}
                 values={value}
                 description={description}
+                renderItem={(item, index) =>
+                  renderPropertyPanelArrayItem(item, {
+                    index,
+                    onUpdate: (next) => {
+                      const copy = [...value];
+                      copy[index] = next;
+                      handleContinuousChange(key, copy);
+                    },
+                    onBlur: handleBlur,
+                  }) ?? (
+                    <span className="text-xs text-tn-text font-mono break-all">
+                      {JSON.stringify(item)}
+                    </span>
+                  )
+                }
+              />
+            </FieldWrapper>
+          );
+        }
+        if (typeof value === "object" && value !== null && isFunctionForYFieldKey(key, value)) {
+          return (
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
+              <FunctionForYField
+                label={fieldLabel}
+                value={value as Record<string, unknown>}
+                description={description}
+                onChange={(next) => handleContinuousChange(key, next)}
+                onCommit={() => {
+                  flushPendingSnapshot();
+                  commitState(`Edit ${key} on ${typeName}`);
+                }}
               />
             </FieldWrapper>
           );
@@ -1376,6 +1482,64 @@ export function PropertyPanel() {
                   flushPendingSnapshot();
                   commitState(`Edit ${key} on ${typeName}`);
                 }}
+              />
+            </FieldWrapper>
+          );
+        }
+        if (typeof value === "object" && value !== null && isBareManualCurveSpec(value)) {
+          return (
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
+              <BareManualCurveField
+                label={fieldLabel}
+                value={value as Record<string, unknown>}
+                description={description}
+                onChange={(next) => handleContinuousChange(key, next)}
+                onCommit={() => {
+                  flushPendingSnapshot();
+                  commitState(`Edit ${key} on ${typeName}`);
+                }}
+              />
+            </FieldWrapper>
+          );
+        }
+        if (typeof value === "object" && value !== null && isConstantValueSpec(value)) {
+          return (
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
+              <NestedConstantField
+                label={fieldLabel}
+                value={value as Record<string, unknown>}
+                description={description}
+                onChange={(next) => handleContinuousChange(key, next)}
+                onBlur={handleBlur}
+              />
+            </FieldWrapper>
+          );
+        }
+        if (typeof value === "object" && value !== null && isConstantColorSpec(value)) {
+          return (
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
+              <NestedConstantColorField
+                label={fieldLabel}
+                value={value as Record<string, unknown>}
+                description={description}
+                onChange={(next) => handleContinuousChange(key, next)}
+                onBlur={handleBlur}
+              />
+            </FieldWrapper>
+          );
+        }
+        if (typeof value === "object" && value !== null && isImportedRefSpec(value)) {
+          return (
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
+              <ImportedRefField
+                label={fieldLabel}
+                fieldKey={key}
+                value={value as Record<string, unknown>}
+                description={description}
+                projectPath={projectPath}
+                onChange={(next) => handleContinuousChange(key, next)}
+                onBlur={handleBlur}
+                onOpenAssignment={(filePath) => { void openFile(filePath); }}
               />
             </FieldWrapper>
           );
@@ -1837,7 +2001,7 @@ function AnnotationInspector({
           <span className="text-[10px] text-tn-text-muted">
             {isComment
               ? "These notes persist with template metadata and are useful for handoff guidance."
-              : "Use frames to group a region of the graph and give it a short title."}
+              : "Click the title bar to select, drag, or resize. Frames stay behind graph nodes so wires stay clickable."}
           </span>
         </div>
         {isComment && (

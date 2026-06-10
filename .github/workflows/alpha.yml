@@ -53,6 +53,18 @@ jobs:
       - name: Validate
         run: pnpm validate
 
+      - name: Verify version and changelog for release cut
+        if: inputs.publish
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$PKG_VERSION" != "$INPUT_VERSION" ]; then
+            echo "package.json version ($PKG_VERSION) must match workflow input ($INPUT_VERSION)"
+            exit 1
+          fi
+          node scripts/release-notes.mjs "$INPUT_VERSION" >/dev/null
+
       - name: Alpha cut checklist
         run: |
           echo "Version: ${{ inputs.version }}"

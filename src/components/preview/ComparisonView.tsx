@@ -1,12 +1,15 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { usePreviewStore, type PreviewMode } from "@/stores/previewStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { useComparisonEvaluation } from "@/hooks/useComparisonEvaluation";
-import { Preview3D } from "./Preview3D";
 import { getColormap } from "@/utils/colormaps";
 import { ComparisonChrome } from "./ComparisonChrome";
 import { PreviewSettingsDrawer } from "./PreviewSettingsDrawer";
 import { ComparisonControls } from "./controls/ComparisonControls";
+
+const Preview3DLazy = lazy(() =>
+  import("./Preview3D").then((m) => ({ default: m.Preview3D })),
+);
 
 function ComparePane({
   label,
@@ -131,7 +134,17 @@ function ComparePreview({
   const cm = getColormap(colormap as Parameters<typeof getColormap>[0]);
 
   if (mode === "3d") {
-    return <Preview3D onCanvasRef={handle3DCanvasRef} />;
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center text-[11px] text-tn-text-muted">
+            Loading 3D preview…
+          </div>
+        }
+      >
+        <Preview3DLazy onCanvasRef={handle3DCanvasRef} />
+      </Suspense>
+    );
   }
 
   return (

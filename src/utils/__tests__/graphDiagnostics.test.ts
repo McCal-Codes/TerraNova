@@ -131,6 +131,29 @@ describe("analyzeGraph — dead nodes", () => {
     expect(deadWarnings.length).toBe(1);
     expect(deadWarnings[0].nodeId).toBe("c2");
   });
+
+  it("does not warn about frame or comment annotations as dead nodes", () => {
+    const nodes = [
+      makeNode("c1", "Constant"),
+      makeNode("sum", "Sum"),
+      {
+        id: "frame-1",
+        type: "frame",
+        position: { x: 0, y: 0 },
+        data: { type: "frame", name: "Terrain", width: 400, height: 300 },
+      },
+      {
+        id: "comment-1",
+        type: "comment",
+        position: { x: 0, y: 0 },
+        data: { type: "comment", text: "Note", width: 200, height: 100 },
+      },
+    ];
+    const edges = [makeEdge("c1", "sum", "Inputs[0]")];
+    const diagnostics = analyzeGraph(nodes, edges);
+    const deadWarnings = diagnostics.filter((d) => d.message.includes("unreachable"));
+    expect(deadWarnings.map((d) => d.nodeId)).toEqual([]);
+  });
 });
 
 describe("analyzeGraph — fully connected graph", () => {
@@ -147,6 +170,38 @@ describe("analyzeGraph — fully connected graph", () => {
     const diagnostics = analyzeGraph(nodes, edges);
     const disconnected = diagnostics.filter((d) => d.message.includes("disconnected"));
     expect(disconnected.length).toBe(0);
+  });
+
+  it("does not require Curves on density Sum when compound inputs are wired", () => {
+    const nodes = [
+      makeNode("a", "Constant", { Value: 3 }),
+      makeNode("b", "Constant", { Value: 7 }),
+      makeNode("sum", "Sum"),
+    ];
+    const edges = [
+      makeEdge("a", "sum", "Inputs[0]"),
+      makeEdge("b", "sum", "Inputs[1]"),
+    ];
+    const diagnostics = analyzeGraph(nodes, edges);
+    const curveErrors = diagnostics.filter(
+      (d) => d.code === "field-constraint" && d.message.includes("Curves"),
+    );
+    expect(curveErrors).toHaveLength(0);
+  });
+
+  it("does not warn on trailing compound expansion slot when min inputs are connected", () => {
+    const nodes = [
+      makeNode("a", "Constant", { Value: 1 }),
+      makeNode("b", "Constant", { Value: 2 }),
+      makeNode("sum", "Sum"),
+    ];
+    const edges = [
+      makeEdge("a", "sum", "Inputs[0]"),
+      makeEdge("b", "sum", "Inputs[1]"),
+    ];
+    const diagnostics = analyzeGraph(nodes, edges);
+    const disconnected = diagnostics.filter((d) => d.message.includes("disconnected"));
+    expect(disconnected).toHaveLength(0);
   });
 });
 

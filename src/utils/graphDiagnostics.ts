@@ -1,7 +1,11 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { BaseNodeData } from "@/nodes/shared/BaseNode";
+import type { HandleDef } from "@/nodes/shared/handles";
 import { getHandles, findHandleDef } from "@/nodes/handleRegistry";
+import { COMPOUND_PORTS } from "@/nodes/shared/compoundPorts";
+import { resolveCompoundHandles } from "@/nodes/shared/resolveCompoundHandles";
 import { getConstraints, OUTPUT_RANGES } from "@/schema/constraints";
+import type { FieldConstraint } from "@/schema/validation";
 import { validateFields } from "@/schema/validation";
 import { isDeprecatedOrLegacyTypeKey, getLegacyReplacement, getDeprecationTier } from "@/nodes/shared/legacyTypes";
 import { nodeTypes } from "@/nodes/index";
@@ -17,6 +21,12 @@ import type { AssetReferenceKind } from "@/utils/environmentAssetLookup";
 import { usesServerDefaultEnvironment } from "@/utils/atmosphere";
 import connectionsData from "@/data/connections.json";
 import {
+  isDensityBaseHeightNode,
+  isDensityConstantNode,
+  isTintConstantColorNode,
+  resolveDensityDiagnosticsTypeKey,
+} from "@/utils/densitySectionNodes";
+import {
   CURVE_INPUT_HANDLE_IDS,
   hasInlineCurveField,
   isCurveFieldConstraintSatisfied,
@@ -28,6 +38,7 @@ import {
   resolveCurveMapperInputNode,
 } from "@/utils/curveMapperDiagnostics";
 import { sumHasRawNoisePlusHeightCurveMapper } from "@/utils/sumTerrainPattern";
+import { isAnnotationNode } from "@/utils/annotationUtils";
 
 // ── Hytale known environment names (from Server/Environments/) ──────────────
 
@@ -140,6 +151,119 @@ function getNodeType(node: Node): string {
 
 function getNodeFields(node: Node): Record<string, unknown> {
   return (node.data as BaseNodeData).fields ?? {};
+}
+
+/** Canvas annotations and collapsed groups are not part of the density graph. */
+function participatesInFlowAnalysis(node: Node): boolean {
+  return !isAnnotationNode(node) && node.type !== "group";
+}
+
+function resolveDiagnosticsTypeKey(node: Node): string {
+  return resolveDensityDiagnosticsTypeKey(node);
+}
+
+function resolveCompoundPortKey(node: Node): string | null {
+  const typeKey = resolveDiagnosticsTypeKey(node);
+  if (COMPOUND_PORTS[typeKey]) return typeKey;
+  const bareType = getNodeType(node);
+  if (bareType && COMPOUND_PORTS[bareType]) return bareType;
+  return null;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getCompoundConnectedIndices(
+  nodeId: string,
+  arrayBase: string,
+  edges: Edge[],
+): number[] {
+  const pattern = new RegExp(`^${escapeRegExp(arrayBase)}\\[(\\d+)\\]$`);
+  const indices: number[] = [];
+  for (const edge of edges) {
+    if (edge.target !== nodeId) continue;
+    const match = pattern.exec(edge.targetHandle ?? "");
+    if (match) indices.push(parseInt(match[1], 10));
+  }
+  return indices;
+}
+
+function hasCompoundInputsConnected(
+  nodeId: string,
+  arrayBase: string,
+  incomingByTarget: Map<string, Set<string>>,
+): boolean {
+  const connected = incomingByTarget.get(nodeId);
+  if (!connected) return false;
+  const pattern = new RegExp(`^${escapeRegExp(arrayBase)}\\[\\d+\\]$`);
+  for (const handleId of connected) {
+    if (pattern.test(handleId)) return true;
+  }
+  return false;
+}
+
+function shouldWarnDisconnectedCompoundHandle(
+  handleId: string,
+  arrayBase: string,
+  minSlots: number,
+  connectedIndices: number[],
+): boolean {
+  const pattern = new RegExp(`^${escapeRegExp(arrayBase)}\\[(\\d+)\\]$`);
+  const match = pattern.exec(handleId);
+  if (!match) return true;
+
+  const index = parseInt(match[1], 10);
+  if (connectedIndices.includes(index)) return false;
+
+  const maxConnected = connectedIndices.length > 0 ? Math.max(...connectedIndices) : -1;
+  const slotCount = Math.max(minSlots, maxConnected + 2);
+
+  if (connectedIndices.length === 0) {
+    return index < minSlots;
+  }
+
+  if (index < maxConnected) return true;
+  if (index >= maxConnected + 1 && index < slotCount) return false;
+  return index < minSlots;
+}
+
+function getInputHandlesForNode(node: Node, edges: Edge[]): HandleDef[] {
+  const compoundKey = resolveCompoundPortKey(node);
+  const typeKey = resolveDiagnosticsTypeKey(node);
+  const handles = compoundKey
+    ? resolveCompoundHandles(node.id, compoundKey, edges)
+    : getHandles(typeKey);
+  return handles.filter((handle) => handle.type === "target");
+}
+
+/** Avoid bundle mismatches (e.g. density Sum vs curve Sum `Curves` field). */
+function getGraphDiagnosticsConstraints(node: Node): Record<string, FieldConstraint> | undefined {
+  const typeKey = resolveDiagnosticsTypeKey(node);
+  const constraints = getConstraints(typeKey);
+  if (!constraints) return undefined;
+
+  const compoundKey = resolveCompoundPortKey(node);
+  const filtered = { ...constraints };
+
+  if (isDensityBaseHeightNode(node)) {
+    delete filtered.Positions;
+  }
+  if (isDensityConstantNode(node)) {
+    delete filtered.Tint;
+    delete filtered.Color;
+  } else if (isTintConstantColorNode(node)) {
+    delete filtered.Tint;
+  }
+
+  if (!compoundKey) {
+    return Object.keys(filtered).length > 0 ? filtered : undefined;
+  }
+
+  const compound = COMPOUND_PORTS[compoundKey];
+  delete filtered.Curves;
+  delete filtered[compound.arrayBase];
+  return Object.keys(filtered).length > 0 ? filtered : undefined;
 }
 
 type KnownAssetNameMap = Partial<Record<AssetReferenceKind, string[]>>;
@@ -283,30 +407,45 @@ export function analyzeGraph(
 
   // 1. Disconnected required inputs
   for (const node of nodes) {
+    if (!participatesInFlowAnalysis(node)) continue;
     const type = getNodeType(node);
-    const handles = getHandles(type);
-    if (!handles.length) continue;
+    const compoundKey = resolveCompoundPortKey(node);
+    const compound = compoundKey ? COMPOUND_PORTS[compoundKey] : null;
+    const inputHandles = getInputHandlesForNode(node, edges);
+    if (!inputHandles.length) continue;
 
     const fields = getNodeFields(node);
     const connectedHandles = incomingByTarget.get(node.id) ?? new Set();
-    const inputHandles = handles.filter((h) => h.type === "target");
+    const connectedCompoundIndices = compound
+      ? getCompoundConnectedIndices(node.id, compound.arrayBase, edges)
+      : [];
     const showIdx = inputHandles.length >= 2;
     for (let idx = 0; idx < inputHandles.length; idx++) {
       const handle = inputHandles[idx];
-      if (!connectedHandles.has(handle.id)) {
-        if (
-          CURVE_INPUT_HANDLE_IDS.has(handle.id)
-          && hasInlineCurveField(fields, "Curve")
-        ) {
-          continue;
-        }
-        const label = showIdx ? `[${idx}] ${handle.label}` : handle.label;
-        diagnostics.push({
-          nodeId: node.id,
-          message: `${type}: input "${label}" is disconnected`,
-          severity: "warning",
-        });
+      if (connectedHandles.has(handle.id)) continue;
+      if (
+        CURVE_INPUT_HANDLE_IDS.has(handle.id)
+        && hasInlineCurveField(fields, "Curve")
+      ) {
+        continue;
       }
+      if (
+        compound
+        && !shouldWarnDisconnectedCompoundHandle(
+          handle.id,
+          compound.arrayBase,
+          compound.minSlots,
+          connectedCompoundIndices,
+        )
+      ) {
+        continue;
+      }
+      const label = showIdx ? `[${idx}] ${handle.label}` : handle.label;
+      diagnostics.push({
+        nodeId: node.id,
+        message: `${type}: input "${label}" is disconnected`,
+        severity: "warning",
+      });
     }
   }
 
@@ -364,7 +503,7 @@ export function analyzeGraph(
       const preferMsg = replacement ? ` — prefer ${replacement}` : "";
       diagnostics.push({
         nodeId: node.id,
-        message: `${type}: ${tier} type superseded in the current Hytale generator API${preferMsg}`,
+        message: `${type}: ${tier} legacy node for older generator JSON — Update 5 graphs use prefixed editor types where applicable${preferMsg}`,
         severity: "warning",
         code: "legacy-node",
         meta: { legacyTypeKey: nodeTypeKey, deprecationTier: tier, replacement },
@@ -378,7 +517,7 @@ export function analyzeGraph(
     ) {
       diagnostics.push({
         nodeId: node.id,
-        message: `${type}: unknown node type "${nodeTypeKey}" — not registered in TerraNova`,
+        message: `${type}: "${nodeTypeKey}" is not in the TerraNova palette — may still round-trip if valid in Hytale JSON`,
         severity: "warning",
         code: "unknown-node-type",
         meta: { nodeTypeKey },
@@ -420,9 +559,11 @@ export function analyzeGraph(
     }
   }
 
-  if (sorted < nodes.length) {
+  if (sorted < nodes.filter(participatesInFlowAnalysis).length) {
     // Some nodes are in a cycle
-    const cycleNodes = nodes.filter((n) => (inDegree.get(n.id) ?? 0) > 0);
+    const cycleNodes = nodes.filter(
+      (n) => participatesInFlowAnalysis(n) && (inDegree.get(n.id) ?? 0) > 0,
+    );
     for (const node of cycleNodes) {
       diagnostics.push({
         nodeId: node.id,
@@ -435,7 +576,12 @@ export function analyzeGraph(
   // 4. Dead nodes — BFS backward from terminal nodes
   // Terminals are nodes with no outgoing edges that have at least one incoming edge (true sinks)
   const nodesWithIncoming = new Set(edges.map((e) => e.target));
-  const terminals = nodes.filter((n) => !outgoingBySource.has(n.id) && nodesWithIncoming.has(n.id));
+  const terminals = nodes.filter(
+    (n) =>
+      participatesInFlowAnalysis(n)
+      && !outgoingBySource.has(n.id)
+      && nodesWithIncoming.has(n.id),
+  );
 
   // Build reverse adjacency: target → sources
   const reverseAdj = new Map<string, Set<string>>();
@@ -461,6 +607,7 @@ export function analyzeGraph(
   // Only report dead nodes if there are actual terminal sinks
   if (terminals.length > 0) {
     for (const node of nodes) {
+      if (!participatesInFlowAnalysis(node)) continue;
       if (!reachable.has(node.id)) {
         diagnostics.push({
           nodeId: node.id,
@@ -522,14 +669,23 @@ export function analyzeGraph(
 
   // 8. Field constraint violations (bridge per-field validation into graph diagnostics)
   for (const node of nodes) {
-    const typeKey = node.type ?? getNodeType(node);
-    const constraints = getConstraints(typeKey);
+    const typeKey = resolveDiagnosticsTypeKey(node);
+    const constraints = getGraphDiagnosticsConstraints(node);
     if (!constraints) continue;
 
+    const compoundKey = resolveCompoundPortKey(node);
+    const compound = compoundKey ? COMPOUND_PORTS[compoundKey] : null;
     const fields = getNodeFields(node);
     const issues = validateFields(fields, constraints);
     for (const issue of issues) {
       const constraint = constraints[issue.field];
+      if (
+        compound
+        && (issue.field === "Curves" || issue.field === compound.arrayBase)
+        && hasCompoundInputsConnected(node.id, compound.arrayBase, incomingByTarget)
+      ) {
+        continue;
+      }
       if (
         issue.severity === "error"
         && constraint?.required
@@ -783,8 +939,8 @@ export function analyzeGraph(
     const targetNode = nodeMap.get(edge.target);
     if (!sourceNode || !targetNode) continue;
 
-    const sourceType = sourceNode.type ?? getNodeType(sourceNode);
-    const targetType = targetNode.type ?? getNodeType(targetNode);
+    const sourceType = resolveDiagnosticsTypeKey(sourceNode);
+    const targetType = resolveDiagnosticsTypeKey(targetNode);
     const sh = edge.sourceHandle ?? "output";
     const th = edge.targetHandle ?? "Input";
 
@@ -972,8 +1128,8 @@ export function analyzeBiome(
       if (!knownAssetSets.environment.has(normalizeKnownName(ref))) {
         diags.push({
           nodeId: null,
-          message: `EnvironmentProvider references unknown environment "${ref}" - not found in Hytale assets`,
-          severity: "error",
+          message: `EnvironmentProvider references unknown environment "${ref}" - not found in project or synced Hytale assets`,
+          severity: "warning",
           biomeSection: "EnvironmentProvider",
           code: "biome-environment-unknown-ref",
           field: "EnvironmentProvider",

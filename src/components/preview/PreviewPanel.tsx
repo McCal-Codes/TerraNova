@@ -19,7 +19,7 @@ import { usePropPlacementStore } from "@/stores/propPlacementStore";
 import { PerformanceOverlay } from "@/components/dev/PerformanceOverlay";
 import { PreviewStatusOverlays } from "./PreviewStatusOverlays";
 import { PreviewChrome } from "./PreviewChrome";
-import { PreviewSettingsDrawer } from "./PreviewSettingsDrawer";
+import { PreviewControlsSidebar } from "./PreviewControlsSidebar";
 import { usePreviewTarget } from "@/hooks/usePreviewTarget";
 import { getUniformSlicePreviewHint } from "@/utils/previewSliceHints";
 import { getPreviewTargetGuidance } from "@/utils/densityNoInlinePreview";
@@ -107,12 +107,17 @@ export function PreviewPanel() {
   const voxelMeshData = usePreviewStore((s) => s.voxelMeshData);
   const viewMode = usePreviewStore((s) => s.viewMode);
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const isSplitMode = viewMode === "split";
+  const [controlsCollapsed, setControlsCollapsed] = useState(isSplitMode);
 
   useEffect(() => {
-    setSettingsOpen(false);
-  }, [viewMode]);
+    setControlsCollapsed(isSplitMode);
+  }, [isSplitMode]);
+
+  const settingsOpen = !controlsCollapsed;
+  const setSettingsOpen = useCallback((open: boolean) => {
+    setControlsCollapsed(!open);
+  }, []);
 
   const fidelityScore = usePreviewStore((s) => s.fidelityScore);
   const minValue = usePreviewStore((s) => s.minValue);
@@ -156,30 +161,30 @@ export function PreviewPanel() {
           isPropContext
           settingsOpen={settingsOpen}
           onSettingsOpenChange={setSettingsOpen}
-          settingsButtonRef={settingsButtonRef}
         />
-        <div className="relative min-h-0 flex-1">
-          <PreviewStatusOverlays
-            loading={anyLoading && !hasData}
-            fidelityScore={fidelityScore}
-            hasData={hasData}
-            showFidelity={false}
-          />
-          {anyError && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-tn-bg/90">
-              <p className="text-xs text-red-400 max-w-md text-center whitespace-pre-line">{anyError}</p>
-            </div>
-          )}
-          {!anyError && <PropPreviewPanel />}
-          <PerformanceOverlay />
-          <PreviewSettingsDrawer
-            open={settingsOpen}
-            onClose={() => setSettingsOpen(false)}
-            returnFocusRef={settingsButtonRef}
-            title="Prop preview settings"
+        <div className="flex min-h-0 flex-1 flex-row overflow-hidden">
+          <PreviewControlsSidebar
+            collapsed={controlsCollapsed}
+            onCollapsedChange={setControlsCollapsed}
+            ariaLabel="Prop preview settings"
           >
             <PropPreviewControls canExport={isCanvasReady} onExport={handleExportPreview} />
-          </PreviewSettingsDrawer>
+          </PreviewControlsSidebar>
+          <div className="relative min-h-0 min-w-0 flex-1">
+            <PreviewStatusOverlays
+              loading={anyLoading && !hasData}
+              fidelityScore={fidelityScore}
+              hasData={hasData}
+              showFidelity={false}
+            />
+            {anyError && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center p-4 bg-tn-bg/90">
+                <p className="text-xs text-red-400 max-w-md text-center whitespace-pre-line">{anyError}</p>
+              </div>
+            )}
+            {!anyError && <PropPreviewPanel />}
+            <PerformanceOverlay />
+          </div>
         </div>
       </div>
     );
@@ -190,87 +195,88 @@ export function PreviewPanel() {
       <PreviewChrome
         settingsOpen={settingsOpen}
         onSettingsOpenChange={setSettingsOpen}
-        settingsButtonRef={settingsButtonRef}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col min-h-0">
-        <div className="relative min-h-0 flex-1">
-          <PreviewStatusOverlays
-            loading={anyLoading && !hasData}
-            fidelityScore={fidelityScore}
-            hasData={hasData}
-            showFidelity={!isPropContext}
-            sliceHint={overlaySliceHint}
-          />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-row overflow-hidden">
+        <PreviewControlsSidebar
+          collapsed={controlsCollapsed}
+          onCollapsedChange={setControlsCollapsed}
+        >
+          <PreviewControls canExport={isCanvasReady} onExport={handleExportPreview} />
+          {mode !== "voxel" && mode !== "world" && <StatisticsPanel />}
+        </PreviewControlsSidebar>
 
-          {anyError && !hasData && (
-            <div className="flex items-center justify-center h-full p-4">
-              <p className="text-xs text-red-400 max-w-md text-center whitespace-pre-line">{anyError}</p>
-            </div>
+        <div className="flex min-w-0 flex-1 flex-col min-h-0">
+          <div className="relative min-h-0 flex-1">
+            <PreviewStatusOverlays
+              loading={anyLoading && !hasData}
+              fidelityScore={fidelityScore}
+              hasData={hasData}
+              showFidelity={!isPropContext}
+              sliceHint={overlaySliceHint}
+            />
+
+            {anyError && !hasData && (
+              <div className="flex items-center justify-center h-full p-4">
+                <p className="text-xs text-red-400 max-w-md text-center whitespace-pre-line">{anyError}</p>
+              </div>
+            )}
+
+            {!hasData && !anyError && !anyLoading && (
+              <div className="flex items-center justify-center h-full text-sm text-tn-text-muted">
+                No preview data — open a density file to get started
+              </div>
+            )}
+
+            {/* 2D mode */}
+            {!isPropContext && mode === "2d" && values && (
+              useThresholdedHeatmap
+                ? (
+                  <ThresholdedHeatmap
+                    ref={handleCanvasRef}
+                    exportRootRef={(el) => { heatmapExportRootRef.current = el; }}
+                  />
+                )
+                : (
+                  <Heatmap2D
+                    ref={handleCanvasRef}
+                    exportRootRef={(el) => { heatmapExportRootRef.current = el; }}
+                    sliceHint={topoSliceHint}
+                  />
+                )
+            )}
+
+            {/* 3D heightfield mode */}
+            {!isPropContext && mode === "3d" && (values || show3DVolumeView) && (
+              <Suspense fallback={<Preview3DFallback />}>
+                <Preview3D onCanvasRef={handleCanvasRef} />
+              </Suspense>
+            )}
+
+            {/* Voxel mode */}
+            {!isPropContext && mode === "voxel" && (voxelDensities || isVoxelLoading || voxelError) && (
+              <Suspense fallback={<Preview3DFallback />}>
+                <VoxelPreview3D onCanvasRef={handleCanvasRef} />
+              </Suspense>
+            )}
+
+            {/* World mode — reuses VoxelPreview3D with server chunk data */}
+            {!isPropContext && mode === "world" && (voxelMeshData || isWorldLoading) && (
+              <Suspense fallback={<Preview3DFallback />}>
+                <VoxelPreview3D onCanvasRef={handleCanvasRef} />
+              </Suspense>
+            )}
+
+            <PerformanceOverlay />
+          </div>
+
+          {/* Cross-section plot below main preview */}
+          {mode === "2d" && !isPropContext && showCrossSection && crossSectionLine && values && (
+            crossSectionProfileMode === "section"
+              ? <VerticalCrossSectionPlot />
+              : <CrossSectionPlot />
           )}
-
-          {!hasData && !anyError && !anyLoading && (
-            <div className="flex items-center justify-center h-full text-sm text-tn-text-muted">
-              No preview data — open a density file to get started
-            </div>
-          )}
-
-          {/* 2D mode */}
-          {!isPropContext && mode === "2d" && values && (
-            useThresholdedHeatmap
-              ? (
-                <ThresholdedHeatmap
-                  ref={handleCanvasRef}
-                  exportRootRef={(el) => { heatmapExportRootRef.current = el; }}
-                />
-              )
-              : (
-                <Heatmap2D
-                  ref={handleCanvasRef}
-                  exportRootRef={(el) => { heatmapExportRootRef.current = el; }}
-                  sliceHint={topoSliceHint}
-                />
-              )
-          )}
-
-          {/* 3D heightfield mode */}
-          {!isPropContext && mode === "3d" && (values || show3DVolumeView) && (
-            <Suspense fallback={<Preview3DFallback />}>
-              <Preview3D onCanvasRef={handleCanvasRef} />
-            </Suspense>
-          )}
-
-          {/* Voxel mode */}
-          {!isPropContext && mode === "voxel" && (voxelDensities || isVoxelLoading || voxelError) && (
-            <Suspense fallback={<Preview3DFallback />}>
-              <VoxelPreview3D onCanvasRef={handleCanvasRef} />
-            </Suspense>
-          )}
-
-          {/* World mode — reuses VoxelPreview3D with server chunk data */}
-          {!isPropContext && mode === "world" && (voxelMeshData || isWorldLoading) && (
-            <Suspense fallback={<Preview3DFallback />}>
-              <VoxelPreview3D onCanvasRef={handleCanvasRef} />
-            </Suspense>
-          )}
-
-          <PerformanceOverlay />
-          <PreviewSettingsDrawer
-            open={settingsOpen}
-            onClose={() => setSettingsOpen(false)}
-            returnFocusRef={settingsButtonRef}
-          >
-            <PreviewControls canExport={isCanvasReady} onExport={handleExportPreview} />
-            {mode !== "voxel" && mode !== "world" && <StatisticsPanel />}
-          </PreviewSettingsDrawer>
         </div>
-
-        {/* Cross-section plot below main preview */}
-        {mode === "2d" && !isPropContext && showCrossSection && crossSectionLine && values && (
-          crossSectionProfileMode === "section"
-            ? <VerticalCrossSectionPlot />
-            : <CrossSectionPlot />
-        )}
       </div>
     </div>
   );

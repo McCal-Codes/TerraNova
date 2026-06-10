@@ -16,6 +16,7 @@ import { EdgeOutlineEffect } from "./EdgeOutlineEffect";
 import { HytaleSky, HytaleFog, GroundShadow } from "./SceneEnvironment";
 import type { VoxelMaterial } from "@/utils/voxelExtractor";
 import { useDraggableHudPosition } from "@/hooks/useDraggableHudPosition";
+import { hudAbsoluteStyle } from "@/utils/hudPositionStyle";
 import { PreviewSceneCameraFit } from "./PreviewSceneCameraFit";
 import { Vector2, MathUtils } from "three";
 import { VoxelMeshGroup } from "./VoxelMeshGroup";
@@ -289,9 +290,7 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
       {showMaterialLegend && legendMaterials.length > 0 && voxelMeshData && (
         <div
           style={{
-            position: "absolute",
-            right: 12 + legendPos.x,
-            bottom: 40 + legendPos.y,
+            ...hudAbsoluteStyle(legendPos, { x: "right", y: "bottom" }, { right: 12, bottom: 40 }),
             zIndex: 20,
             cursor: "grab",
             userSelect: "none",

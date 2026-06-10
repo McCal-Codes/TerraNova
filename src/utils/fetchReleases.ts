@@ -104,6 +104,101 @@ function parseItems(content: string): { label: string; description: string }[] {
 
 const RELEASES_URL = GITHUB_RELEASES_API;
 
+/** Shown in What's New when GitHub has not published the alpha tag yet. */
+function bundledAlphaRelease(): ReleaseData {
+  return {
+    version: "0.1.8-alpha.1",
+    date: "Jun 10, 2026",
+    name: "0.1.8 Closed Alpha",
+    sections: [
+      {
+        title: "What's New",
+        items: [
+          {
+            label: "Closed alpha build",
+            description:
+              "First McCal-Codes closed alpha with onboarding asset sync, Create Pack prefab picker, pack backup, and in-app bug reporter.",
+          },
+          {
+            label: "What to test checklist",
+            description:
+              "After onboarding, alpha testers see a focus-area checklist (onboarding, pack wizard, preview, export/bridge, pack backup, bug reports).",
+          },
+          {
+            label: "Preview settings sidebar",
+            description:
+              "Collapsible settings rail in split view — expand via toolbar Settings or the edge chevron.",
+          },
+        ],
+      },
+      {
+        title: "Features",
+        items: [
+          {
+            label: "Onboarding asset sync",
+            description: "Step 3 runs Hytale release sync in-wizard with Browse and Sync now.",
+          },
+          {
+            label: "Home Learn dialog",
+            description: "Walkthroughs open from onboarding Step 4 and Home → Learn.",
+          },
+          {
+            label: "Visual prefab picker",
+            description: "Create Pack Advanced → Biome: search, category chips, and live 3D preview.",
+          },
+          {
+            label: "Pack backup settings",
+            description:
+              "Settings → General: prompt toggle, default backup folder, back up open project, reset skip list.",
+          },
+          {
+            label: "Bug reporter attachments",
+            description:
+              "Capture preview screenshots and attach files; paths copy into the debug bundle for GitHub drag-and-drop.",
+          },
+          {
+            label: "Bug reporter v2",
+            description: "Area-specific hints, steps/expected/actual fields, redacted paths, structured debug bundle.",
+          },
+        ],
+      },
+      {
+        title: "Fixes",
+        items: [
+          {
+            label: "Preview HUD drag",
+            description: "Material legend and timing overlay no longer move opposite to the drag direction.",
+          },
+        ],
+      },
+      {
+        title: "Testing",
+        items: [
+          {
+            label: "Report bugs in-app",
+            description:
+              "Settings → File a Bug Report — copy bundle, attach screenshots, open McCal-Codes GitHub with prefilled fields.",
+          },
+          {
+            label: "GitHub templates",
+            description: "Bug, feature, alpha feedback, docs, and question templates on McCal-Codes/TerraNova.",
+          },
+          {
+            label: "Beta guide",
+            description: "See docs/BETA_TESTING.md for platform install notes and first-run checklist.",
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function mergeBundledReleases(releases: ReleaseData[]): ReleaseData[] {
+  const bundled = bundledAlphaRelease();
+  if (releases.some((r) => r.version === bundled.version)) return releases;
+  return [bundled, ...releases];
+}
+
 interface GitHubRelease {
   tag_name: string;
   name: string | null;
@@ -138,13 +233,13 @@ function toReleaseData(gh: GitHubRelease): ReleaseData {
 
 export async function fetchReleases(): Promise<ReleaseData[]> {
   // 1. In-memory cache (fastest)
-  if (memoryCache) return memoryCache;
+  if (memoryCache) return mergeBundledReleases(memoryCache);
 
   // 2. localStorage cache (survives page reloads)
   const stored = readLocalStorageCache();
   if (stored) {
-    memoryCache = stored;
-    return stored;
+    memoryCache = mergeBundledReleases(stored);
+    return memoryCache;
   }
 
   // 3. Network fetch
@@ -154,9 +249,11 @@ export async function fetchReleases(): Promise<ReleaseData[]> {
   if (!res.ok) throw new Error(`GitHub API ${res.status}`);
 
   const raw: GitHubRelease[] = await res.json();
-  const releases = raw
-    .filter((r) => !r.draft && !r.prerelease)
-    .map(toReleaseData);
+  const releases = mergeBundledReleases(
+    raw
+      .filter((r) => !r.draft)
+      .map(toReleaseData),
+  );
 
   memoryCache = releases;
   writeLocalStorageCache(releases);

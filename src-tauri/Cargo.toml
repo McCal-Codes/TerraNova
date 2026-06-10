@@ -1,8 +1,8 @@
 [package]
 name = "terranova"
-version = "0.1.7-pre.3"
+version = "0.1.8-alpha.1"
 description = "Offline design studio for Hytale World Generation V2"
-authors = ["HyperSystems-Development"]
+authors = ["McCal <business@mcc-cal.com>"]
 license = "LGPL-2.1"
 edition = "2021"
 rust-version = "1.77"

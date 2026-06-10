@@ -18,7 +18,7 @@ const ROAMING_WORKSPACE_SUFFIXES = [
   `AppData/Roaming/Hytale/install/pre-release/package/game/latest/${WORKSPACE_SUFFIX}`,
 ] as const;
 
-export type AssetReferenceKind = "environment" | "tint" | "material" | "prop";
+export type AssetReferenceKind = "environment" | "tint" | "material" | "prop" | "assignment";
 export type AssetValidationLookupSource = "project-server" | "workspace-schema";
 export type AssetValidationBadgeMode =
   | "project-assets"
@@ -30,14 +30,13 @@ const ASSET_DIRECTORY_CANDIDATES: Record<AssetReferenceKind, string[]> = {
   environment: ["Environments", "HytaleGenerator/Environments"],
   tint: ["Tints", "HytaleGenerator/Tints", "TintProvider", "TintProviders"],
   material: [
-    "HytaleGenerator/Assignments",
     "HytaleGenerator/Materials",
-    "Assignments",
     "Materials",
     "MaterialProvider",
     "MaterialProviders",
   ],
   prop: ["HytaleGenerator/Props", "Props", "Prop"],
+  assignment: ["HytaleGenerator/Assignments", "Assignments"],
 };
 
 export interface AssetValidationBadge {
@@ -557,6 +556,7 @@ export async function resolveAssetValidationLookup(
     tint: [],
     material: [],
     prop: [],
+    assignment: [],
   };
   const pathIndexByKind: Partial<Record<AssetReferenceKind, Record<string, string[]>>> = {};
   const sourceByKind: Partial<Record<AssetReferenceKind, AssetValidationLookupSource>> = {};
@@ -572,7 +572,7 @@ export async function resolveAssetValidationLookup(
 
   const serverRoot = inferServerRoot(currentFile, projectPath);
   if (serverRoot) {
-    for (const kind of ["tint", "material", "prop"] as const) {
+    for (const kind of ["tint", "material", "prop", "assignment"] as const) {
       try {
         const collection = await loadProjectAssetNames(serverRoot, kind);
         namesByKind[kind] = collection.names;

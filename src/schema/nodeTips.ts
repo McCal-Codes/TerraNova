@@ -87,7 +87,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   Sum: [
     {
       message:
-        "Adds all connected inputs together. Output range is the sum of all input ranges — may need clamping or normalization.",
+        "Adds all connected inputs together. For terrain use Example_Curve_Mapper: CurveMapper(noise) + CurveMapper(BaseHeight Distance) — not raw noise beside height CurveMapper (pillars/void).",
       severity: "info",
     },
   ],
@@ -231,7 +231,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   BaseHeight: [
     {
       message:
-        "Reads a named height value from the WorldStructures content fields. When Distance is true, outputs the signed distance from that height.",
+        "Reads a named height from WorldStructures (e.g. Base). Default: terrain anchor — solid below, air above. Distance: on outputs height offset for CurveMapper. A flat 2D slice at one Y level is normal; move Y slice or preview Terrain Out.",
       severity: "info",
     },
   ],
@@ -239,6 +239,11 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
     {
       message:
         "Cell/Voronoi noise approximation used for position-based sampling. Outputs distance-to-nearest-cell-point values.",
+      severity: "info",
+    },
+    {
+      message:
+        "Use Shape Preview in the preview panel (or the property-panel mini preview) to see Voronoi cell boundaries and wall distance while tuning Scale, Seed, and Jitter.",
       severity: "info",
     },
   ],
@@ -496,7 +501,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   CurveMapper: [
     {
       message:
-        "Remaps the input through a curve. Connect a Curve node to define the remapping shape (e.g. ease-in, ease-out, custom).",
+        "Remaps Input through a curve into density. With BaseHeight Distance, curve In = blocks from surface and Out = density (include negative Out above ground). Preview Sum or Terrain Out — not the curve node.",
       severity: "info",
     },
   ],
@@ -983,6 +988,13 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
     {
       message:
         "Filters positions from a child provider — keeps only positions where the density field exceeds the Threshold.",
+      severity: "info",
+    },
+  ],
+  "Assignment:FieldFunction": [
+    {
+      message:
+        "Samples a 2D noise field and picks props from Delimiters by Min/Max band. Each band can reference an imported assignment or inline weighted picks.",
       severity: "info",
     },
   ],

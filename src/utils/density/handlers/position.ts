@@ -105,9 +105,10 @@ const handleGradient: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 
 const handleBaseHeight: NodeHandler = (ctx, fields, _inputs, _x, y) => {
   const name = (fields.BaseHeightName as string) ?? "Base";
-  const baseY = ctx.contentFields[name] ?? 100;
+  const baseY = Number(ctx.contentFields[name] ?? ctx.contentFields.Base ?? 100);
   const distance = fields.Distance === true;
-  return distance ? (y - baseY) : baseY;
+  // Distance: signed distance from surface (y - baseY). Otherwise terrain density (baseY - y).
+  return distance ? (y - baseY) : (baseY - y);
 };
 
 const handleTerrain: NodeHandler = (ctx, _fields, _inputs, _x, y) => {

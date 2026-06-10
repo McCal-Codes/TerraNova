@@ -99,18 +99,19 @@ Flat plains profile - almost flat, with only a small noise bump
 
 **Start here if:** Flat plains work, but the world still feels too lifeless.
 
-**The recipe:** `BaseHeight` + `CurveMapper` for the vertical profile, plus `SimplexNoise2D` for horizontal variation, combined with `Sum`. Wrap in `YSampled` for performance.
+**The recipe:** `BaseHeight` (**Distance: on**) → `CurveMapper` for the vertical profile, plus `SimplexNoise2D` for horizontal variation, combined with `Sum`. Wrap in `YSampled` for performance.
 
 ```curve
-Rolling hills profile - gentle S curve with soft tops and valleys
-[[0,1],[0.18,0.82],[0.38,0.35],[0.5,0],[0.62,-0.35],[0.82,-0.82],[1,-1]]
+Rolling hills profile — height offset (In) → density (Out)
+{"xLabel": "In (blocks from surface)", "yLabel": "Out (density)"}
+[[-60, 1], [-18, 0.5], [0, 0], [22, -0.45], [60, -1]]
 ```
 
 ```nodegraph
 {
   "height": 210,
   "nodes": [
-    { "id": "bh",  "label": "BaseHeight",    "category": "density",   "sub": "Y = 64",           "x": 0,   "y": 20 },
+    { "id": "bh",  "label": "BaseHeight",    "category": "density",   "sub": "Distance: on Y=64", "x": 0,   "y": 20 },
     { "id": "cm",  "label": "CurveMapper",   "category": "density",   "sub": "S-curve profile",  "x": 200, "y": 20 },
     { "id": "sn",  "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.005 Oct 4","x": 0,   "y": 140 },
     { "id": "sum", "label": "Sum",           "category": "density",                               "x": 400, "y": 80 },
@@ -125,7 +126,7 @@ Rolling hills profile - gentle S curve with soft tops and valleys
     { "from": "ys",  "to": "out" }
   ],
   "steps": [
-    { "nodeId": "bh", "text": "BaseHeight still provides the vertical anchor. It keeps the terrain tied to a predictable surface level." },
+    { "nodeId": "bh", "text": "BaseHeight with Distance: on outputs height offset from the named surface — the input CurveMapper remaps into density." },
     { "nodeId": "cm", "text": "CurveMapper is where the hills become intentional. A gentle S shape makes the ground ease into hills instead of jumping into cliffs." },
     { "nodeId": "sn", "text": "SimplexNoise2D decides where the hills and valleys happen across the map. Lower scale means broader hills." },
     { "nodeId": "sum", "text": "Sum merges the shaped height profile with the horizontal variation. This is the moment the terrain starts to feel natural." },
@@ -137,7 +138,7 @@ Rolling hills profile - gentle S curve with soft tops and valleys
 
 **Key parameters:**
 - `SimplexNoise2D` Scale`*`: `0.005`, Octaves: `4`, Persistence: `0.5` — gives broad hills with natural detail layering
-- `CurveMapper`: draw a gentle S-curve — the input is the height offset, the output is the density; a steeper S produces more defined hilltops and valley floors
+- `CurveMapper`: draw a gentle S-curve on **Curve:Manual** — **In** = blocks from surface, **Out** = density; a steeper S produces more defined hilltops and valley floors
 - `YSampled` `SampleDistance`: `4` — safe default; increase to `8` if performance is critical, but visual smoothing becomes noticeable above `8`
 
 **Variations:**
@@ -153,20 +154,21 @@ Rolling hills profile - gentle S curve with soft tops and valleys
 
 **Start here if:** Rolling hills are working and you want stronger silhouettes instead of gentle landforms.
 
-**The recipe:** Same structure as rolling hills, but with a much steeper CurveMapper, higher BaseHeight, and larger noise amplitude. Adding `Abs` on a second noise layer folds it into sharp ridges.
+**The recipe:** Same structure as rolling hills, but with a much steeper CurveMapper, higher BaseHeight content field, and larger noise amplitude. Adding `Abs` on a second noise layer folds it into sharp ridges.
 
-> **Preview note:** `BaseHeight` is previewed from the named content field. If you need a fully explicit tuning proxy for Y=80, use `Sum { Inputs: [Constant { Value: 80 }, Inverter { Input: YValue }] }` while checking the profile.
+> **Preview note:** A flat 2D slice on BaseHeight alone is normal — preview **Terrain Out** or use **Voxel / Vertical section**. CurveMapper has no meaningful standalone heatmap.
 
 ```curve
-Mountain profile - steep middle, flatter base and summit
-[[0,1],[0.15,0.94],[0.35,0.45],[0.5,0],[0.63,-0.55],[0.82,-0.92],[1,-1]]
+Mountain profile — steep middle, flatter base and summit
+{"xLabel": "In (blocks from surface)", "yLabel": "Out (density)"}
+[[-80, 1], [-25, 0.55], [0, 0], [35, -0.65], [80, -1]]
 ```
 
 ```nodegraph
 {
   "height": 260,
   "nodes": [
-    { "id": "bh",  "label": "BaseHeight",    "category": "density",   "sub": "Y = 80",             "x": 0,   "y": 0 },
+    { "id": "bh",  "label": "BaseHeight",    "category": "density",   "sub": "Distance: on Y=80",  "x": 0,   "y": 0 },
     { "id": "cm",  "label": "CurveMapper",   "category": "density",   "sub": "steep cliff profile", "x": 200, "y": 0 },
     { "id": "sn",  "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.004 Oct 5",   "x": 0,   "y": 110 },
     { "id": "sn2", "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.012 Oct 3",   "x": 0,   "y": 200 },
@@ -189,7 +191,7 @@ Mountain profile - steep middle, flatter base and summit
     { "from": "ys",  "to": "out" }
   ],
   "steps": [
-    { "nodeId": "bh", "text": "BaseHeight raises the whole terrain so the mountains start from a higher world level." },
+    { "nodeId": "bh", "text": "BaseHeight (Distance: on) at a higher named surface (Y=80 here) shifts the reference level before CurveMapper shapes cliffs and peaks." },
     { "nodeId": "cm", "text": "CurveMapper steepens the vertical profile. This is what changes the land from hills into cliffs and tall slopes." },
     { "nodeId": "sn", "text": "The first noise layer provides the large mountain mass. Think of it as the shape of the range." },
     { "nodeId": "abs", "text": "Abs folds a second noise layer so ridges become sharper and more broken instead of smooth." },

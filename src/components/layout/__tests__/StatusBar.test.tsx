@@ -87,8 +87,8 @@ describe("StatusBar", () => {
 
   it("renders grid and snap buttons in graph view", () => {
     render(<StatusBar />);
-    expect(screen.getByRole("button", { name: /toggle grid/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /toggle snap/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /grid on/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /snap off/i })).toBeInTheDocument();
   });
 
   it("does not render grid/snap buttons in non-graph view", () => {
@@ -99,7 +99,7 @@ describe("StatusBar", () => {
       return selector(state as any);
     });
     render(<StatusBar />);
-    expect(screen.queryByRole("button", { name: /toggle grid/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /grid on/i })).not.toBeInTheDocument();
   });
 
   it("shows bridge connection status", () => {
@@ -110,7 +110,7 @@ describe("StatusBar", () => {
 
   it("shows instant save status", () => {
     render(<StatusBar />);
-    const instantButton = screen.getByRole("button", { name: /instant save enabled/i });
+    const instantButton = screen.getByRole("button", { name: /instant save on/i });
     expect(instantButton).toBeInTheDocument();
   });
 
@@ -135,10 +135,10 @@ describe("StatusBar", () => {
 
   it("has proper ARIA labels for accessibility", () => {
     render(<StatusBar />);
-    const gridButton = screen.getByRole("button", { name: /toggle grid on/i });
+    const gridButton = screen.getByRole("button", { name: /^grid on$/i });
     expect(gridButton).toHaveAttribute("aria-pressed", "true");
-    
-    const snapButton = screen.getByRole("button", { name: /toggle snap to grid off/i });
+
+    const snapButton = screen.getByRole("button", { name: /^snap off$/i });
     expect(snapButton).toHaveAttribute("aria-pressed", "false");
   });
 });

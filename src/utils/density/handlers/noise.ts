@@ -1,24 +1,6 @@
 import type { NodeHandler } from "../evalContext";
 import { fbm2D, fbm3D, ridgeFbm2D, ridgeFbm3D } from "../fbm";
-
-/**
- * Resolve the Scale field, with backward-compatible fallback to the legacy
- * Frequency field.  Frequency was a multiplier (higher = finer detail) while
- * Scale is a divisor (higher = coarser detail), so when falling back we
- * invert: Scale = 1 / Frequency.  A Frequency of 0 is treated as Scale 1.
- */
-function resolveScale(fields: Record<string, unknown>, fallback = 1.0): number {
-  if (fields.Scale != null) return Number(fields.Scale);
-  if (fields.Frequency != null) {
-    const freq = Number(fields.Frequency);
-    return freq !== 0 ? 1.0 / freq : fallback;
-  }
-  return fallback;
-}
-
-function resolveAxisScale(fields: Record<string, unknown>, axisField: string): number {
-  return Number(fields[axisField] ?? fields.Scale ?? resolveScale(fields));
-}
+import { resolveAxisScale, resolveScale } from "../scaleFields";
 
 /** Resolve Persistence, with fallback to legacy Gain field. */
 function resolvePersistence(fields: Record<string, unknown>, fallback = 1.0): number {

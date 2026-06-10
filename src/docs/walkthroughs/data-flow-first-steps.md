@@ -18,7 +18,7 @@ The three value types that flow through the graph:
 
 | Value type | What it means |
 |-----------|--------------|
-| **Density** | A number (typically -1 to 1). Positive = solid block, zero/negative = air. |
+| **Density** | A number where **positive = solid**, **negative = air** (surface at zero). Noise is often in [-1, 1]; `BaseHeight` and sums can be much wider. |
 | **Material** | Which block type fills a solid voxel. |
 | **Position** | A 2D or 3D coordinate — used by prop placement systems. |
 

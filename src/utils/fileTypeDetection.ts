@@ -139,13 +139,17 @@ function applyMigrationIfNeeded(content: Record<string, unknown>): Record<string
   return result;
 }
 
+function hasHytaleEditorRootKeys(content: Record<string, unknown>): boolean {
+  return Object.keys(content).some((key) => key.startsWith("$"));
+}
+
 /**
  * Auto-detect Hytale native format and convert to internal format if needed.
  * Also migrates old TerraNova naming to V2 if detected.
  * Returns the content in TerraNova internal format ready for jsonToGraph.
  */
 export function normalizeImport(content: Record<string, unknown>): Record<string, unknown> {
-  if (isHytaleNativeFormat(content) || hasHytaleFieldNames(content)) {
+  if (isHytaleNativeFormat(content) || hasHytaleFieldNames(content) || hasHytaleEditorRootKeys(content)) {
     if ("Type" in content) {
       const { asset } = hytaleToInternal(content);
       return asset;
@@ -165,7 +169,7 @@ export function normalizeImportWithMeta(content: Record<string, unknown>): {
   content: Record<string, unknown>;
   metadata: ImportMetadata | null;
 } {
-  if (isHytaleNativeFormat(content) || hasHytaleFieldNames(content)) {
+  if (isHytaleNativeFormat(content) || hasHytaleFieldNames(content) || hasHytaleEditorRootKeys(content)) {
     if ("Type" in content) {
       const { asset, metadata } = hytaleToInternal(content);
       return { content: asset, metadata };

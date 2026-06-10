@@ -12,7 +12,7 @@ If you are new, do these three things first:
 ## Launching the App
 
 - **Desktop:** Open the TerraNova application directly.
-- **From source:** Run `pnpm dev` inside the `TerraNova-fork` folder.
+- **From source:** From the repo root, run `pnpm tauri dev` (Vite alone via `pnpm dev` does not load the desktop shell).
 
 ---
 
@@ -35,7 +35,7 @@ The toolbar above the canvas controls the preview mode. Click **P** to cycle bet
 ## Opening or Creating a World
 
 - **New world:** `Ctrl+N` or **File → New World**. Choose blank or a starter template.
-- **Open existing:** `Ctrl+O` or **File → Open Asset Pack** to load a `.world` file.
+- **Open existing:** `Ctrl+O` or **File → Open Asset Pack** to open a folder with `manifest.json` and `Server/HytaleGenerator/`.
 - **Save:** `Ctrl+S`. Save a copy with `Ctrl+Shift+S`.
 
 ---
@@ -75,9 +75,11 @@ Switch to preview mode (**P**) to see what your graph produces. Three preview ty
 
 | Mode | What it shows |
 |------|-------------|
-| **2D heatmap** | Top-down density map with contour lines and hill-shading |
-| **3D terrain** | Heightfield rendered in 3D with lighting and fog |
-| **Voxel** | Full block-by-block 3D render matching Hytale's appearance |
+| **2D heatmap** | Top-down density map; **Topo** chip for USGS-style contours and cave plan slices at **Y level** |
+| **3D terrain** | Heightfield from the Y slice; **Underground view** shows cave volume mesh |
+| **Voxel** | Full 3D volume with interior cave walls, material colors, and **Cutaway** plane |
+
+Nodes with a **yellow** eval badge use a simplified preview (not identical to in-game generation). Nodes marked unsupported are not previewed. Always validate exported packs on a Hytale server.
 
 Click **Generate** (or it updates live if auto-generate is on) to see your changes.
 
@@ -119,7 +121,7 @@ Toggle inline node previews — small thumbnails on each node — with **T**.
 | `Ctrl+W` | Close project |
 | `Ctrl+E` | Export current JSON |
 | `Ctrl+Shift+E` | Export asset pack |
-| `Ctrl+Shift+G` | Export SVG |
+| `Ctrl+Shift+G` | Export Graph |
 
 ### View
 | Shortcut | Action |
@@ -154,3 +156,4 @@ Toggle inline node previews — small thumbnails on each node — with **T**.
 - **[Guide: Understanding Basic Terrain](./guides/understanding-basic-terrain-generation.md)** — how density and noise work together
 - **[Glossary](./glossary/README.md)** — definitions for every node type and term
 - **[Exporting](./reference/exporting.md)** — deploy to Hytale, export SVG diagrams, and understand the node-to-JSON type mapping
+- **[Bridge](./reference/bridge.md)** — sync the open file to a running server via TerraNovaBridge

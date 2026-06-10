@@ -123,6 +123,6 @@ If the engine exposes `height(x, z)` (Dan hinted at this), true height-based tin
 - [ ] **TintProvider density node editable from AtmosphereTab** — expose SimplexNoise2D parameters (Seed, Scale, Octaves, Persistence, Lacunarity) without requiring node graph access
 - [ ] **Biome browser inline tint swatch** — read TintProvider.Delimiters colors on load and show a preview strip beside each biome
 - [ ] **Biome browser environment resolution** — show the resolved `Env_*` file name beside each biome entry
-- [ ] **Weather forecast day/night schedule visible in AtmosphereTab** — show all hour buckets from WeatherForecasts
-- [ ] **Export environment name collision warning** — validate sanitized name doesn't collide with existing `Env_*` files
-- [ ] **`EnvironmentProvider {}` label** — show "uses server default" in node graph and AtmosphereTab instead of blank
+- [ ] **Weather forecast day/night schedule visible in AtmosphereTab** — show all hour buckets from WeatherForecasts *(shipped: BiomeAtmosphereForecastPanel + 24-Hour Schedule strip)*
+- [x] **Export environment name collision warning** — validate sanitized name doesn't collide with existing `Env_*` files *(shipped: Atmosphere tab export)*
+- [x] **`EnvironmentProvider {}` label** — show "uses server default" in biome dashboard and AtmosphereTab instead of blank *(graph section omitted when `{}` has no Type)*

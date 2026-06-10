@@ -22,6 +22,53 @@ describe("isHytaleNativeFormat", () => {
   });
 });
 
+describe("per-node $Comment round-trip", () => {
+  it("imports Hytale $Comment into _comment and exports back as $Comment", () => {
+    const hytale = {
+      $NodeId: "ClampDensityNode-test",
+      Type: "Clamp",
+      Skip: false,
+      $Comment: "Soft cap for ridge noise",
+      WallA: 1,
+      WallB: 0,
+      Inputs: [
+        {
+          $NodeId: "SimplexNoise2D-test",
+          Type: "SimplexNoise2D",
+          Skip: false,
+          Scale: 0.02,
+        },
+      ],
+    };
+
+    const { asset } = hytaleToInternal(hytale);
+    expect(asset._comment).toBe("Soft cap for ridge noise");
+    expect(asset).not.toHaveProperty("$Comment");
+
+    const exported = internalToHytale({ Type: asset.Type as string, ...asset });
+    expect(exported.$Comment).toBe("Soft cap for ridge noise");
+    expect(exported).not.toHaveProperty("_comment");
+  });
+
+  it("does not map Mix Conditional machine tags to _comment", () => {
+    const hytale = {
+      $NodeId: "Mix.Density-test",
+      Type: "Mix",
+      Skip: false,
+      $Comment: "Conditional(Threshold=0.5)",
+      Inputs: [
+        { $NodeId: "a", Type: "Constant", Skip: false, Value: 0 },
+        { $NodeId: "b", Type: "Constant", Skip: false, Value: 1 },
+        { $NodeId: "c", Type: "Constant", Skip: false, Value: 0.5 },
+      ],
+    };
+
+    const { asset } = hytaleToInternal(hytale);
+    expect(asset._comment).toBeUndefined();
+    expect(asset.Type).toBe("Conditional");
+  });
+});
+
 describe("biome annotation metadata", () => {
   it("exports comment and frame nodes into biome $NodeEditorMetadata", () => {
     const biome = internalToHytaleBiome(
@@ -97,6 +144,33 @@ describe("type name mapping", () => {
   it("maps CurveFunction → CurveMapper on export", () => {
     const result = internalToHytale({ Type: "CurveFunction" });
     expect(result.Type).toBe("CurveMapper");
+  });
+
+  it("exports CurveMapper Input to Hytale Inputs[] and preserves nested Curve", () => {
+    const result = internalToHytale({
+      Type: "CurveMapper",
+      Input: {
+        Type: "BaseHeight",
+        BaseHeightName: "Base",
+        Distance: true,
+      },
+      Curve: {
+        Type: "Manual",
+        Points: [{ x: -16, y: 1.1 }, { x: 9, y: -2 }],
+      },
+    });
+    expect(result.Type).toBe("CurveMapper");
+    expect(result.Input).toBeUndefined();
+    expect(Array.isArray(result.Inputs)).toBe(true);
+    expect(result.Inputs).toHaveLength(1);
+    expect((result.Inputs as Record<string, unknown>[])[0].Type).toBe("BaseHeight");
+    expect((result.Inputs as Record<string, unknown>[])[0].Distance).toBe(true);
+    const curve = result.Curve as Record<string, unknown>;
+    expect(curve.Type).toBe("Manual");
+    const points = curve.Points as Record<string, unknown>[];
+    expect(points[0].In).toBe(-16);
+    expect(points[0].Out).toBe(1.1);
+    expect(points[0].$NodeId).toBeDefined();
   });
 
   it("maps CacheOnce → Cache on export", () => {

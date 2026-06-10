@@ -9,9 +9,11 @@ import {
   listDirectory,
   createFromTemplate,
   createBlankProject,
+  createPackWizard,
   createDirectory,
+  validateAssetPack,
 } from "@/utils/ipc";
-import type { DirectoryEntryData } from "@/utils/ipc";
+import type { DirectoryEntryData, PackWizardConfig } from "@/utils/ipc";
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import { graphToJson, graphToJsonMulti } from "@/utils/graphToJson";
 import { autoLayout } from "@/utils/autoLayout";
@@ -28,22 +30,33 @@ import {
 import type { ImportMetadata } from "@/utils/hytaleToInternal";
 import { extractPreservedNodeEditorMetadata } from "@/utils/nodeEditorMetadata";
 import { mergeImportGraph } from "@/utils/importAnnotations";
+import {
+  discoverBiomeSectionKeys,
+  sectionImportMetadata,
+  splitImportMetadataBySection,
+} from "@/utils/sectionAnnotationRouting";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { getDirname, findServerRoot, isPathInProject } from "@/utils/pathUtils";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { useToastStore } from "@/stores/toastStore";
+import { emit } from "@/stores/storeEvents";
 import { loadPersistedHistory } from "@/stores/editorStore";
 import type { BiomeConfig, BiomeSectionData, SectionHistoryEntry } from "@/stores/editorStore";
 import { extractMaterialConfig } from "@/utils/materialResolver";
+import { normalizeMaterialSectionNodeTypes } from "@/utils/materialSectionNodes";
+import { sanitizeGraphNodesAndEdges } from "@/utils/sanitizeGraphNodes";
 import { useUIStore } from "@/stores/uiStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { resolveBiomeAtmosphere } from "@/utils/resolveBiomeAtmosphere";
+import {
+  discoverContentFieldsForBiome,
+  inferBiomeNameFromFile,
+  computeTerrainAutoFitYBounds,
+} from "@/utils/terrainPreviewLevel";
 
 /**
  * Always auto-layout on import as RL.
  */
-const isAnnotation = (n: { type?: string }) => n.type === "comment" || n.type === "frame";
-
 async function importAutoLayout(
   nodes: import("@xyflow/react").Node[],
   edges: import("@xyflow/react").Edge[],
@@ -52,9 +65,10 @@ async function importAutoLayout(
     // Always auto-layout on import — Hytale positions are from a different
     // editor and never look right in TerraNova. Use the user's flow direction
     // setting so the layout matches the handle positions.
+    const { isAnnotationNode } = await import("@/utils/annotationUtils");
     const { useSettingsStore } = await import("@/stores/settingsStore");
     const direction = useSettingsStore.getState().flowDirection;
-    const graphNodes = nodes.filter((n) => !isAnnotation(n));
+    const graphNodes = nodes.filter((n) => !isAnnotationNode(n));
     return await autoLayout(graphNodes, edges, direction);
   } catch {
     return nodes;
@@ -86,6 +100,20 @@ function getReachableNodeIds(
   return result;
 }
 
+/** Drop invalid React Flow nodes/edges from every biome section before save/export. */
+function sanitizeBiomeSections(
+  sections: Record<string, BiomeSectionData>,
+): Record<string, BiomeSectionData> {
+  const sanitized: Record<string, BiomeSectionData> = {};
+  for (const [key, section] of Object.entries(sections)) {
+    const { nodes, edges } = sanitizeGraphNodesAndEdges(section.nodes, section.edges);
+    sanitized[key] = nodes === section.nodes && edges === section.edges
+      ? section
+      : { ...section, nodes, edges };
+  }
+  return sanitized;
+}
+
 /**
  * Extract biome sections from a biome wrapper file.
  * Returns sections map and flat config.
@@ -96,15 +124,23 @@ async function extractBiomeSections(
 ): Promise<{ sections: Record<string, BiomeSectionData>; config: BiomeConfig; sectionKeys: string[] }> {
   const sections: Record<string, BiomeSectionData> = {};
   const sectionKeys: string[] = [];
-  let pendingAnnotations: ImportMetadata | null | undefined = fileImportMeta;
+  const plannedSectionKeys = discoverBiomeSectionKeys(wrapper);
+  const annotationSlices = fileImportMeta
+    ? splitImportMetadataBySection(fileImportMeta, plannedSectionKeys, wrapper)
+    : null;
 
   const layoutSection = async (
     nodes: import("@xyflow/react").Node[],
     edges: import("@xyflow/react").Edge[],
+    sectionKey: string,
+    propComment?: string,
   ) => {
-    const meta = pendingAnnotations;
-    pendingAnnotations = null;
-    return mergeImportGraph(nodes, edges, meta, importAutoLayout);
+    const meta = sectionImportMetadata(fileImportMeta, annotationSlices?.get(sectionKey));
+    return mergeImportGraph(nodes, edges, meta, importAutoLayout, {
+      sectionKey,
+      propComment,
+      edges,
+    });
   };
 
   // Terrain → graph the Density subtree
@@ -120,7 +156,7 @@ async function extractBiomeSections(
         rootNode.data = { ...(rootNode.data as Record<string, unknown>), _outputNode: true, _biomeField: "Terrain" };
         terrainOutputId = rootNode.id;
       }
-      const layoutedNodes = await layoutSection(nodes, edges);
+      const layoutedNodes = await layoutSection(nodes, edges, "Terrain");
       // layoutedNodes and edges are freshly created — no clone needed
       const terrainInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges, outputNodeId: terrainOutputId, label: "Initial" };
       sections["Terrain"] = { nodes: layoutedNodes, edges, outputNodeId: terrainOutputId, history: [terrainInitial], historyIndex: 0 };
@@ -138,10 +174,11 @@ async function extractBiomeSections(
       rootNode.data = { ...(rootNode.data as Record<string, unknown>), _outputNode: true };
       matOutputId = rootNode.id;
     }
-    const layoutedNodes = await layoutSection(nodes, edges);
-    // layoutedNodes and edges are freshly created — no clone needed
-    const matInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges, outputNodeId: matOutputId, label: "Initial" };
-    sections["MaterialProvider"] = { nodes: layoutedNodes, edges, outputNodeId: matOutputId, history: [matInitial], historyIndex: 0 };
+    const layoutedNodes = await layoutSection(nodes, edges, "MaterialProvider");
+    const normalizedNodes = normalizeMaterialSectionNodeTypes(layoutedNodes);
+    // normalizedNodes and edges are freshly created — no clone needed
+    const matInitial: SectionHistoryEntry = { nodes: normalizedNodes, edges, outputNodeId: matOutputId, label: "Initial" };
+    sections["MaterialProvider"] = { nodes: normalizedNodes, edges, outputNodeId: matOutputId, history: [matInitial], historyIndex: 0 };
     sectionKeys.push("MaterialProvider");
   }
 
@@ -182,7 +219,8 @@ async function extractBiomeSections(
         allEdges.push(...edges);
       }
 
-      const layoutedNodes = await layoutSection(allNodes, allEdges);
+      const propComment = typeof prop.$Comment === "string" ? prop.$Comment : undefined;
+      const layoutedNodes = await layoutSection(allNodes, allEdges, `Props[${i}]`, propComment);
       const key = `Props[${i}]`;
       // layoutedNodes and allEdges are freshly created — no clone needed
       const propInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges: allEdges, outputNodeId: null, label: "Initial" };
@@ -215,7 +253,7 @@ async function extractBiomeSections(
       };
       environmentOutputId = rootNode.id;
     }
-    const layoutedNodes = await layoutSection(nodes, edges);
+    const layoutedNodes = await layoutSection(nodes, edges, "EnvironmentProvider");
     const environmentInitial: SectionHistoryEntry = {
       nodes: layoutedNodes,
       edges,
@@ -256,7 +294,7 @@ async function extractBiomeSections(
       };
       tintOutputId = rootNode.id;
     }
-    const layoutedNodes = await layoutSection(nodes, edges);
+    const layoutedNodes = await layoutSection(nodes, edges, "TintProvider");
     const tintInitial: SectionHistoryEntry = {
       nodes: layoutedNodes,
       edges,
@@ -297,6 +335,14 @@ export function useTauriIO() {
   const setDirectoryTree = useProjectStore((s) => s.setDirectoryTree);
   const setCurrentFile = useProjectStore((s) => s.setCurrentFile);
   const setDirty = useProjectStore((s) => s.setDirty);
+
+  const markFileSaved = useCallback(
+    (path: string) => {
+      setDirty(false);
+      emit("project:file-saved", { path });
+    },
+    [setDirty],
+  );
   const setLastError = useProjectStore((s) => s.setLastError);
   const setNodes = useEditorStore((s) => s.setNodes);
   const setEdges = useEditorStore((s) => s.setEdges);
@@ -502,7 +548,10 @@ export function useTauriIO() {
             const density = typed.Density;
             if (density && typeof density === "object" && "Type" in (density as Record<string, unknown>)) {
               const { nodes: newNodes, edges: newEdges } = jsonToGraph(density as Record<string, unknown>);
-              const layoutedNodes = await mergeImportGraph(newNodes, newEdges, importMeta, importAutoLayout);
+              const layoutedNodes = await mergeImportGraph(newNodes, newEdges, importMeta, importAutoLayout, {
+                sectionKey: "Density",
+                edges: newEdges,
+              });
               setNodes(layoutedNodes);
               setEdges(newEdges);
             } else {
@@ -522,7 +571,10 @@ export function useTauriIO() {
             const { nodes: newNodes, edges: newEdges } = jsonToGraph(typed);
 
             // Auto-layout for clean positioning instead of naive x-300 offsets
-            const layoutedNodes = await mergeImportGraph(newNodes, newEdges, importMeta, importAutoLayout);
+            const layoutedNodes = await mergeImportGraph(newNodes, newEdges, importMeta, importAutoLayout, {
+              sectionKey: String(typed.Type ?? "Graph"),
+              edges: newEdges,
+            });
             setNodes(layoutedNodes);
             setEdges(newEdges);
 
@@ -636,31 +688,18 @@ export function useTauriIO() {
           const wrapper = content as Record<string, unknown>;
           const { sections, config, sectionKeys } = await extractBiomeSections(wrapper, importMeta);
 
-          // Try to load ContentFields from sibling WorldStructures/MainWorld.json
+          // Load ContentFields from sibling WorldStructures (Y-based Hytale schema)
+          const biomeName = inferBiomeNameFromFile(wrapper, filePath);
           let contentFields: Record<string, number> | undefined;
           try {
-            const normalized = filePath.replace(/\\/g, "/");
-            const biomeDir = normalized.replace(/\/[^/]+$/, "");
-            const parentDir = biomeDir.replace(/\/[^/]+$/, "");
-            const worldStructurePath = `${parentDir}/WorldStructures/MainWorld.json`;
-            const wsContent = await readAssetFile(worldStructurePath);
-            if (wsContent && typeof wsContent === "object") {
-              const ws = wsContent as Record<string, unknown>;
-              const cfArray = ws.ContentFields as Array<{ Name: string; Value: number }> | undefined;
-              if (Array.isArray(cfArray)) {
-                const fields: Record<string, number> = {};
-                for (const cf of cfArray) {
-                  if (cf.Name && typeof cf.Value === "number") {
-                    fields[cf.Name] = cf.Value;
-                  }
-                }
-                if (Object.keys(fields).length > 0) {
-                  contentFields = fields;
-                }
-              }
-            }
+            contentFields = await discoverContentFieldsForBiome(
+              filePath,
+              biomeName,
+              readAssetFile,
+              listDirectory,
+            );
           } catch {
-            // WorldStructure not found — keep defaults
+            // WorldStructure not found — keep store defaults
           }
 
           // Extract material config from MaterialProvider for voxel preview
@@ -709,6 +748,27 @@ export function useTauriIO() {
           }).catch(() => {
             // Keep last preview atmosphere on resolver failure.
           });
+
+          // Seed voxel preview Y range from WorldStructure base height + terrain graph
+          const terrainSection = sections.Terrain ?? firstSection;
+          if (terrainSection) {
+            const fields = contentFields ?? useEditorStore.getState().contentFields;
+            const terrainAutoFit = computeTerrainAutoFitYBounds(
+              terrainSection.nodes,
+              terrainSection.edges,
+              fields,
+              { useBaseY: usePreviewStore.getState().terrainRefUseBaseY },
+            );
+            if (terrainAutoFit) {
+              const preview = usePreviewStore.getState();
+              if (!preview._userManualYAdjust) {
+                preview.setVoxelYMin(terrainAutoFit.worldYMin);
+                preview.setVoxelYMax(terrainAutoFit.worldYMax);
+                preview.setYLevel(terrainAutoFit.yLevel);
+                preview._setAutoFitGraphHash("");
+              }
+            }
+          }
         } else if (content && typeof content === "object") {
           // Non-typed wrapper file (e.g., Biome with nested typed assets)
           // Try to find a typed subtree to edit
@@ -718,7 +778,11 @@ export function useTauriIO() {
           for (const [, val] of Object.entries(wrapper)) {
             if (val && typeof val === "object" && "Type" in (val as Record<string, unknown>)) {
               const { nodes: newNodes, edges: newEdges } = jsonToGraph(val as Record<string, unknown>);
-              const layoutedNodes = await mergeImportGraph(newNodes, newEdges, importMeta, importAutoLayout);
+              const assetType = String((val as Record<string, unknown>).Type ?? "Graph");
+              const layoutedNodes = await mergeImportGraph(newNodes, newEdges, importMeta, importAutoLayout, {
+                sectionKey: assetType,
+                edges: newEdges,
+              });
               setNodes(layoutedNodes);
               setEdges(newEdges);
               commitState("Initial");
@@ -786,7 +850,7 @@ export function useTauriIO() {
           try {
             const parsed = JSON.parse(jsonDraft);
             await writeAssetFile(currentFile, parsed);
-            setDirty(false);
+            markFileSaved(currentFile);
           } catch {
             setLastError("Cannot save: invalid JSON");
           }
@@ -810,7 +874,7 @@ export function useTauriIO() {
         if (densityJson) output.Density = densityJson;
         const hytaleOutput = normalizeExport(output, nodes, preservedNodeEditorMetadata);
         await writeAssetFile(currentFile, hytaleOutput);
-        setDirty(false);
+        markFileSaved(currentFile);
         return;
       }
 
@@ -818,7 +882,7 @@ export function useTauriIO() {
       const { settingsConfig, editingContext, rawJsonContent } = useEditorStore.getState();
       if ((editingContext === "Weather" || editingContext === "Environment") && rawJsonContent) {
         await writeAssetFile(currentFile, rawJsonContent);
-        setDirty(false);
+        markFileSaved(currentFile);
         return;
       }
 
@@ -830,7 +894,7 @@ export function useTauriIO() {
         output.TargetPlayerCount = settingsConfig.TargetPlayerCount;
         output.StatsCheckpoints = settingsConfig.StatsCheckpoints;
         await writeAssetFile(currentFile, output);
-        setDirty(false);
+        markFileSaved(currentFile);
         return;
       }
 
@@ -872,7 +936,7 @@ export function useTauriIO() {
         output.DeleteOnRemove = instanceConfig.toggles.DeleteOnRemove;
         output.Version = originalWrapper.Version ?? 2;
         await writeAssetFile(currentFile, output);
-        setDirty(false);
+        markFileSaved(currentFile);
         useToastStore.getState().addToast("Instance saved", "success");
         return;
       }
@@ -882,7 +946,7 @@ export function useTauriIO() {
         const rawContent = useEditorStore.getState().rawJsonContent;
         if (rawContent && currentFile) {
           await writeAssetFile(currentFile, rawContent);
-          setDirty(false);
+          markFileSaved(currentFile);
         }
         return;
       }
@@ -891,15 +955,21 @@ export function useTauriIO() {
       const { biomeConfig, biomeSections, activeBiomeSection } = useEditorStore.getState();
       if (editingContext === "Biome" && originalWrapper && biomeConfig && biomeSections) {
         // Save current section's graph state first (preserve history)
-        const updatedSections = { ...biomeSections };
+        let updatedSections = { ...biomeSections };
         if (activeBiomeSection && updatedSections[activeBiomeSection]) {
+          const sectionNodes =
+            activeBiomeSection === "MaterialProvider"
+              ? normalizeMaterialSectionNodeTypes(structuredClone(nodes))
+              : structuredClone(nodes);
           updatedSections[activeBiomeSection] = {
             ...updatedSections[activeBiomeSection],
-            nodes: structuredClone(nodes),
+            nodes: sectionNodes,
             edges: structuredClone(edges),
             outputNodeId: useEditorStore.getState().outputNodeId ?? null,
           };
         }
+
+        updatedSections = sanitizeBiomeSections(updatedSections);
 
         const output = { ...originalWrapper } as Record<string, unknown>;
         output.Name = biomeConfig.Name;
@@ -913,7 +983,9 @@ export function useTauriIO() {
 
         // Rebuild MaterialProvider from MaterialProvider section
         if (updatedSections["MaterialProvider"]) {
-          const matJson = graphToJson(updatedSections["MaterialProvider"].nodes, updatedSections["MaterialProvider"].edges);
+          const matNodes = normalizeMaterialSectionNodeTypes(updatedSections["MaterialProvider"].nodes);
+          const matEdges = updatedSections["MaterialProvider"].edges;
+          const matJson = graphToJson(matNodes, matEdges);
           if (matJson) output.MaterialProvider = matJson;
         }
 
@@ -932,20 +1004,24 @@ export function useTauriIO() {
           const sectionEdges = section.edges;
 
           // Find roots tagged with _biomeField
-          const positionsRoot = sectionNodes.find((n) => (n.data as Record<string, unknown>)?._biomeField === "Positions");
-          const assignmentsRoot = sectionNodes.find((n) => (n.data as Record<string, unknown>)?._biomeField === "Assignments");
+          const positionsRoot = sectionNodes.find(
+            (n) => (n?.data as Record<string, unknown> | undefined)?._biomeField === "Positions",
+          );
+          const assignmentsRoot = sectionNodes.find(
+            (n) => (n?.data as Record<string, unknown> | undefined)?._biomeField === "Assignments",
+          );
 
           if (positionsRoot || assignmentsRoot) {
             if (positionsRoot) {
               const posNodeIds = getReachableNodeIds(positionsRoot.id, sectionNodes, sectionEdges);
-              const posNodes = sectionNodes.filter((n) => posNodeIds.has(n.id));
+              const posNodes = sectionNodes.filter((n) => n && posNodeIds.has(n.id));
               const posEdges = sectionEdges.filter((e) => posNodeIds.has(e.source) && posNodeIds.has(e.target));
               const posJson = graphToJson(posNodes, posEdges);
               if (posJson) propEntry.Positions = posJson;
             }
             if (assignmentsRoot) {
               const asgnNodeIds = getReachableNodeIds(assignmentsRoot.id, sectionNodes, sectionEdges);
-              const asgnNodes = sectionNodes.filter((n) => asgnNodeIds.has(n.id));
+              const asgnNodes = sectionNodes.filter((n) => n && asgnNodeIds.has(n.id));
               const asgnEdges = sectionEdges.filter((e) => asgnNodeIds.has(e.source) && asgnNodeIds.has(e.target));
               const asgnJson = graphToJson(asgnNodes, asgnEdges);
               if (asgnJson) propEntry.Assignments = asgnJson;
@@ -991,7 +1067,7 @@ export function useTauriIO() {
           preservedNodeEditorMetadata,
         );
         await writeAssetFile(currentFile, hytaleOutput);
-        setDirty(false);
+        markFileSaved(currentFile);
         return;
       }
 
@@ -1022,12 +1098,12 @@ export function useTauriIO() {
           const hytaleJson = normalizeExport(json, nodes, preservedNodeEditorMetadata);
           await writeAssetFile(currentFile, hytaleJson);
         }
-        setDirty(false);
+        markFileSaved(currentFile);
       }
     } catch (err) {
       setLastError(`Failed to save file: ${err}`);
     }
-  }, [setDirty, setLastError]);
+  }, [markFileSaved, setLastError]);
 
   const handleSaveFileAs = useCallback(async () => {
     setLastError(null);
@@ -1044,12 +1120,77 @@ export function useTauriIO() {
       if (json) {
         await writeAssetFile(filePath, json);
         setCurrentFile(filePath);
-        setDirty(false);
+        markFileSaved(filePath);
       }
     } catch (err) {
       setLastError(`Failed to save file: ${err}`);
     }
-  }, [setCurrentFile, setDirty, setLastError]);
+  }, [setCurrentFile, markFileSaved, setLastError]);
+
+  const handleCreatePackWizard = useCallback(
+    async (config: PackWizardConfig & { targetPath: string }) => {
+      setLastError(null);
+      try {
+        const prevProjectPath = useProjectStore.getState().projectPath;
+        const result = await createPackWizard(config);
+
+        const { targetPath } = config;
+        if (prevProjectPath !== targetPath) {
+          useEditorStore.getState().reset();
+          emit("project:close");
+        }
+
+        setProjectPath(targetPath);
+        const entries = await listDirectory(targetPath);
+        setDirectoryTree(entries.map(mapDirEntry));
+        useRecentProjectsStore.getState().addProject(targetPath, "create-pack");
+
+        try {
+          const validation = await validateAssetPack(targetPath);
+          if (validation.errors.length > 0) {
+            useToastStore.getState().addToast(
+              `Pack created with ${validation.errors.length} validation issue(s). Check the file tree.`,
+              "warning",
+            );
+          }
+        } catch {
+          // validation is best-effort after wizard launch
+        }
+
+        await handleOpenFile(result.biomeFilePath);
+
+        if (result.atmosphereImportFallback) {
+          useToastStore.getState().addToast(
+            "Could not import the selected Hytale environment — created custom Env + Weather files instead. Sync Hytale assets and try again if needed.",
+            "warning",
+          );
+        }
+
+        const envPath = result.environmentFilePath ?? null;
+        if (envPath) {
+          useToastStore.getState().addToast(
+            "Atmosphere files are in your pack. Open the environment editor to tune sky and weather.",
+            "info",
+            {
+              label: "Open environment",
+              onClick: () => {
+                void handleOpenFile(envPath);
+              },
+            },
+          );
+        }
+
+        useToastStore.getState().addToast(
+          "Pack created. Edit terrain, save, then Export Asset Pack when ready.",
+          "success",
+        );
+      } catch (err) {
+        setLastError(`Failed to create pack: ${err}`);
+        throw err;
+      }
+    },
+    [setProjectPath, setDirectoryTree, setLastError, handleOpenFile],
+  );
 
   const handleCreateFromTemplate = useCallback(
     async (templateName: string, targetPath?: string) => {
@@ -1197,6 +1338,7 @@ export function useTauriIO() {
     saveFile: handleSaveFile,
     saveFileAs: handleSaveFileAs,
     createFromTemplate: handleCreateFromTemplate,
+    createPackWizard: handleCreatePackWizard,
     newBiome: handleNewBiome,
     newInstance: handleNewInstance,
   };

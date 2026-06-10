@@ -36,12 +36,12 @@ export function evaluateDensityGrid(
 
   const ctx = createEvaluationContext(nodes, edges, rootNodeId, {
     ...options,
-    contentFields: {
-      ...options?.contentFields,
-      previewRangeMin: rangeMin,
-      previewRangeMax: rangeMax,
-      previewYLevel: yLevel,
-    },
+    contentFields: enrichPreviewContentFields(
+      options?.contentFields,
+      rangeMin,
+      rangeMax,
+      yLevel,
+    ),
   });
   if (!ctx) {
     return { values, minValue: 0, maxValue: 0, p02Value: 0, p98Value: 0 };
@@ -74,4 +74,19 @@ export function evaluateDensityGrid(
   const p98Value = quickselect(values, Math.min(values.length - 1, Math.floor(values.length * 0.98)));
 
   return { values, minValue: minVal, maxValue: maxVal, p02Value, p98Value };
+}
+
+/** Merge preview range (and optional Y level) into contentFields for scale/warp nodes. */
+export function enrichPreviewContentFields(
+  contentFields: Record<string, number> | undefined,
+  rangeMin: number,
+  rangeMax: number,
+  previewYLevel?: number,
+): Record<string, number> {
+  return {
+    ...contentFields,
+    previewRangeMin: rangeMin,
+    previewRangeMax: rangeMax,
+    ...(previewYLevel != null ? { previewYLevel } : {}),
+  };
 }

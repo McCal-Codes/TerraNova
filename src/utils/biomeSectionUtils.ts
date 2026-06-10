@@ -25,7 +25,7 @@ function getSectionColor(key: string): string {
   return "#8C8878";
 }
 
-function getSectionLabel(key: string): string {
+export function getBiomeSectionLabel(key: string): string {
   if (key === "MaterialProvider") return "Materials";
   if (key === "EnvironmentProvider") return "Atmosphere";
   if (key === "TintProvider") return "Tint";
@@ -39,7 +39,7 @@ function getSectionLabel(key: string): string {
 export function getSectionSummary(key: string, data: BiomeSectionData): SectionSummary {
   return {
     key,
-    label: getSectionLabel(key),
+    label: getBiomeSectionLabel(key),
     nodeCount: data.nodes.length,
     edgeCount: data.edges.length,
     rootTypeChain: getRootTypeChain(data.nodes, data.edges),

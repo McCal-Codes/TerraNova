@@ -118,6 +118,12 @@ export interface GraphSliceState {
   distributeNodes: (axis: "horizontal" | "vertical") => void;
   createGroup: (nodeIds: string[], name: string) => void;
   expandGroup: (groupId: string) => void;
+  loosenSelection: (nodeIds: string[]) => void;
+  frameSelection: (
+    nodeIds: string[],
+    name?: string,
+    options?: { loosen?: boolean; pad?: number; loosenScale?: number },
+  ) => void;
 
   removeEdges: (ids: string[], label?: string) => void;
 

@@ -30,32 +30,32 @@ This page covers common issues and suggested solutions.
 
 ## Terrain Fills to World Height or Has Holes Through the Floor
 
-Blocks filling all the way to Y=320, or holes punching through the world floor, almost always mean your density values are falling **outside the range your curve covers**.
+Blocks filling all the way to Y=320, or holes punching through the world floor, almost always mean **CurveMapper Input** falls **outside the In range** your Manual curve covers — the curve clamps to its endpoints and density runs away.
 
-- If density goes **below** your curve's lowest `Out` value, terrain extends to the world ceiling (Y=320).
-- If density goes **above** your curve's highest `Out` value, terrain falls through the floor.
+- If Input goes **below** your curve's lowest **In** value, output clamps to that endpoint (often world-ceiling fill or missing floor).
+- If Input goes **above** your curve's highest **In** value, output clamps to the other endpoint.
 
-The diagram below shows a curve that only covers [-0.8, 0.8] against the full [-1, 1] noise range. Values in the red zones have no matching curve point — they default to world-ceiling or world-floor:
+The diagram below shows a curve whose **In** axis only covers [-0.8, 0.8] while noise input can reach [-1, 1]. Values in the red zones have no matching segment — they clamp to extremes:
 
 ```bounds
 {"min": -1, "max": 1, "context": [-1, 1], "label": "Actual noise range — all values possible"}
 ```
 
 ```bounds
-{"min": -0.8, "max": 0.8, "context": [-1, 1], "danger": [[-1, -0.8], [0.8, 1]], "label": "Curve covers only [-0.8, 0.8] — red zones are unhandled → runaway terrain"}
+{"min": -0.8, "max": 0.8, "context": [-1, 1], "danger": [[-1, -0.8], [0.8, 1]], "label": "Curve In covers only [-0.8, 0.8] — red zones clamp → runaway terrain"}
 ```
 
-After a `Sum` of two noise nodes the range expands to [-2, 2]. A curve covering only [-1, 1] now misses the extremes:
+After a `Sum` of two noise nodes the range expands to [-2, 2]. A curve whose **In** range covers only [-1, 1] now misses the extremes:
 
 ```bounds
 {"min": -2, "max": 2, "context": [-2, 2], "label": "Sum of two noise nodes — can reach [-2, 2]"}
 ```
 
 ```bounds
-{"min": -1, "max": 1, "context": [-2, 2], "danger": [[-2, -1], [1, 2]], "label": "Curve covers only [-1, 1] — red zones outside cause world-ceiling / world-floor"}
+{"min": -1, "max": 1, "context": [-2, 2], "danger": [[-2, -1], [1, 2]], "label": "Curve In covers only [-1, 1] — red zones outside cause world-ceiling / world-floor"}
 ```
 
-**Fix:** Make sure your curve's `Out` range covers all possible results your density can produce. Extend your curve to match the full input range, or wrap the density in a `Clamp` node before the `CurveMapper`.
+**Fix:** Extend the curve's **In** range to cover every value your upstream node can produce, or add **Clamp** before **CurveMapper**.
 
 ## Terrain Looks Unnatural or Has Visible Banding
 
@@ -79,7 +79,7 @@ This is the homogenization effect. Each additional noise layer adds values that 
 
 A visible vertical wall with a void beneath it usually means your curve's lowest possible output is too high — the terrain does not reach the floor of the space it is supposed to cover.
 
-**Example:** If your curve's lowest `In` value is 30 and you are using `BaseHeight` at Y=100, the terrain minimum is Y=130. Anything below that simply does not exist, leaving sheer walls and open floor.
+**Example:** With **BaseHeight → Distance: on** and a curve whose lowest **Out** density never reaches the floor band you expect, terrain can stop above Y=0 — sheer walls with void beneath.
 
 **Fixes:**
 - Lower the minimum `In` value in your curve to extend terrain downward.
@@ -110,7 +110,7 @@ Some nodes are exact in TerraNova's preview evaluator, some are approximated, an
 |------|-----------------|------------|
 | `GradientWarp` | Evaluated with finite-difference gradient sampling | Use preview for direction and broad scale, then validate heavy warps in-game |
 | `VectorWarp` | Approximated through vector-provider direction plus connected magnitude | Check the base terrain without the warp if the vector provider is complex |
-| `BaseHeight` | Reads the named content field; with `Distance: true`, returns `Y - baseY` | Confirm the referenced content field exists and use `Distance: true` for altitude-band recipes |
+| `BaseHeight` | Default: terrain anchor (solid below named height). `Distance: true` → signed offset from surface for CurveMapper | Confirm the content field exists; use **Distance: on** when feeding CurveMapper |
 | `CellWallDistance` | Reads the distance side-channel populated by upstream `PositionsCellNoise` / `CellNoise` evaluation; falls back to `0` when no cell distance has been computed | Keep the cell-noise node upstream in the graph |
 | `Terrain` | Approximated as `baseHeight - Y` in preview | Treat it as a terrain-shape proxy, not a full runtime terrain-provider query |
 | `Imported` | Passes through a connected inline input; unresolved cross-asset references preview as `0` | Inline the referenced subgraph while previewing, then restore the import before export |

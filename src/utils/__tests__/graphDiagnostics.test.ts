@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Node, Edge } from "@xyflow/react";
-import { analyzeBiome, analyzeGraph } from "../graphDiagnostics";
+import { analyzeBiome, analyzeGraph, collectInlineImportedRefs } from "../graphDiagnostics";
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
@@ -54,11 +54,11 @@ describe("analyzeGraph — prop Conditional export", () => {
   });
 });
 
-describe("analyzeGraph — unsupported types", () => {
-  it("emits info for unsupported preview types", () => {
+describe("analyzeGraph — preview eval status", () => {
+  it("emits info for approximated types on the evaluation path", () => {
     const nodes = [makeNode("sd", "SurfaceDensity")];
     const diagnostics = analyzeGraph(nodes, []);
-    const infos = diagnostics.filter((d) => d.severity === "info" && d.message.includes("not supported"));
+    const infos = diagnostics.filter((d) => d.severity === "info" && d.message.includes("approximated"));
     expect(infos.length).toBe(1);
   });
 });
@@ -299,6 +299,40 @@ describe("analyzeGraph — field constraint violations", () => {
     );
     expect(constraintErrors.length).toBe(0);
   });
+
+  it("does not require inline Curve when a Curve port edge is connected", () => {
+    const nodes = [
+      makeNode("cm", "CurveMapper", {}),
+      makeNode("curve", "Curve:Manual", {
+        Points: [[-50, 0], [0, 0.5], [50, 1]],
+      }),
+      makeNode("bh", "BaseHeight", { BaseHeightName: "Base", Distance: true }),
+    ];
+    const edges = [
+      makeEdge("bh", "cm", "Input"),
+      makeEdge("curve", "cm", "Curve"),
+    ];
+    const diagnostics = analyzeGraph(nodes, edges);
+    const curveErrors = diagnostics.filter(
+      (d) => d.nodeId === "cm" && d.severity === "error" && d.message.includes("Curve"),
+    );
+    expect(curveErrors.length).toBe(0);
+  });
+
+  it("does not warn about disconnected Curve port when inline curve is set", () => {
+    const nodes = [
+      makeNode("cm", "CurveMapper", {
+        Curve: { Type: "Manual", Points: [[0, 0], [100, 1]] },
+      }),
+      makeNode("yv", "YValue"),
+    ];
+    const edges = [makeEdge("yv", "cm", "Input")];
+    const diagnostics = analyzeGraph(nodes, edges);
+    const curveDisconnect = diagnostics.filter(
+      (d) => d.nodeId === "cm" && d.message.includes("Curve") && d.message.includes("disconnected"),
+    );
+    expect(curveDisconnect.length).toBe(0);
+  });
 });
 
 /* ── Rule 9: Output range mismatch hints ───────────────────────────── */
@@ -345,6 +379,32 @@ describe("analyzeGraph - output range mismatch hints", () => {
       (d) => d.severity === "info" && d.message.includes("entirely outside"),
     );
     expect(hints.length).toBe(1);
+  });
+
+  it("warns when CurveMapper uses 0-1 curve In with BaseHeight Distance", () => {
+    const nodes = [
+      makeNode("bh", "BaseHeight", { BaseHeightName: "Base", Distance: true }),
+      makeNode("cm", "CurveMapper", {
+        Curve: {
+          Type: "Manual",
+          Points: [
+            { In: 0, Out: 0 },
+            { In: 1, Out: 1 },
+          ],
+        },
+      }),
+      makeNode("curve", "Curve:Manual", {
+        Points: [[0, 0], [1, 1]],
+      }),
+    ];
+    const edges = [
+      makeEdge("bh", "cm", "Input"),
+      makeEdge("curve", "cm", "Curve"),
+    ];
+    const diagnostics = analyzeGraph(nodes, edges);
+    expect(
+      diagnostics.some((d) => d.code === "curvemapper-in-range-mismatch"),
+    ).toBe(true);
   });
 });
 
@@ -444,6 +504,53 @@ describe("analyzeGraph - environment delimiter diagnostics", () => {
   });
 });
 
+describe("analyzeGraph - assignment and export diagnostics", () => {
+  it("collects inline Imported assignment references", () => {
+    const refs = collectInlineImportedRefs({
+      Delimiters: [
+        {
+          Min: 0.2,
+          Max: 1,
+          Assignments: { Type: "Imported", Name: "AutumnForest_Cathedral_Grass" },
+        },
+      ],
+    });
+    expect(refs).toHaveLength(1);
+    expect(refs[0].name).toBe("AutumnForest_Cathedral_Grass");
+  });
+
+  it("flags unknown inline assignment imports", () => {
+    const node = makeNode("ff", "Assignment:FieldFunction", {
+      Delimiters: [
+        {
+          Min: 0,
+          Max: 1,
+          Assignments: { Type: "Imported", Name: "Missing_Assignment" },
+        },
+      ],
+    });
+    const diagnostics = analyzeGraph([node], [], {
+      assignment: ["AutumnForest_Bones"],
+    });
+    expect(diagnostics.some((d) => d.code === "assignment-import-unknown-ref")).toBe(true);
+  });
+
+  it("detects duplicate ExportAs across nodes", () => {
+    const nodes = [
+      makeNode("a", "Assignment:Weighted", { ExportAs: "AutumnForest_Flowers" }),
+      makeNode("b", "Assignment:Weighted", { ExportAs: "AutumnForest_Flowers" }),
+    ];
+    const diagnostics = analyzeGraph(nodes, []);
+    expect(diagnostics.filter((d) => d.code === "duplicate-export-as")).toHaveLength(2);
+  });
+
+  it("warns when Prefab prop has no paths", () => {
+    const nodes = [makeNode("p", "Prop:Prefab", { WeightedPrefabPaths: [] })];
+    const diagnostics = analyzeGraph(nodes, []);
+    expect(diagnostics.some((d) => d.code === "prop-prefab-incomplete")).toBe(true);
+  });
+});
+
 describe("analyzeBiome - section targets", () => {
   it("targets EnvironmentProvider diagnostics to the environment section", () => {
     const diagnostics = analyzeBiome({
@@ -487,6 +594,15 @@ describe("analyzeBiome - section targets", () => {
     const diagnostics = analyzeBiome({
       Name: "test_biome",
       EnvironmentProvider: { Type: "Default" },
+    });
+
+    expect(diagnostics.some((d) => d.code === "biome-environment-no-constants")).toBe(false);
+  });
+
+  it("does not warn when EnvironmentProvider is empty object (server default)", () => {
+    const diagnostics = analyzeBiome({
+      Name: "test_biome",
+      EnvironmentProvider: {},
     });
 
     expect(diagnostics.some((d) => d.code === "biome-environment-no-constants")).toBe(false);

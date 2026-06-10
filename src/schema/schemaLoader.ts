@@ -10,6 +10,11 @@
 
 import bundleJson from "../data/terranova-bundle.json";
 import type { HandleDef } from "@/nodes/shared/handles";
+import {
+  expectedBundleCategory,
+  SHORT_TO_FULL_PREFIX,
+  toEditorTypeKey,
+} from "./categoryPrefixes";
 import { AssetCategory } from "./types";
 import type { FieldConstraint } from "./validation";
 
@@ -63,38 +68,6 @@ export interface FieldDef {
 }
 
 const nodes = (bundleJson as { nodes: Record<string, BundleNode> }).nodes;
-
-/* ── Node key resolution ─────────────────────────────────────────── */
-
-/**
- * Maps the short category prefixes used in the app's nodeTypes registry
- * to the full category names used in the bundle.
- * E.g. "Material:" -> "MaterialProvider:", "Position:" -> "PositionProvider:"
- */
-const SHORT_TO_FULL_PREFIX: Record<string, string> = {
-  "Material:": "MaterialProvider:",
-  "Position:": "PositionProvider:",
-  "Vector:": "VectorProvider:",
-  "Environment:": "EnvironmentProvider:",
-  "Tint:": "TintProvider:",
-};
-
-/** Reverse mapping: full bundle prefix → short editor prefix */
-const FULL_TO_SHORT_PREFIX: Record<string, string> = Object.fromEntries(
-  Object.entries(SHORT_TO_FULL_PREFIX).map(([short, full]) => [full, short]),
-);
-
-/**
- * Expected bundle `category` for a type key (e.g. Material:Foo → MaterialProvider).
- * Bare keys without a prefix are treated as Density, matching getDefaults().
- */
-function expectedBundleCategory(typeKey: string): string | null {
-  const colonIdx = typeKey.indexOf(":");
-  if (colonIdx < 0) return "Density";
-  const shortPrefix = typeKey.slice(0, colonIdx + 1);
-  const fullPrefix = SHORT_TO_FULL_PREFIX[shortPrefix];
-  return fullPrefix ? fullPrefix.slice(0, -1) : null;
-}
 
 function nodeMatchesExpectedCategory(node: BundleNode, typeKey: string): boolean {
   const expected = expectedBundleCategory(typeKey);
@@ -409,11 +382,22 @@ const LEGACY_MATERIAL_STRING_FIELD: FieldDef[] = [
   { name: "Material", type: "string", default: "Rock_Lime_Cobble" },
 ];
 
+const LEGACY_DENSITY_VALUE_FIELD: FieldDef[] = [
+  { name: "Value", type: "number", default: 0.0 },
+];
+
+const LEGACY_IMPORTED_NAME_FIELD: FieldDef[] = [
+  { name: "Name", type: "string", default: "" },
+];
+
 const LEGACY_NODE_FIELDS: Record<string, FieldDef[]> = {
+  Constant: LEGACY_DENSITY_VALUE_FIELD,
   "Material:Constant": LEGACY_MATERIAL_STRING_FIELD,
   "Material:Solid": LEGACY_MATERIAL_STRING_FIELD,
+  "Material:Imported": LEGACY_IMPORTED_NAME_FIELD,
   "MaterialProvider:Constant": LEGACY_MATERIAL_STRING_FIELD,
   "MaterialProvider:Solid": LEGACY_MATERIAL_STRING_FIELD,
+  "MaterialProvider:Imported": LEGACY_IMPORTED_NAME_FIELD,
 };
 
 function legacyFieldDefs(typeKey: string): FieldDef[] {
@@ -424,6 +408,9 @@ function legacyFieldDefs(typeKey: string): FieldDef[] {
       if (LEGACY_NODE_FIELDS[fullKey]) return LEGACY_NODE_FIELDS[fullKey];
     }
   }
+  const colonIdx = typeKey.indexOf(":");
+  const bare = colonIdx >= 0 ? typeKey.slice(colonIdx + 1) : typeKey;
+  if (bare === "Imported" || bare === "Exported") return LEGACY_IMPORTED_NAME_FIELD;
   return [];
 }
 
@@ -466,12 +453,5 @@ export function isRegisteredNodeType(typeKey: string): boolean {
 export function getAllNodeTypes(): string[] {
   return Object.entries(nodes)
     .filter(([, node]) => node.isSubType !== true)
-    .map(([key]) => {
-      for (const [full, short] of Object.entries(FULL_TO_SHORT_PREFIX)) {
-        if (key.startsWith(full)) {
-          return short + key.slice(full.length);
-        }
-      }
-      return key;
-    });
+    .map(([key]) => toEditorTypeKey(key));
 }

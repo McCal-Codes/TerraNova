@@ -43,7 +43,7 @@ The simplest terrain: a flat surface at a fixed height. This is the starting poi
 
 > **Key insight:** Always route through `Sum` into `Terrain Out` — even when there is only one input. Every additional terrain layer (noise, caves, shapes) gets added into the same `Sum`, keeping the graph easy to extend.
 
-> **Preview note:** TerraNova's preview evaluator reads the named `BaseHeight` content field instead of returning a hardcoded `0.0`. If a flat plane appears at the wrong height, check the referenced content field first. For a fully explicit preview-only plane, use `Sum { Inputs: [Constant { Value: 64 }, Inverter { Input: YValue }] }`.
+> **Preview note:** TerraNova reads the named `BaseHeight` content field. A **solid color on the 2D map at one Y slice is normal** for BaseHeight alone — move the **Y slice** slider, add noise in Sum, or open **Voxel / Vertical section**. For CurveMapper, edit the curve directly; preview **Terrain Out** for the finished terrain.
 
 ---
 
@@ -104,26 +104,23 @@ Add `SimplexNoise2D` to introduce horizontal variation — hills, valleys, and u
 
 Mountains need a steep vertical profile — sharp peaks, flat base. `CurveMapper` with a `Manual` curve lets you draw exactly how density maps to height.
 
-**Nodes needed:** `BaseHeight` → `CurveMapper` (Manual curve) + `SimplexNoise2D` → `Sum` → `YSampled` → `Terrain Out`
+**Nodes needed:** `BaseHeight` (`Distance: true`) → `CurveMapper` (Manual curve) + `SimplexNoise2D` → `Sum` → `YSampled` → `Terrain Out`
 
-1. Add **CurveMapper**. In the properties panel, set its `Curve` type to **Manual**.
-2. Draw the curve: flat near the bottom (gentle base), then steep in the middle (cliff face), then flat again near the top (plateau). This S-shape creates dramatic cliffs.
-3. Connect `BaseHeight` → `CurveMapper`.
-4. Add **SimplexNoise2D** (Scale `0.005`, Octaves `4`) for ridge variation. Add a **Multiplier** node with the noise and a **Constant** (`Value: 0.4`) as inputs to scale the noise output.
-5. Add **Sum** — connect `CurveMapper` and the `Multiplier` output into it.
-6. Wrap the whole thing in **YSampled** (SampleDistance `4`) for performance.
-7. Connect `YSampled` → `Terrain Out`.
+1. On **BaseHeight**, set **Distance** to **on** so CurveMapper receives height offset from the surface (not terrain density).
+2. Add **Curve:Manual** and connect it to **CurveMapper**'s **Curve** port. Draw the profile on that curve node (steep middle = cliffs; flat top = mesa).
+3. Connect **BaseHeight** → **CurveMapper** → **Sum**.
+4. Add **SimplexNoise2D** (Scale `0.005`, Octaves `4`) for ridge variation. Add a **Multiplier** with the noise and a **Constant** (`Value: 0.4`).
+5. Connect the **Multiplier** into **Sum** as the second input.
+6. Wrap the graph in **YSampled** (SampleDistance `4`) for performance.
+7. Connect **YSampled** → **Terrain Out**.
 
-Use this starter mountain curve first, then adjust only the middle points:
+Curve **In** (horizontal axis) = height offset from the named surface (blocks). **Out** (vertical axis) = output density. Example cliff band (adjust to your `Base` content field):
 
 ```curve
-Mountain cliff profile - broad base, steep wall, flatter top
-[[0,-1],[0.18,-0.98],[0.36,-0.78],[0.5,-0.12],[0.58,0.7],[0.68,0.96],[0.82,1],[1,1]]
+Mountain profile — distance from surface (In) → density (Out)
+{"xLabel": "In (blocks from surface)", "yLabel": "Out (density)"}
+[[-80, 1], [-20, 0.6], [0, 0], [30, -0.5], [80, -1]]
 ```
-
-- Raise the point near `0.58` for harsher cliffs.
-- Pull the point near `0.82` down if the plateau feels too flat.
-- Keep the first third low so the mountain has a readable base.
 
 ```nodegraph
 {
@@ -148,8 +145,8 @@ Mountain cliff profile - broad base, steep wall, flatter top
     { "from": "ys",  "to": "out", "label": "density" }
   ],
   "steps": [
-    { "nodeId": "bh",  "text": "BaseHeight marks the vertical anchor by crossing zero at Y=64. On its own it gives you the flat reference plane that later curve and noise stages build from." },
-    { "nodeId": "cf",  "text": "CurveMapper remaps the BaseHeight value using a drawn curve. A gentle S-curve creates a sharp cliff band: the terrain rises steeply through a narrow Y range instead of smoothly. Steepen the curve middle section to make cliffs more vertical." },
+    { "nodeId": "bh",  "text": "BaseHeight with Distance: on outputs height offset from the named surface (y − baseY). That signed distance is what the curve remaps — not raw terrain density." },
+    { "nodeId": "cf",  "text": "CurveMapper applies your Manual curve on the connected Curve node. Steep segments in the middle create cliff bands; flat segments create shelves. Preview from Terrain Out — not from CurveMapper alone." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds horizontal variation so the mountain isn't a perfectly uniform ridge. Low Scale (0.005) gives broad variation — individual peaks and saddles. Increase the Constant Value on the Multiplier to make peaks taller." },
     { "nodeId": "sum", "text": "Sum combines the curve-shaped height profile with the noise variation. The CurveMapper controls the overall vertical shape; the noise gives it organic peaks and ridges." },
     { "nodeId": "ys",  "text": "YSampled wraps the entire density graph and evaluates it at every 4 blocks vertically, then interpolates between samples. This gives roughly 4× faster generation with no visible difference for smooth mountain terrain." },
@@ -333,6 +330,21 @@ Cave fade mask - full strength underground, fades near the surface
 ```
 
 > Adjust the `CurveMapper` ramp to control where caves fade out. A sharper transition creates a more defined cave ceiling; a gradual ramp blends caves into the surface naturally.
+
+---
+
+## Previewing your caves
+
+After Step 5 or 6, validate carving in preview before exporting:
+
+| Step | Preview action |
+|------|----------------|
+| Plan footprint | **2D** + **Topo** on → lower **Y level** to ~45–55 → blue wash shows tunnel corridors |
+| Wall section | **Cross-section plot** → **Section profile** → Shift+drag across a cave line |
+| Interior geometry | **Voxel** → **Cutaway** below ceiling → orbit the mesh |
+| Quick 3D | **3D** → **Underground view (volume mesh)** + cutaway |
+
+Details: [Cave Preview](../guides/preview/cave-preview.md) and [2D topographic context](../guides/terrain/2d-preview-topographic-context.md).
 
 ---
 

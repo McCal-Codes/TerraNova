@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useProjectStore, type DirectoryEntry } from "@/stores/projectStore";
+import { useProjectLegacyStore } from "@/stores/projectLegacyStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import {
   showInFolder,
@@ -566,6 +567,26 @@ function ContextMenu({
   );
 }
 
+function legacyHitCountInTree(
+  entry: DirectoryEntry,
+  getFileHitCount: (path: string) => number,
+): number {
+  if (!entry.isDir) return getFileHitCount(entry.path);
+  return entry.children?.reduce((sum, child) => sum + legacyHitCountInTree(child, getFileHitCount), 0) ?? 0;
+}
+
+function LegacyHitBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  const label = `${count} legacy node${count === 1 ? "" : "s"}`;
+  return (
+    <span
+      className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"
+      title={label}
+      aria-label={label}
+    />
+  );
+}
+
 function TreeNode({
   entry,
   depth,
@@ -578,9 +599,11 @@ function TreeNode({
   const [expanded, setExpanded] = useState(depth < 2);
   const { openFile } = useTauriIO();
   const currentFile = useProjectStore((s) => s.currentFile);
+  const getFileHitCount = useProjectLegacyStore((s) => s.getFileHitCount);
 
   const isActive = currentFile === entry.path;
   const indent = depth * 14 + 6;
+  const legacyHits = legacyHitCountInTree(entry, getFileHitCount);
 
   if (entry.isDir) {
     return (
@@ -595,11 +618,14 @@ function TreeNode({
           <ChevronIcon open={expanded} />
           <FolderIcon open={expanded} />
           <span className="truncate font-medium">{entry.name}</span>
-          {entry.children && entry.children.length > 0 ? (
-            <span className="ml-auto tabular-nums text-[10px] text-tn-text-muted/60">
-              {entry.children.length}
-            </span>
-          ) : null}
+          <span className="ml-auto flex items-center gap-1.5">
+            <LegacyHitBadge count={legacyHits} />
+            {entry.children && entry.children.length > 0 ? (
+              <span className="tabular-nums text-[10px] text-tn-text-muted/60">
+                {entry.children.length}
+              </span>
+            ) : null}
+          </span>
         </button>
         {expanded ? (
           <div className="relative">
@@ -625,6 +651,11 @@ function TreeNode({
       <span className="w-3 shrink-0" />
       <FileIcon name={entry.name} />
       <span className="truncate">{entry.name}</span>
+      {legacyHits > 0 ? (
+        <span className="ml-auto">
+          <LegacyHitBadge count={legacyHits} />
+        </span>
+      ) : null}
     </button>
   );
 }

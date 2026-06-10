@@ -20,6 +20,7 @@ describe("getLegacyReplacement", () => {
     expect(getLegacyReplacement("DoubleNormalizer")).toBe("Normalizer");
     expect(getLegacyReplacement("AverageFunction")).toBe("Mix");
     expect(getLegacyReplacement("FlatCache")).toBe("Cache");
+    expect(getLegacyReplacement("Cache2D")).toBe("Cache");
     expect(getLegacyReplacement("Amplitude")).toBe("AmplitudeConstant");
     expect(getLegacyReplacement("Zero")).toBe("Constant");
     expect(getLegacyReplacement("One")).toBe("Constant");
@@ -31,6 +32,8 @@ describe("getLegacyReplacement", () => {
     expect(getLegacyReplacement("Curve:Blend")).toBe("Curve:Sum");
     expect(getLegacyReplacement("Curve:Cache")).toBe("Curve:Manual");
     expect(getLegacyReplacement("Curve:Noise")).toBe("Curve:Manual");
+    expect(getLegacyReplacement("Manual")).toBe("Curve:Manual");
+    expect(getLegacyReplacement("Curve:Mix")).toBe("Mix");
   });
 
   it("all replacement targets are NOT themselves legacy types", () => {

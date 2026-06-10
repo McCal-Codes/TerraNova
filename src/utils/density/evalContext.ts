@@ -1,6 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { EvaluatedPosition } from "../positionEvaluator";
-import { getCurveEvaluator, normalizePoints, catmullRomInterpolate } from "../curveEvaluators";
+import { getCurveEvaluator, normalizePoints, evalManual } from "../curveEvaluators";
 import { evaluateVectorProvider, vec3Normalize, vec3Length } from "../vectorEvaluator";
 import {
   createHytaleNoise2D, createHytaleNoise3D,
@@ -23,8 +23,12 @@ export interface DensityGridResult {
   p98Value: number;
 }
 
+import type { DensityExportMap } from "@/utils/densityExportRegistry";
+
 export interface EvaluationOptions {
   contentFields?: Record<string, number>;
+  /** Cross-file density exports keyed by ExportAs / Imported Name. */
+  externalDensityExports?: DensityExportMap;
 }
 
 export interface EvaluationContext {
@@ -41,6 +45,7 @@ export interface EvalCtx {
 
   // Curve helpers
   applyCurve: (curveHandleName: string, inputVal: number, inputs: Map<string, string>) => number;
+  evaluateCurveSpec: (curveType: string, curveFields: Record<string, unknown>, inputVal: number) => number;
   applySpline: (fields: Record<string, unknown>, inputVal: number) => number;
 
   // Noise caches
@@ -63,10 +68,21 @@ export interface EvalCtx {
   anchorSet: boolean;
   switchState: number;
   cellWallDist: number;
+  cellHash: number;
+  cellCenterX: number;
+  cellCenterY: number;
+  cellCenterZ: number;
 
   // Graph data
   nodeById: Map<string, Node>;
   inputEdges: Map<string, Map<string, string>>;
+
+  /** Nested evaluators for Imported references resolved from external density files. */
+  externalExports: Map<string, EvaluationContext>;
+  externalExportGraphs?: DensityExportMap;
+  /** Cycle guard while lazily resolving external imports. */
+  importResolving: Set<string>;
+  resolveExternalImport: (name: string) => EvaluationContext | null;
 
   // Memoization cache
   memoCache: Map<string, number>;
@@ -170,6 +186,29 @@ export function createEvaluationContext(
   const memoCache = new Map<string, number>();
   const visiting = new Set<string>();
 
+  const externalExports = new Map<string, EvaluationContext>();
+  const importResolving = new Set<string>();
+  const externalExportGraphs = options?.externalDensityExports;
+
+  function resolveExternalImport(name: string): EvaluationContext | null {
+    const cached = externalExports.get(name);
+    if (cached) return cached;
+    const graph = externalExportGraphs?.[name];
+    if (!graph?.nodes?.length) return null;
+    if (importResolving.has(name)) return null;
+    importResolving.add(name);
+    const created = createEvaluationContext(graph.nodes, graph.edges, undefined, {
+      contentFields,
+      externalDensityExports: externalExportGraphs,
+    });
+    importResolving.delete(name);
+    if (created) {
+      externalExports.set(name, created);
+      return created;
+    }
+    return null;
+  }
+
   // Build handler map
   const handlers = buildAllHandlers();
 
@@ -178,6 +217,7 @@ export function createEvaluationContext(
     evaluate,
     getInput,
     applyCurve,
+    evaluateCurveSpec,
     applySpline,
     getNoise2D,
     getNoise3D,
@@ -192,14 +232,41 @@ export function createEvaluationContext(
     anchorSet: false,
     switchState: 0,
     cellWallDist: Infinity,
+    cellHash: 0,
+    cellCenterX: 0,
+    cellCenterY: 0,
+    cellCenterZ: 0,
     nodeById,
     inputEdges,
+    externalExports,
+    externalExportGraphs,
+    importResolving,
+    resolveExternalImport,
     memoCache,
     evaluateVectorProvider,
     vec3Normalize,
     vec3Length,
     hashSeed,
   };
+
+  function evaluateManualCurvePoints(rawPoints: unknown[] | undefined, inputVal: number): number {
+    if (!rawPoints || rawPoints.length === 0) return inputVal;
+    const fn = evalManual(normalizePoints(rawPoints));
+    return fn ? fn(inputVal) : inputVal;
+  }
+
+  function evaluateCurveSpec(
+    curveType: string,
+    curveFields: Record<string, unknown>,
+    inputVal: number,
+  ): number {
+    const normalizedType = curveType.replace(/^Curve:/, "");
+    if (normalizedType === "Manual") {
+      return evaluateManualCurvePoints(curveFields.Points as unknown[] | undefined, inputVal);
+    }
+    const curveFn = getCurveEvaluator(normalizedType, curveFields);
+    return curveFn ? curveFn(inputVal) : inputVal;
+  }
 
   function applyCurve(curveHandleName: string, inputVal: number, inputs: Map<string, string>): number {
     const curveNodeId = inputs.get(curveHandleName);
@@ -209,59 +276,11 @@ export function createEvaluationContext(
     const curveData = curveNode.data as Record<string, unknown>;
     const curveType = ((curveData.type as string) ?? "").replace(/^Curve:/, "");
     const curveFields = (curveData.fields as Record<string, unknown>) ?? {};
-
-    if (curveType === "Manual") {
-      const rawPoints = curveFields.Points as unknown[] | undefined;
-      if (rawPoints && rawPoints.length >= 2) {
-        const pts = normalizePoints(rawPoints);
-        const sortedPts = pts.sort((a, b) => a.x - b.x);
-        const sampled = catmullRomInterpolate(sortedPts, 32);
-        const xMin = sortedPts[0].x;
-        const xMax = sortedPts[sortedPts.length - 1].x;
-        const clampedInput = Math.max(xMin, Math.min(xMax, inputVal));
-        let lo = 0;
-        let hi = sampled.length - 1;
-        while (lo < hi - 1) {
-          const mid = (lo + hi) >> 1;
-          if (sampled[mid].x <= clampedInput) lo = mid;
-          else hi = mid;
-        }
-        const p0 = sampled[lo];
-        const p1 = sampled[hi];
-        const dx = p1.x - p0.x;
-        const t = dx === 0 ? 0 : (clampedInput - p0.x) / dx;
-        return p0.y + (p1.y - p0.y) * t;
-      }
-      return inputVal;
-    }
-
-    const curveFn = getCurveEvaluator(curveType, curveFields);
-    return curveFn ? curveFn(inputVal) : inputVal;
+    return evaluateCurveSpec(curveType, curveFields, inputVal);
   }
 
   function applySpline(fields: Record<string, unknown>, inputVal: number): number {
-    const rawPoints = fields.Points as unknown[] | undefined;
-    if (rawPoints && rawPoints.length >= 2) {
-      const pts = normalizePoints(rawPoints);
-      const sortedPts = pts.sort((a, b) => a.x - b.x);
-      const sampled = catmullRomInterpolate(sortedPts, 32);
-      const xMin = sortedPts[0].x;
-      const xMax = sortedPts[sortedPts.length - 1].x;
-      const clampedInput = Math.max(xMin, Math.min(xMax, inputVal));
-      let lo = 0;
-      let hi = sampled.length - 1;
-      while (lo < hi - 1) {
-        const mid = (lo + hi) >> 1;
-        if (sampled[mid].x <= clampedInput) lo = mid;
-        else hi = mid;
-      }
-      const p0 = sampled[lo];
-      const p1 = sampled[hi];
-      const dx = p1.x - p0.x;
-      const t = dx === 0 ? 0 : (clampedInput - p0.x) / dx;
-      return p0.y + (p1.y - p0.y) * t;
-    }
-    return inputVal;
+    return evaluateManualCurvePoints(fields.Points as unknown[] | undefined, inputVal);
   }
 
   function evaluate(nodeId: string, x: number, y: number, z: number): number {
@@ -305,6 +324,9 @@ export function createEvaluationContext(
   return {
     rootId: root.id,
     evaluate,
-    clearMemo: () => memoCache.clear(),
+    clearMemo: () => {
+      memoCache.clear();
+      ctx.cellWallDist = Infinity;
+    },
   };
 }

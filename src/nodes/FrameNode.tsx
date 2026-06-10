@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useRef } from "react";
+import { memo, useState, useCallback, useRef, useEffect } from "react";
 import type { NodeProps, ResizeDragEvent, ResizeParams } from "@xyflow/react";
 import { NodeResizer } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
@@ -12,18 +12,101 @@ export interface FrameNodeData {
 }
 
 const FRAME_COLOR = "#4a7fa5";
-const FRAME_BG = "rgba(74, 127, 165, 0.07)";
-const FRAME_BORDER = "rgba(74, 127, 165, 0.35)";
+const FRAME_BG = "rgba(74, 127, 165, 0.14)";
+const FRAME_BORDER = "rgba(74, 127, 165, 0.55)";
 const MIN_WIDTH = 120;
 const MIN_HEIGHT = 80;
+const CLICK_DRAG_THRESHOLD_SQ = 25;
+
+function pointerMovedBeyondThreshold(
+  start: { x: number; y: number },
+  current: { x: number; y: number },
+): boolean {
+  const dx = current.x - start.x;
+  const dy = current.y - start.y;
+  return dx * dx + dy * dy >= CLICK_DRAG_THRESHOLD_SQ;
+}
 
 export const FrameNode = memo(function FrameNode({ id, selected, data }: NodeProps) {
   const nodeData = data as unknown as FrameNodeData;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(nodeData.name ?? "");
   const cancelEditRef = useRef(false);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const didPointerDragRef = useRef(false);
+  const suppressClickRef = useRef(false);
+
+  const selectFrame = useCallback(() => {
+    useEditorStore.getState().setSelectedNodeId(id);
+  }, [id]);
+
+  const headerPointerListenersRef = useRef<{
+    move: (e: PointerEvent) => void;
+    up: () => void;
+  } | null>(null);
+
+  const teardownHeaderPointer = useCallback(() => {
+    const listeners = headerPointerListenersRef.current;
+    if (listeners) {
+      window.removeEventListener("pointermove", listeners.move);
+      window.removeEventListener("pointerup", listeners.up);
+      window.removeEventListener("pointercancel", listeners.up);
+      headerPointerListenersRef.current = null;
+    }
+    pointerStartRef.current = null;
+    if (suppressClickRef.current) {
+      setTimeout(() => {
+        suppressClickRef.current = false;
+        didPointerDragRef.current = false;
+      }, 0);
+    }
+  }, []);
+
+  useEffect(() => () => {
+    teardownHeaderPointer();
+  }, [teardownHeaderPointer]);
+
+  const handleHeaderPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    teardownHeaderPointer();
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+    didPointerDragRef.current = false;
+
+    const onMove = (ev: PointerEvent) => {
+      const start = pointerStartRef.current;
+      if (!start || didPointerDragRef.current) return;
+      if (pointerMovedBeyondThreshold(start, { x: ev.clientX, y: ev.clientY })) {
+        didPointerDragRef.current = true;
+        suppressClickRef.current = true;
+      }
+    };
+    const onUp = () => {
+      teardownHeaderPointer();
+    };
+    headerPointerListenersRef.current = { move: onMove, up: onUp };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }, [teardownHeaderPointer]);
+
+  const handleHeaderClick = useCallback((e: React.MouseEvent) => {
+    if (suppressClickRef.current || didPointerDragRef.current) {
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+    e.stopPropagation();
+    if (!selected) {
+      selectFrame();
+    }
+  }, [selected, selectFrame]);
 
   const handleLabelDoubleClick = useCallback((e: React.MouseEvent) => {
+    if (suppressClickRef.current || didPointerDragRef.current) {
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
     e.stopPropagation();
     setEditName(nodeData.name ?? "");
     setIsEditing(true);
@@ -45,6 +128,7 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
   }, [id, editName]);
 
   const handleResizeEnd = useCallback((_event: ResizeDragEvent, params: ResizeParams) => {
+    suppressClickRef.current = true;
     const { nodes, setNodes, commitState } = useEditorStore.getState();
     setNodes(nodes.map((node) => (
       node.id !== id
@@ -53,6 +137,9 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
     )));
     commitState("Resize frame");
     useProjectStore.getState().setDirty(true);
+    setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 0);
   }, [id]);
 
   const width = nodeData.width ?? 300;
@@ -82,12 +169,14 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
           border: `1px solid ${selected ? FRAME_COLOR : FRAME_BORDER}`,
           borderRadius: 8,
           boxShadow: selected ? `0 0 0 2px ${FRAME_COLOR}55` : "none",
-          pointerEvents: "all",
+          pointerEvents: "none",
           position: "relative",
         }}
       >
         <div
-          className="nodrag"
+          className={selected ? "frame-drag-handle" : "nodrag"}
+          onPointerDown={handleHeaderPointerDown}
+          onClick={handleHeaderClick}
           style={{
             position: "absolute",
             top: 0,
@@ -102,7 +191,8 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
             alignItems: "center",
             justifyContent: "space-between",
             gap: 8,
-            cursor: "grab",
+            cursor: selected ? "grab" : "default",
+            pointerEvents: "all",
           }}
         >
           <div onDoubleClick={handleLabelDoubleClick} style={{ minWidth: 0, flex: 1 }}>

@@ -494,14 +494,21 @@ describe("Context-dependent types", () => {
     expectAll(result, 36);
   });
 
-  it.each(["CellWallDistance", "DistanceToBiomeEdge", "Pipeline"])(
-    "'%s' returns 0 (unsupported fallback)",
-    (type) => {
-      const nodes = [makeNode("n", type)];
-      const result = evalSingle(nodes, []);
-      expectAll(result, 0);
-    },
-  );
+  it("'CellWallDistance' returns 0 without upstream cell noise", () => {
+    const nodes = [makeNode("n", "CellWallDistance")];
+    const result = evalSingle(nodes, []);
+    expectAll(result, 0);
+  });
+
+  it("'Pipeline' passthrough evaluates connected input", () => {
+    const nodes = [
+      makeNode("c", "Constant", { Value: 3 }),
+      makeNode("p", "Pipeline"),
+    ];
+    const edges = [{ id: "e1", source: "c", target: "p", targetHandle: "Input" }];
+    const result = evalSingle(nodes, edges, "p");
+    expectAll(result, 3);
+  });
 });
 
 /* ══════════════════════════════════════════════════════════════════════════

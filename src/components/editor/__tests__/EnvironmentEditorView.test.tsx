@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
+import { useUIStore } from "@/stores/uiStore";
 import { EnvironmentEditorView } from "../EnvironmentEditorView";
 
 const { openFileMock, listDirectoryMock, writeAssetFileMock } = vi.hoisted(() => ({
@@ -29,6 +30,7 @@ describe("EnvironmentEditorView", () => {
   beforeEach(() => {
     useEditorStore.getState().reset();
     useProjectStore.getState().reset();
+    useUIStore.getState().setAtmosphereEditorUIMode("advanced");
     openFileMock.mockReset();
     listDirectoryMock.mockReset();
     writeAssetFileMock.mockReset();
@@ -100,6 +102,6 @@ describe("EnvironmentEditorView", () => {
       });
     });
 
-    expect(screen.getByText("Forecast Strip")).toBeTruthy();
+    expect(screen.getByText("24-Hour Schedule")).toBeTruthy();
   });
 });

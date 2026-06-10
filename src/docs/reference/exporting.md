@@ -6,7 +6,7 @@ TerraNova has four export paths. Each one is for a different purpose — use the
 |---------------|--------------|
 | Deploy a biome to Hytale | **Export Asset Pack** (`Ctrl+Shift+E`) |
 | Check one file's Hytale JSON | **Export Current JSON** (`Ctrl+E`) |
-| Share or document a graph | **Export SVG** (`Ctrl+Shift+G`) |
+| Share or document a graph | **Export Graph** (`Ctrl+Shift+G`) |
 | Screenshot the preview | **Export Canvas PNG** (preview toolbar button) |
 
 ---
@@ -76,32 +76,61 @@ Before writing the file, TerraNova runs a quick structural check. If it finds is
 
 ---
 
-## Export SVG
+## Export Graph (SVG / PNG)
 
-**`File → Export SVG…`** | `Ctrl+Shift+G`
+**`File → Export Graph…`** | `Ctrl+Shift+G`
 
-Exports the node graph as a clean, scalable SVG image. Useful for documentation, design reviews, or sharing graphs with people who don't have TerraNova installed.
+Opens the **Export Graph** dialog. Export the node graph as SVG (scalable vector) or PNG (raster), copy to the clipboard, or tune scope and appearance before saving. Useful for documentation, design reviews, Discord/slides, or sharing graphs with people who don't have TerraNova installed.
 
-### Dialog options
+Settings are remembered between sessions. Default save names use the open project (`{ProjectName}-graph.svg`, `{ProjectName}-selection.png`, etc.). The dialog header shows the expected filename and live stats (with correct singular/plural labels).
+
+The left panel shows a live preview with **preview-only zoom** (Fit, slider, Ctrl+scroll, or double-click to fit). Preview zoom does not change export resolution.
+
+### Output
 
 **Scope**
-- **Entire Graph** — exports all nodes, regardless of what is visible. Padding is applied around the full bounds.
-- **Current Viewport** — exports only what is currently visible on the canvas.
+- **Full** — all nodes and internal edges. Padding applies around the full bounds.
+- **Viewport** — only what is visible on the canvas (no extra padding).
+- **Selected** — selected nodes only, plus wires into/out of the selection (dashed at the frame edge) and comments/frames that overlap the selection bounds. Opening the dialog with nodes selected defaults to this scope.
 
-**Background Grid**
-- **No Grid** — clean white background (default).
-- **Include Grid** — renders the dot-grid pattern from the editor canvas.
+**Flow**
+- **Canvas** — same left-to-right or right-to-left handle layout as the editor.
+- **L → R** / **R → L** — override flow direction for the export only.
+
+**Resolution**
+- **1920** — longest side 1920px (good for sharing).
+- **3840** — longest side 3840px (default; sharper print/docs). Very large graphs at 3840px may take longer to rasterize as PNG.
+
+### Appearance
+
+**Background**
+- **Dark** — editor-style dark canvas with dark node chrome.
+- **Light** — light canvas with light node bodies (better for printed docs).
+- **Transparent** — no background fill; uses light node chrome and PNG alpha.
+
+**Grid** — optional dot grid (disabled on transparent).
+
+**Padding** — whitespace around **Entire Graph** and **Selected Nodes** exports (default 40px). Not used for viewport scope.
+
+### Details
+
+**Include comments & frames** — export canvas comments and group frames when enabled.
 
 **Mode**
-- **Presentation** — clean output. Node display names and handles only. Best for documentation.
-- **Debug** — adds node IDs and raw type names as overlays. Useful when debugging a graph structure.
+- **Clean** — display names and handles only.
+- **Debug** — adds node IDs and raw type names.
 
-**Padding** (Entire Graph only)
-- Whitespace (in pixels) added around the full graph bounds. Default is 40. Has no effect in Current Viewport mode.
+### Actions
+
+- **Copy text** — SVG markup to the clipboard (uses current settings, not preview lag).
+- **Copy image** — PNG raster to the clipboard.
+- **SVG** / **PNG** — save dialog with **Show in folder** on success (desktop). Buttons show **Exporting…** while the file is written. The dialog stays open if you cancel the save dialog or the write fails.
+- **Reset defaults** — restores the built-in export settings when you have changed options.
+- **Enter** — export SVG; **Shift+Enter** — export PNG; **Esc** — close.
 
 ### SVG compatibility
 
-Exported SVGs are SVG 1.1 compliant — compatible with macOS Preview, Inkscape, web browsers, and standard vector editors. TerraNova avoids CSS functions and 8-digit hex colors that trip up strict parsers.
+Exported SVGs are SVG 1.1 compliant — compatible with macOS Preview, Inkscape, web browsers, and standard vector editors. TerraNova avoids CSS functions and 8-digit hex colors that trip up strict parsers. Each file includes `<title>` and `<desc>` metadata (project name and export summary).
 
 ---
 

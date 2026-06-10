@@ -1,7 +1,16 @@
 import { Fragment, memo, useMemo } from "react";
 import { Handle, useStore } from "@xyflow/react";
 import type { TypedNodeProps } from "@/nodes/shared/BaseNode";
-import { ROW_H, handleTop, inputPosition, outputPosition, inputSide } from "@/nodes/shared/nodeLayout";
+import {
+  ROW_H,
+  handleTop,
+  resolveHandleRow,
+  isPortLabelSignificant,
+  inputPosition,
+  outputPosition,
+  inputSide,
+  outputSide,
+} from "@/nodes/shared/nodeLayout";
 import { INPUT_HANDLE_COLOR, getHandleColor, type HandleDef } from "@/nodes/shared/handles";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { getHandles } from "@/nodes/handleRegistry";
@@ -19,6 +28,7 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
   const inPos = inputPosition(flowDirection);
   const outPos = outputPosition(flowDirection);
   const inSide = inputSide(flowDirection);
+  const outSide = outputSide(flowDirection);
 
   // Pick a header color based on type name hash (deterministic)
   const headerColor = getTypeColor(typeName);
@@ -36,9 +46,12 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
   const scalarFields = useMemo(() => {
     const fields = data.fields ?? {};
     return Object.entries(fields).filter(
-      ([, v]) => typeof v === "string" || typeof v === "number" || typeof v === "boolean",
+      ([key, v]) => key !== "_comment" && (typeof v === "string" || typeof v === "number" || typeof v === "boolean"),
     );
   }, [data.fields]);
+
+  const inspectorNote =
+    typeof data.fields?._comment === "string" ? data.fields._comment.trim() : "";
 
   // Filter s.edges for handles targeting this node; custom equality prevents re-renders when handles are unchanged
   const uniqueTargetHandles = useStore(
@@ -69,7 +82,11 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
     ? schemaSourceHandles
     : [{ id: "output", label: "Output", type: "source" as const, category: targetHandles[0]?.category ?? AssetCategory.Density }];
   const showFallbackInput = targetHandles.length === 0;
-  const maxRows = Math.max(targetHandles.length || 1, sourceHandles.length || 1);
+  const inputCount = targetHandles.length || (showFallbackInput ? 1 : 0);
+  const outputCount = sourceHandles.length;
+  const showInputIndex = targetHandles.length >= 2;
+  const showOutputIndex = sourceHandles.length >= 2;
+  const maxRows = Math.max(inputCount || 1, outputCount || 1);
 
   return (
     <div
@@ -83,39 +100,56 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
     >
       {/* Header */}
       <div
-        className="px-3 py-1.5 text-xs font-semibold text-white text-left"
+        className="px-3 py-1.5 text-xs font-semibold text-white text-left flex items-center gap-1.5"
         style={{
           backgroundColor: headerColor,
           borderRadius: "5px 5px 0 0",
         }}
       >
-        {typeName}
+        <span className="flex-1 min-w-0 truncate">{typeName}</span>
+        {inspectorNote && (
+          <span
+            className="shrink-0 px-1 py-px rounded text-[8px] font-bold leading-none"
+            style={{ backgroundColor: "rgba(251, 191, 36, 0.35)", color: "#fde68a" }}
+            title={inspectorNote}
+          >
+            NOTE
+          </span>
+        )}
       </div>
 
       {/* Handle zone */}
       <div className="relative" style={{ height: maxRows * ROW_H }}>
-        {targetHandles.map((handle, i) => (
-          <Fragment key={handle.id}>
-            <Handle
-              type="target"
-              position={inPos}
-              id={handle.id}
-              style={{
-                background: INPUT_HANDLE_COLOR,
-                width: 14,
-                height: 14,
-                border: "2px solid rgba(0,0,0,0.4)",
-                top: handleTop(i),
-              }}
-            />
-            <div
-              className={`absolute ${inSide}-4 text-tn-text-muted text-[10px]`}
-              style={{ top: handleTop(i), transform: "translateY(-50%)" }}
-            >
-              {handle.label || handle.id}
-            </div>
-          </Fragment>
-        ))}
+        {targetHandles.map((handle, i) => {
+          const row = resolveHandleRow(i, "input", inputCount, outputCount);
+          const label = handle.label || handle.id;
+          return (
+            <Fragment key={handle.id}>
+              <Handle
+                type="target"
+                position={inPos}
+                id={handle.id}
+                style={{
+                  background: INPUT_HANDLE_COLOR,
+                  width: 14,
+                  height: 14,
+                  border: "2px solid rgba(0,0,0,0.4)",
+                  top: handleTop(row),
+                }}
+              />
+              {(isPortLabelSignificant(label) || showInputIndex) && (
+                <div
+                  className={`absolute ${inSide}-4 text-tn-text-muted text-[10px]`}
+                  style={{ top: handleTop(row), transform: "translateY(-50%)" }}
+                >
+                  {showInputIndex
+                    ? isPortLabelSignificant(label) ? `[${i}] ${label}` : `[${i}]`
+                    : label}
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
         {showFallbackInput && (
           <Handle
             type="target"
@@ -126,33 +160,41 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
               width: 14,
               height: 14,
               border: "2px solid rgba(0,0,0,0.4)",
-              top: handleTop(0),
+              top: handleTop(resolveHandleRow(0, "input", inputCount, outputCount)),
             }}
           />
         )}
 
-        {sourceHandles.map((handle, i) => (
-          <Fragment key={handle.id}>
-            <Handle
-              type="source"
-              position={outPos}
-              id={handle.id}
-              style={{
-                background: getHandleColor(handle.category) || headerColor,
-                width: 14,
-                height: 14,
-                border: "2px solid rgba(0,0,0,0.4)",
-                top: handleTop(i),
-              }}
-            />
-            <div
-              className="absolute right-4 text-tn-text-muted text-[10px]"
-              style={{ top: handleTop(i), transform: "translateY(-50%)" }}
-            >
-              {handle.label || handle.id}
-            </div>
-          </Fragment>
-        ))}
+        {sourceHandles.map((handle, i) => {
+          const row = resolveHandleRow(i, "output", inputCount, outputCount);
+          const label = handle.label || handle.id;
+          return (
+            <Fragment key={handle.id}>
+              <Handle
+                type="source"
+                position={outPos}
+                id={handle.id}
+                style={{
+                  background: getHandleColor(handle.category) || headerColor,
+                  width: 14,
+                  height: 14,
+                  border: "2px solid rgba(0,0,0,0.4)",
+                  top: handleTop(row),
+                }}
+              />
+              {(isPortLabelSignificant(label) || showOutputIndex) && (
+                <div
+                  className={`absolute ${outSide}-4 text-tn-text-muted text-[10px]`}
+                  style={{ top: handleTop(row), transform: "translateY(-50%)" }}
+                >
+                  {showOutputIndex
+                    ? isPortLabelSignificant(label) ? `[${i}] ${label}` : `[${i}]`
+                    : label}
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
       </div>
 
       {/* Scalar fields zone */}

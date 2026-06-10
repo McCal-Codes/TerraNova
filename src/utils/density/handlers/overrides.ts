@@ -1,4 +1,5 @@
 import type { NodeHandler } from "../evalContext";
+import { getNodeType } from "../evalTypes";
 
 const handleYOverride: NodeHandler = (ctx, fields, inputs, x, _y, z) => {
   const overrideY = Number(fields.OverrideY ?? fields.Y ?? fields.Value ?? 0);
@@ -33,8 +34,27 @@ const handleExported: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return ctx.getInput(inputs, "Input", x, y, z);
 };
 
-const handleImported: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
-  return ctx.getInput(inputs, "Input", x, y, z);
+const handleImported: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  if (inputs.has("Input")) {
+    return ctx.getInput(inputs, "Input", x, y, z);
+  }
+  const key = String(fields.Name ?? fields.ExportAs ?? "").trim();
+  if (!key) return 0;
+
+  const nested = ctx.resolveExternalImport(key);
+  if (nested) {
+    return nested.evaluate(nested.rootId, x, y, z);
+  }
+
+  for (const [id, node] of ctx.nodeById) {
+    if (getNodeType(node) !== "Exported") continue;
+    const nodeFields = (node.data as Record<string, unknown>).fields as Record<string, unknown> | undefined;
+    const exportAs = String(nodeFields?.ExportAs ?? nodeFields?.Name ?? "").trim();
+    if (exportAs === key) {
+      return ctx.evaluate(id, x, y, z);
+    }
+  }
+  return 0;
 };
 
 const handleOffset: NodeHandler = (ctx, _fields, inputs, x, y, z) => {

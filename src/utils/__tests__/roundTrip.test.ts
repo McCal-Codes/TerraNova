@@ -74,6 +74,39 @@ describe("round-trip: jsonToGraph → graphToJson", () => {
     expect(result).toEqual(original);
   });
 
+  it("round-trips canonical CurveMapper stack (BaseHeight + Manual curve)", () => {
+    const original = {
+      Type: "Sum",
+      Inputs: [
+        {
+          Type: "SimplexNoise2D",
+          Lacunarity: 2,
+          Persistence: 0.5,
+          Octaves: 1,
+          Scale: 100,
+          Seed: "A",
+        },
+        {
+          Type: "CurveMapper",
+          Curve: {
+            Type: "Manual",
+            Points: [{ x: 0, y: 1 }, { x: 200, y: -1 }],
+          },
+          Input: {
+            Type: "BaseHeight",
+            BaseHeightName: "Base",
+            Distance: true,
+          },
+        },
+      ],
+    };
+
+    const { nodes, edges } = jsonToGraph(original);
+    const result = graphToJson(nodes, edges);
+
+    expect(result).toEqual(original);
+  });
+
   it("preserves boolean and string fields", () => {
     const original = {
       Type: "SimplexNoise2D",

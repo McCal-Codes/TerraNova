@@ -4,6 +4,17 @@
 
 This guide explains what material providers are, how each provider type works, and how to combine them to produce believable surface layers, cave features, and biome-specific geology.
 
+### Names in TerraNova vs exported JSON
+
+| TerraNova editor (palette) | Exported Hytale `Type` | Layer slot in editor |
+|---|---|---|
+| `Material:SpaceAndDepth` | `SpaceAndDepth` | `Layer:ConstantThickness` → `ConstantThickness` |
+| `Material:Queue` | `Queue` | — |
+
+Sync **release** assets in **Settings → Assets** before picking block IDs. Use real IDs such as `Soil_Grass` and `Rock_Stone`, not legacy `hytale:` URIs.
+
+Exported material leaves use `{ "Solid": "<BlockId>", "Fluid": "", "SolidBottomUp": false }` (TerraNova adds `$NodeId` on export).
+
 ---
 
 ## What Material Providers Do
@@ -18,16 +29,16 @@ A `MaterialProviderAsset` wraps a single top-level provider. That provider is ev
 
 | Node | Role |
 |---|---|
-| `node:SpaceAndDepth` | Primary layering provider — assigns materials from the surface inward |
-| `node:ConstantThickness` | Fixed-depth layer (e.g. always 1 block of grass) |
-| `node:NoiseThickness` | Layer thickness driven by a 2D noise function |
-| `node:RangeThickness` | Random thickness within a min–max range |
-| `node:WeightedThickness` | Thickness chosen by probability weight |
-| `node:Queue` | Try providers in order; first match wins |
-| `node:DownwardDepth` | Context: depth from top surface downward |
-| `node:UpwardDepth` | Context: depth from cave floor upward |
-| `node:DownwardSpace` | Context: air gap below (cave ceilings) |
-| `node:UpwardSpace` | Context: air gap above (underside features) |
+| `Material:SpaceAndDepth` | Primary layering provider — assigns materials from the surface inward |
+| `Material:ConstantThickness` | Fixed-depth layer (e.g. always 1 block of grass) |
+| `Material:NoiseThickness` | Layer thickness driven by a 2D noise function |
+| `Material:RangeThickness` | Random thickness within a min–max range |
+| `Material:WeightedThickness` | Thickness chosen by probability weight |
+| `Material:Queue` | Try providers in order; first match wins |
+| `Material:DownwardDepth` | Context: depth from top surface downward |
+| `Material:UpwardDepth` | Context: depth from cave floor upward |
+| `Material:DownwardSpace` | Context: air gap below (cave ceilings) |
+| `Material:UpwardSpace` | Context: air gap above (underside features) |
 
 > [!NOTE]
 > The material provider is **constructed before terrain density is evaluated**. It cannot inspect the final shape of the terrain around a voxel — it can only use the runtime context fields listed below. See [Common Mistakes](#common-mistakes) for the practical consequence of this constraint.
@@ -51,7 +62,7 @@ Any `Material` field accepts an optional rotation object. Each axis accepts `"No
 
 ```json
 {
-  "Block": "hytale:log_oak",
+  "Solid": "Rock_Stone",
   "Yaw": "None",
   "Pitch": "Ninety",
   "Roll": "None"
@@ -62,7 +73,7 @@ Any `Material` field accepts an optional rotation object. Each axis accepts `"No
 
 ## SpaceAndDepth — the Primary Provider
 
-`node:SpaceAndDepth` is the workhorse provider. It walks through an ordered list of **layers** from the surface (or floor) inward, assigning a material to each layer in sequence. Once all layers are consumed, remaining solid voxels get no assignment from this provider (a fallback such as `node:Queue` is typically placed beneath it).
+`Material:SpaceAndDepth` is the workhorse provider. It walks through an ordered list of **layers** from the surface (or floor) inward, assigning a material to each layer in sequence. Once all layers are consumed, remaining solid voxels get no assignment from this provider (a fallback such as `Material:Queue` is typically placed beneath it).
 
 ### Fields
 
@@ -98,17 +109,17 @@ Any `Material` field accepts an optional rotation object. Each axis accepts `"No
     {
       "Type": "ConstantThickness",
       "Thickness": 1,
-      "Material": { "Block": "hytale:grass" }
+      "Material": { "Solid": "Soil_Grass", "Fluid": "", "SolidBottomUp": false }
     },
     {
       "Type": "ConstantThickness",
       "Thickness": 3,
-      "Material": { "Block": "hytale:dirt" }
+      "Material": { "Solid": "Soil_Dirt", "Fluid": "", "SolidBottomUp": false }
     },
     {
       "Type": "ConstantThickness",
       "Thickness": 4,
-      "Material": { "Block": "hytale:stone" }
+      "Material": { "Solid": "Rock_Stone", "Fluid": "", "SolidBottomUp": false }
     }
   ]
 }
@@ -135,7 +146,7 @@ Fills exactly `Thickness` blocks with the given material.
 {
   "Type": "ConstantThickness",
   "Thickness": 1,
-  "Material": { "Block": "hytale:grass" }
+  "Material": { "Solid": "Soil_Grass", "Fluid": "", "SolidBottomUp": false }
 }
 ```
 
@@ -159,7 +170,7 @@ The thickness of this layer varies across XZ space according to a density functi
     "Min": 2,
     "Max": 6
   },
-  "Material": { "Block": "hytale:dirt" }
+  "Material": { "Solid": "Soil_Dirt", "Fluid": "", "SolidBottomUp": false }
 }
 ```
 
@@ -183,7 +194,7 @@ Picks a thickness uniformly at random from the integer range `[RangeMin, RangeMa
   "RangeMin": 2,
   "RangeMax": 5,
   "Seed": 42,
-  "Material": { "Block": "hytale:sand" }
+  "Material": { "Solid": "Rock_Sand", "Fluid": "", "SolidBottomUp": false }
 }
 ```
 
@@ -208,7 +219,7 @@ Picks a thickness from a set of explicit options, each with a relative `Weight`.
     { "Value": 5, "Weight": 2 }
   ],
   "Seed": 7,
-  "Material": { "Block": "hytale:dirt" }
+  "Material": { "Solid": "Soil_Dirt", "Fluid": "", "SolidBottomUp": false }
 }
 ```
 
@@ -259,18 +270,18 @@ Grass on top, 3 blocks of dirt, then stone for everything deeper.
         {
           "Type": "ConstantThickness",
           "Thickness": 1,
-          "Material": { "Block": "hytale:grass" }
+          "Material": { "Solid": "Soil_Grass", "Fluid": "", "SolidBottomUp": false }
         },
         {
           "Type": "ConstantThickness",
           "Thickness": 3,
-          "Material": { "Block": "hytale:dirt" }
+          "Material": { "Solid": "Soil_Dirt", "Fluid": "", "SolidBottomUp": false }
         }
       ]
     },
     {
       "Type": "Constant",
-      "Material": { "Block": "hytale:stone" }
+      "Material": { "Solid": "Rock_Stone", "Fluid": "", "SolidBottomUp": false }
     }
   ]
 }
@@ -298,13 +309,13 @@ Sand 2–4 blocks deep (random per column), then sandstone below that.
           "RangeMin": 2,
           "RangeMax": 4,
           "Seed": 101,
-          "Material": { "Block": "hytale:sand" }
+          "Material": { "Solid": "Rock_Sand", "Fluid": "", "SolidBottomUp": false }
         }
       ]
     },
     {
       "Type": "Constant",
-      "Material": { "Block": "hytale:sandstone" }
+      "Material": { "Solid": "Rock_Sandstone", "Fluid": "", "SolidBottomUp": false }
     }
   ]
 }
@@ -326,11 +337,11 @@ Use `DownwardSpace` to detect the ceilings of caves and place a different block 
     {
       "Type": "DownwardSpace",
       "Space": 3,
-      "Material": { "Block": "hytale:stone_drip" }
+      "Material": { "Solid": "Rock_Stone_Cobble", "Fluid": "", "SolidBottomUp": false }
     },
     {
       "Type": "Constant",
-      "Material": { "Block": "hytale:stone" }
+      "Material": { "Solid": "Rock_Stone", "Fluid": "", "SolidBottomUp": false }
     }
   ]
 }
@@ -359,7 +370,7 @@ Try a noise-driven variable dirt layer first; if the noise result would be 0 thi
         {
           "Type": "ConstantThickness",
           "Thickness": 1,
-          "Material": { "Block": "hytale:grass" }
+          "Material": { "Solid": "Soil_Grass", "Fluid": "", "SolidBottomUp": false }
         },
         {
           "Type": "NoiseThickness",
@@ -369,13 +380,13 @@ Try a noise-driven variable dirt layer first; if the noise result would be 0 thi
             "Min": 1,
             "Max": 4
           },
-          "Material": { "Block": "hytale:dirt" }
+          "Material": { "Solid": "Soil_Dirt", "Fluid": "", "SolidBottomUp": false }
         }
       ]
     },
     {
       "Type": "Constant",
-      "Material": { "Block": "hytale:stone" }
+      "Material": { "Solid": "Rock_Stone", "Fluid": "", "SolidBottomUp": false }
     }
   ]
 }

@@ -12,6 +12,7 @@ import {
   getAllSchemaTypes,
   getSchemaCategory,
 } from "./schemaLoader";
+import { BUNDLE_CATEGORY_TO_ASSET } from "./categoryPrefixes";
 
 type DefaultFields = Record<string, unknown>;
 
@@ -556,33 +557,9 @@ export interface CategoryDefaultsEntry {
   defaults: DefaultFields;
 }
 
-/** Category prefix map used for building ALL_DEFAULTS from legacy entries */
-const CATEGORY_PREFIX: Record<string, AssetCategory> = {
-  Curve: AssetCategory.Curve,
-  MaterialProvider: AssetCategory.MaterialProvider,
-  Pattern: AssetCategory.Pattern,
-  PositionProvider: AssetCategory.PositionProvider,
-  Prop: AssetCategory.Prop,
-  Scanner: AssetCategory.Scanner,
-  Assignment: AssetCategory.Assignment,
-  VectorProvider: AssetCategory.VectorProvider,
-  EnvironmentProvider: AssetCategory.EnvironmentProvider,
-  TintProvider: AssetCategory.TintProvider,
-  BlockMask: AssetCategory.BlockMask,
-  Directionality: AssetCategory.Directionality,
-  PropDistribution: AssetCategory.PropDistribution,
-  Condition: AssetCategory.Condition,
-  Layer: AssetCategory.Layer,
-  PointGenerator: AssetCategory.PointGenerator,
-  Terrain: AssetCategory.Terrain,
-  CaveGenerator: AssetCategory.CaveGenerator,
-  Generator: AssetCategory.Generator,
-  Biome: AssetCategory.Biome,
-  WorldStructure: AssetCategory.WorldStructure,
-};
-
+/** Bundle category string → AssetCategory for ALL_DEFAULTS dedup */
 const CATEGORY_TO_BUNDLE_PREFIX: Partial<Record<AssetCategory, string>> = Object.fromEntries(
-  Object.entries(CATEGORY_PREFIX).map(([prefix, category]) => [category, prefix]),
+  Object.entries(BUNDLE_CATEGORY_TO_ASSET).map(([prefix, category]) => [category, prefix]),
 );
 
 function buildEntries(

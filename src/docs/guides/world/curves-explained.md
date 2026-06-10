@@ -290,8 +290,14 @@ This is the main reason curves are powerful: you are not choosing from one baked
 | Operates in | 3D world space | 1D value space |
 | Input | World coordinates (x, y, z) | A single number |
 | Output | A density value | A remapped number |
-| Connected to | Other density nodes via ports | Density nodes that take a `Curve` port |
+| Connected to | Other density nodes via ports | `CurveMapper` **Curve** port (or inline `Curve` field) |
 | Evaluated | Once per voxel | Once per input value |
+
+### Hytale JSON vs TerraNova editor
+
+In **exported Hytale biomes**, curves are always **nested inline** on `CurveMapper` as `"Curve": { "Type": "Manual", "Points": […] }` — not separate graph nodes. TerraNova lets you edit that inline or wire a **Curve:Manual** node to the **Curve** port; export produces the same nested object. Density input uses **`Inputs[]`** in JSON and the **Input** port in the editor.
+
+See [Hytale CurveMapper Conventions](../../reference/hytale-curvemapper-conventions.md) for release-asset statistics, canonical stacks, and anti-patterns (for example wiring **Manual → Sum**).
 
 A curve doesn't know or care about position. It just remaps numbers. The density node decides *which* number to pass in (a distance, a noise value, a density gradient) and applies the curve's remapping to it.
 

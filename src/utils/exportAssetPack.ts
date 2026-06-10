@@ -8,6 +8,14 @@ import { normalizeExport, isBiomeFile, isSettingsFile, internalToHytaleBiome } f
 import { isHytaleNativeFormat } from "@/utils/hytaleToInternal";
 import { exportAssetFile, copyFile, readAssetFile, listDirectory } from "@/utils/ipc";
 import type { DirectoryEntryData } from "@/utils/ipc";
+import {
+  deriveHytaleModIdentity,
+  isUnderDirectory,
+  resolveWorldgenV1ExportModsRoot,
+} from "@/utils/hytaleModPaths";
+import { useBridgeStore } from "@/stores/bridgeStore";
+import { normalizeMaterialSectionNodeTypes } from "@/utils/materialSectionNodes";
+import { sanitizeGraphNodesAndEdges } from "@/utils/sanitizeGraphNodes";
 
 /**
  * BFS upstream from a root node to collect all nodes feeding into it.
@@ -30,6 +38,19 @@ function getReachableNodeIds(
     }
   }
   return result;
+}
+
+function sanitizeBiomeSections<T extends { nodes: import("@xyflow/react").Node[]; edges: import("@xyflow/react").Edge[] }>(
+  sections: Record<string, T>,
+): Record<string, T> {
+  const sanitized: Record<string, T> = {};
+  for (const [key, section] of Object.entries(sections)) {
+    const { nodes, edges } = sanitizeGraphNodesAndEdges(section.nodes, section.edges);
+    sanitized[key] = nodes === section.nodes && edges === section.edges
+      ? section
+      : { ...section, nodes, edges };
+  }
+  return sanitized;
 }
 
 /**
@@ -96,15 +117,21 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
 
   // Biome files
   if (editingContext === "Biome" && originalWrapper && biomeConfig && biomeSections) {
-    const updatedSections = { ...biomeSections };
+    let updatedSections = { ...biomeSections };
     if (activeBiomeSection && updatedSections[activeBiomeSection]) {
+      const sectionNodes =
+        activeBiomeSection === "MaterialProvider"
+          ? normalizeMaterialSectionNodeTypes(structuredClone(nodes))
+          : structuredClone(nodes);
       updatedSections[activeBiomeSection] = {
         ...updatedSections[activeBiomeSection],
-        nodes: structuredClone(nodes),
+        nodes: sectionNodes,
         edges: structuredClone(edges),
         outputNodeId: outputNodeId ?? null,
       };
     }
+
+    updatedSections = sanitizeBiomeSections(updatedSections);
 
     const output = { ...originalWrapper } as Record<string, unknown>;
     output.Name = biomeConfig.Name;
@@ -116,7 +143,9 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
     }
 
     if (updatedSections["MaterialProvider"]) {
-      const matJson = graphToJson(updatedSections["MaterialProvider"].nodes, updatedSections["MaterialProvider"].edges);
+      const matNodes = normalizeMaterialSectionNodeTypes(updatedSections["MaterialProvider"].nodes);
+      const matEdges = updatedSections["MaterialProvider"].edges;
+      const matJson = graphToJson(matNodes, matEdges);
       if (matJson) output.MaterialProvider = matJson;
     }
 
@@ -130,20 +159,24 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
       const sectionNodes = section.nodes;
       const sectionEdges = section.edges;
 
-      const positionsRoot = sectionNodes.find((n) => (n.data as Record<string, unknown>)?._biomeField === "Positions");
-      const assignmentsRoot = sectionNodes.find((n) => (n.data as Record<string, unknown>)?._biomeField === "Assignments");
+      const positionsRoot = sectionNodes.find(
+        (n) => (n?.data as Record<string, unknown> | undefined)?._biomeField === "Positions",
+      );
+      const assignmentsRoot = sectionNodes.find(
+        (n) => (n?.data as Record<string, unknown> | undefined)?._biomeField === "Assignments",
+      );
 
       if (positionsRoot || assignmentsRoot) {
         if (positionsRoot) {
           const posNodeIds = getReachableNodeIds(positionsRoot.id, sectionNodes, sectionEdges);
-          const posNodes = sectionNodes.filter((n) => posNodeIds.has(n.id));
+          const posNodes = sectionNodes.filter((n) => n && posNodeIds.has(n.id));
           const posEdges = sectionEdges.filter((e) => posNodeIds.has(e.source) && posNodeIds.has(e.target));
           const posJson = graphToJson(posNodes, posEdges);
           if (posJson) propEntry.Positions = posJson;
         }
         if (assignmentsRoot) {
           const asgnNodeIds = getReachableNodeIds(assignmentsRoot.id, sectionNodes, sectionEdges);
-          const asgnNodes = sectionNodes.filter((n) => asgnNodeIds.has(n.id));
+          const asgnNodes = sectionNodes.filter((n) => n && asgnNodeIds.has(n.id));
           const asgnEdges = sectionEdges.filter((e) => asgnNodeIds.has(e.source) && asgnNodeIds.has(e.target));
           const asgnJson = graphToJson(asgnNodes, asgnEdges);
           if (asgnJson) propEntry.Assignments = asgnJson;
@@ -479,9 +512,12 @@ export async function exportAssetPack(): Promise<void> {
     }
 
     const exportPath = useSettingsStore.getState().exportPath;
+    const defaultExportDir =
+      exportPath ?? (await resolveWorldgenV1ExportModsRoot().catch(() => undefined));
     const targetDir = await open({
       directory: true,
-      defaultPath: exportPath ?? undefined,
+      defaultPath: defaultExportDir,
+      title: "Export asset pack (creates TerraNova.ProjectName folder here)",
     });
     if (!targetDir) return;
 
@@ -515,17 +551,12 @@ export async function exportAssetPack(): Promise<void> {
 
     // Derive mod identifiers and build the named mod folder inside the target directory.
     // Hytale manifest uses: Group (short org id), Name (hyphenated id), folder = Group.Name
-    const manifestName = terraNovaManifest?.name as string | undefined;
-    const projectName = manifestName || projectPath.split(/[/\\]/).pop() || "TerraNovaPack";
     const projectVersion = (terraNovaManifest?.version as string) || "1.0.0";
     const projectDescription = (terraNovaManifest?.description as string) || "";
-    const modGroup = "TerraNova";
-    let modName = projectName.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "");
-    // When falling back to folder name, strip modGroup prefix to avoid "TerraNova.TerraNova-..."
-    if (!manifestName && modName.toLowerCase().startsWith(`${modGroup.toLowerCase()}-`)) {
-      modName = modName.slice(modGroup.length + 1);
-    }
-    const modFolderName = `${modGroup}.${modName}`;
+    const { modGroup, modName, modFolderName } = deriveHytaleModIdentity(
+      terraNovaManifest,
+      projectPath.split(/[/\\]/).pop(),
+    );
     const modRoot = `${targetDir}/${modFolderName}`;
 
     let exportedCount = 0;
@@ -654,7 +685,16 @@ export async function exportAssetPack(): Promise<void> {
     if (missingBiomeRefs.length > 0) {
       addToast(`WorldStructure references biomes with no matching file: ${missingBiomeRefs.join(", ")}`, "error");
     }
-    addToast(`Remember to enable the mod in your server/world config.json`, "info");
+    const saveModsRoot = await resolveWorldgenV1ExportModsRoot().catch(() => null);
+    if (saveModsRoot && isUnderDirectory(modRoot, saveModsRoot)) {
+      useBridgeStore.getState().setServerModPath(modRoot);
+      addToast(
+        `Separate test mod installed under Worldgen V1. Bridge path set to ${modFolderName}. Enable the mod on this world, then Sync & Reload.`,
+        "info",
+      );
+    } else {
+      addToast(`Remember to enable the mod in your server/world config.json`, "info");
+    }
   } catch (err) {
     addToast(`Export failed: ${err}`, "error");
   }

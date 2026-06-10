@@ -8,6 +8,14 @@ import { useEditorStore } from "@/stores/editorStore";
 // Mock the stores
 vi.mock("@/stores/diagnosticsStore");
 vi.mock("@/stores/editorStore");
+vi.mock("@/stores/projectLegacyStore", () => ({
+  useProjectLegacyStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      hits: [],
+      busy: false,
+      scan: vi.fn(),
+    }),
+}));
 vi.mock("@/hooks/useTauriIO", () => ({
   useTauriIO: () => ({
     openFile: vi.fn(),

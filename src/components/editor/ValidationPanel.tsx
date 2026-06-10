@@ -1,4 +1,6 @@
 import type { KeyboardEvent } from "react";
+import { useMemo, useState } from "react";
+import { Search, X } from "lucide-react";
 import { useReactFlow } from "@xyflow/react";
 import { useDiagnosticsStore } from "@/stores/diagnosticsStore";
 import { useEditorStore } from "@/stores/editorStore";
@@ -12,6 +14,12 @@ import {
 } from "@/utils/environmentDelimiters";
 import { findAssetReferenceCandidates } from "@/utils/environmentAssetLookup";
 import { getLegacyReplacement } from "@/nodes/shared/legacyTypes";
+import { applyLegacyNodeReplacement } from "@/utils/legacyNodeReplace";
+import { useProjectLegacyStore } from "@/stores/projectLegacyStore";
+import {
+  formatLegacyHitLabel,
+  groupLegacyHitsByFile,
+} from "@/utils/projectLegacyScanner";
 
 const SEVERITY_ORDER: DiagnosticSeverity[] = ["error", "warning", "info"];
 
@@ -49,12 +57,34 @@ export function ValidationPanel() {
   const removeNodes = useEditorStore((s) => s.removeNodes);
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
+  const projectPath = useProjectStore((s) => s.projectPath);
+  const projectLegacyHits = useProjectLegacyStore((s) => s.hits);
+  const projectScanBusy = useProjectLegacyStore((s) => s.busy);
   const { openFile } = useTauriIO();
   const reactFlow = useReactFlow();
+  const [projectScanOpen, setProjectScanOpen] = useState(true);
+  const [diagnosticFilter, setDiagnosticFilter] = useState("");
+
+  const projectLegacyByFile = useMemo(
+    () => groupLegacyHitsByFile(projectLegacyHits),
+    [projectLegacyHits],
+  );
+
+  const filteredDiagnostics = useMemo(() => {
+    const q = diagnosticFilter.trim().toLowerCase();
+    if (!q) return diagnostics;
+    return diagnostics.filter((d) => {
+      const code = d.code?.toLowerCase() ?? "";
+      const message = d.message.toLowerCase();
+      const field = d.field?.toLowerCase() ?? "";
+      const severity = d.severity.toLowerCase();
+      return code.includes(q) || message.includes(q) || field.includes(q) || severity.includes(q);
+    });
+  }, [diagnostics, diagnosticFilter]);
 
   // Group by severity
   const grouped = new Map<DiagnosticSeverity, GraphDiagnostic[]>();
-  for (const d of diagnostics) {
+  for (const d of filteredDiagnostics) {
     const list = grouped.get(d.severity);
     if (list) {
       list.push(d);
@@ -293,21 +323,11 @@ export function ValidationPanel() {
         if (!diagnostic.nodeId) return;
         const typeKey = typeof diagnostic.meta?.legacyTypeKey === "string" ? diagnostic.meta.legacyTypeKey : null;
         const replacement = typeKey ? getLegacyReplacement(typeKey) : null;
-        if (replacement) {
-          // Swap the node type in-place, preserving position and edges
+        if (replacement && typeKey) {
           setNodes(
             nodes.map((n) => {
               if (n.id !== diagnostic.nodeId) return n;
-              const data = n.data as Record<string, unknown>;
-              // The bare type lives in data.type; node.type has the prefixed key
-              // For prefixed keys (e.g. "Curve:Blend") we update both
-              const newBareType = replacement.includes(":") ? replacement.split(":")[1] : replacement;
-              const newNodeType = replacement;
-              return {
-                ...n,
-                type: newNodeType,
-                data: { ...data, type: newBareType },
-              };
+              return applyLegacyNodeReplacement(n, typeKey, replacement);
             }),
           );
           setDirty(true);
@@ -331,7 +351,7 @@ export function ValidationPanel() {
     handleClick(diagnostic);
   }
 
-  if (diagnostics.length === 0) {
+  if (filteredDiagnostics.length === 0 && projectLegacyHits.length === 0 && !projectScanBusy && !diagnosticFilter.trim()) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-tn-text-muted gap-2 px-4" role="status" aria-live="polite">
         <span className="text-2xl text-green-400" aria-hidden="true">{"\u2714"}</span>
@@ -354,7 +374,7 @@ export function ValidationPanel() {
     counts.info > 0 && `${counts.info} info`,
   ].filter(Boolean);
 
-  const legacyDiagnostics = diagnostics.filter((d) => d.code === "legacy-node");
+  const legacyDiagnostics = filteredDiagnostics.filter((d) => d.code === "legacy-node");
 
   function handleRemoveAllLegacy() {
     const ids = legacyDiagnostics.map((d) => d.nodeId).filter((id): id is string => id !== null);
@@ -367,8 +387,38 @@ export function ValidationPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Summary header */}
-      <div className="shrink-0 px-3 py-2 border-b border-tn-border text-[11px] text-tn-text-muted flex flex-col gap-1">
-        <div>{summaryParts.join(", ")}</div>
+      <div className="shrink-0 px-3 py-2 border-b border-tn-border text-[11px] text-tn-text-muted flex flex-col gap-1.5">
+        {diagnostics.length > 0 && (
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-tn-text-muted/60 pointer-events-none" aria-hidden />
+            <input
+              type="search"
+              value={diagnosticFilter}
+              onChange={(e) => setDiagnosticFilter(e.target.value)}
+              placeholder="Filter issues…"
+              aria-label="Filter issues"
+              className="w-full rounded-md border border-tn-border bg-tn-bg pl-8 pr-7 py-1.5 text-[11px] text-tn-text placeholder:text-tn-text-muted/60 focus:outline-none focus:border-tn-accent/50"
+            />
+            {diagnosticFilter && (
+              <button
+                type="button"
+                onClick={() => setDiagnosticFilter("")}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-tn-text-muted hover:text-tn-text"
+                aria-label="Clear filter"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+        <div>
+          {summaryParts.length > 0 ? summaryParts.join(", ") : diagnosticFilter.trim() ? "No matching issues" : "No issues"}
+          {diagnosticFilter.trim() && diagnostics.length !== filteredDiagnostics.length && (
+            <span className="ml-1 text-[10px] text-tn-text-muted/70">
+              ({filteredDiagnostics.length} of {diagnostics.length})
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="rounded border border-tn-border bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-tn-text-muted">
             {assetValidationBadge.label}
@@ -419,6 +469,7 @@ export function ValidationPanel() {
                   <span className="flex-1 flex flex-col gap-0.5">
                     <span className="text-tn-text-muted leading-tight">{d.message}</span>
                     <span className="flex flex-wrap gap-1 text-[10px] text-tn-text-muted/70 uppercase tracking-wide">
+                      {d.code && <span className="normal-case font-mono text-[9px]">{d.code}</span>}
                       {d.field && <span>{d.field}</span>}
                       {getDelimiterIndex(d) !== null && <span>{`Delimiter [${getDelimiterIndex(d)}]`}</span>}
                       {d.biomeSection && <span>{`Jump to ${d.biomeSection}`}</span>}
@@ -460,6 +511,67 @@ export function ValidationPanel() {
           );
         })}
       </div>
+
+      {(projectPath || projectScanBusy) && (
+        <div className="shrink-0 border-t border-tn-border">
+          <button
+            type="button"
+            onClick={() => setProjectScanOpen((open) => !open)}
+            className="w-full px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-amber-300 hover:bg-white/5"
+          >
+            Project-wide
+            {projectScanBusy
+              ? " (scanning…)"
+              : projectLegacyHits.length > 0
+                ? ` (${projectLegacyHits.length})`
+                : " (clean)"}
+          </button>
+          {projectScanOpen && (
+            <div className="max-h-48 overflow-y-auto pb-2">
+              {!projectPath && (
+                <p className="px-3 py-1 text-[11px] text-tn-text-muted">Open a project to scan pack JSON files.</p>
+              )}
+              {projectPath && !projectScanBusy && projectLegacyHits.length === 0 && (
+                <p className="px-3 py-1 text-[11px] text-tn-text-muted">No legacy or deprecated nodes in Server/HytaleGenerator JSON.</p>
+              )}
+              {[...projectLegacyByFile.entries()].map(([file, hits]) => (
+                <div key={file} className="px-3 py-1">
+                  <button
+                    type="button"
+                    onClick={() => void openFile(file)}
+                    className="text-left text-[11px] text-tn-text hover:text-tn-accent truncate w-full"
+                    title={file}
+                  >
+                    {getCandidateLabel(file)}
+                    <span className="ml-1 text-[10px] text-amber-300">({hits.length})</span>
+                  </button>
+                  <ul className="mt-0.5 space-y-0.5 pl-2">
+                    {hits.map((hit, index) => (
+                      <li key={`${file}-${hit.nodeId ?? hit.typeKey}-${index}`} className="flex items-start gap-1">
+                        <span className="text-[10px] text-tn-text-muted leading-tight flex-1">
+                          {formatLegacyHitLabel(hit)}
+                        </span>
+                        {hit.replacement && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void navigator.clipboard.writeText(hit.replacement ?? "");
+                            }}
+                            className="shrink-0 rounded border border-tn-border bg-white/5 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-tn-text-muted hover:bg-white/10"
+                            title={`Copy replacement type ${hit.replacement}`}
+                          >
+                            Copy
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

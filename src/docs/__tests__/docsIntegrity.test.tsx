@@ -103,6 +103,7 @@ type CustomFenceLang = (typeof CUSTOM_FENCE_LANGS)[number];
 const SOURCE_CONTEXT_DOCS = [
   "reference/README.md",
   "reference/node-effects.md",
+  "reference/hytale-curvemapper-conventions.md",
   "glossary/README.md",
   "glossary/asset-node-editor-nodes.md",
   "guides/setup-data-flow-first-steps.md",
@@ -215,6 +216,7 @@ const PREVIEW_STALE_CLAIM_RULES: Array<{
 const TERRAIN_SOURCE_POOL_DOCS = [
   "reference/README.md",
   "reference/node-effects.md",
+  "reference/hytale-curvemapper-conventions.md",
   "reference/reading-the-graph.md",
   "reference/curves.md",
   "glossary/README.md",

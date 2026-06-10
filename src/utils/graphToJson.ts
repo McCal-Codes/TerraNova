@@ -1,4 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
+import { sanitizeGraphNodesAndEdges } from "./sanitizeGraphNodes";
 
 export interface V2Asset {
   Type: string;
@@ -26,7 +27,7 @@ function buildAsset(
   if (ancestors.has(nodeId)) return null; // actual cycle — break recursion
 
   const node = nodeMap.get(nodeId);
-  if (!node) return null;
+  if (!node?.data) return null;
 
   ancestors.add(nodeId);
   visited.add(nodeId);
@@ -74,7 +75,7 @@ const ANNOTATION_TYPES = new Set(["comment", "frame"]);
 
 function expandGroups(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   // Strip annotation-only node types that are never valid V2 assets
-  let currentNodes = nodes.filter((n) => !ANNOTATION_TYPES.has(n.type ?? ""));
+  let currentNodes = nodes.filter((n) => n && !ANNOTATION_TYPES.has(n.type ?? ""));
   let currentEdges = [...edges];
   let changed = true;
 
@@ -84,13 +85,13 @@ function expandGroups(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edg
     const nextEdges: Edge[] = [];
 
     for (const node of currentNodes) {
-      if (node.type !== "group") {
-        nextNodes.push(node);
+      if (!node || node.type !== "group") {
+        if (node) nextNodes.push(node);
         continue;
       }
 
       changed = true;
-      const data = node.data as Record<string, unknown>;
+      const data = (node.data ?? {}) as Record<string, unknown>;
       const internalNodes = (data.internalNodes as Node[]) ?? [];
       const internalEdges = (data.internalEdges as Edge[]) ?? [];
       const connectionMap = (data.externalConnectionMap as {
@@ -103,6 +104,7 @@ function expandGroups(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edg
       const offsetX = node.position.x - (internalNodes[0]?.position.x ?? 0);
       const offsetY = node.position.y - (internalNodes[0]?.position.y ?? 0);
       for (const n of internalNodes) {
+        if (!n?.id) continue;
         nextNodes.push({
           ...n,
           position: { x: n.position.x + offsetX, y: n.position.y + offsetY },
@@ -158,12 +160,12 @@ function prepareGraphData(nodes: Node[], edges: Edge[]) {
 
   const nodeMap = new Map<string, Node>();
   for (const node of nodes) {
-    nodeMap.set(node.id, node);
+    if (node?.id && node.data) nodeMap.set(node.id, node);
   }
 
   // Root nodes have no outgoing edges (no one uses them as a source)
   const sourceIds = new Set(edges.map((e) => e.source));
-  const rootCandidates = nodes.filter((n) => !sourceIds.has(n.id));
+  const rootCandidates = nodes.filter((n) => n && !sourceIds.has(n.id));
 
   return { incomingEdges, nodeMap, rootCandidates };
 }
@@ -173,6 +175,9 @@ function prepareGraphData(nodes: Node[], edges: Edge[]) {
  * Returns the first root's asset tree (backwards-compatible convenience wrapper).
  */
 export function graphToJson(nodes: Node[], edges: Edge[]): V2Asset | null {
+  const sanitized = sanitizeGraphNodesAndEdges(nodes, edges);
+  nodes = sanitized.nodes;
+  edges = sanitized.edges;
   if (nodes.length === 0) return null;
 
   const expanded = expandGroups(nodes, edges);
@@ -180,7 +185,7 @@ export function graphToJson(nodes: Node[], edges: Edge[]): V2Asset | null {
 
   // Check for user-designated output node first
   const outputNode = expanded.nodes.find(
-    (n) => (n.data as Record<string, unknown>)._outputNode === true,
+    (n) => n && (n.data as Record<string, unknown> | undefined)?._outputNode === true,
   );
 
   if (rootCandidates.length === 0 && !outputNode) {
@@ -190,11 +195,13 @@ export function graphToJson(nodes: Node[], edges: Edge[]): V2Asset | null {
   let primaryRoot: Node;
   let otherRoots: Node[];
 
-  if (outputNode) {
+  if (outputNode?.data) {
     primaryRoot = outputNode;
-    otherRoots = rootCandidates.filter((n) => n.id !== outputNode.id);
+    otherRoots = rootCandidates.filter((n) => n.id !== outputNode.id && n.data);
   } else {
-    const roots = rootCandidates.length > 0 ? rootCandidates : [expanded.nodes[0]];
+    const roots = (rootCandidates.length > 0 ? rootCandidates : expanded.nodes)
+      .filter((n) => n?.data);
+    if (roots.length === 0) return null;
     primaryRoot = roots[0];
     otherRoots = roots.slice(1);
   }
@@ -226,16 +233,20 @@ export function graphToJson(nodes: Node[], edges: Edge[]): V2Asset | null {
  * Returns one V2Asset per root node.
  */
 export function graphToJsonMulti(nodes: Node[], edges: Edge[]): V2Asset[] {
+  const sanitized = sanitizeGraphNodesAndEdges(nodes, edges);
+  nodes = sanitized.nodes;
+  edges = sanitized.edges;
   if (nodes.length === 0) return [];
 
   const expanded = expandGroups(nodes, edges);
   const { incomingEdges, nodeMap, rootCandidates } = prepareGraphData(expanded.nodes, expanded.edges);
 
-  const roots = rootCandidates.length > 0 ? rootCandidates : [expanded.nodes[0]];
+  const roots = (rootCandidates.length > 0 ? rootCandidates : expanded.nodes.filter(Boolean))
+    .filter((n) => n?.data);
 
   // Put the designated output node first if present
   const outputIdx = roots.findIndex(
-    (n) => (n.data as Record<string, unknown>)._outputNode === true,
+    (n) => n && (n.data as Record<string, unknown> | undefined)?._outputNode === true,
   );
   if (outputIdx > 0) {
     const [outputRoot] = roots.splice(outputIdx, 1);
@@ -244,6 +255,7 @@ export function graphToJsonMulti(nodes: Node[], edges: Edge[]): V2Asset[] {
 
   const results: V2Asset[] = [];
   for (const root of roots) {
+    if (!root?.id) continue;
     const asset = buildAsset(root.id, nodeMap, incomingEdges, new Set(), new Set());
     if (asset) results.push(asset);
   }

@@ -38,9 +38,18 @@ const handleDebug: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return ctx.getInput(inputs, "Input", x, y, z);
 };
 
-const handleCurveMapper: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleCurveMapper: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const inputVal = ctx.getInput(inputs, "Input", x, y, z);
-  return ctx.applyCurve("Curve", inputVal, inputs);
+  if (inputs.has("Curve")) {
+    return ctx.applyCurve("Curve", inputVal, inputs);
+  }
+  const inline = fields.Curve;
+  if (inline && typeof inline === "object" && !Array.isArray(inline)) {
+    const spec = inline as Record<string, unknown>;
+    const curveType = String(spec.Type ?? "Manual");
+    return ctx.evaluateCurveSpec(curveType, spec, inputVal);
+  }
+  return inputVal;
 };
 
 const handleSplineFunction: NodeHandler = (ctx, fields, inputs, x, y, z) => {

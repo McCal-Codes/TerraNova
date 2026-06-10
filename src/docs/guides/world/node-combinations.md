@@ -127,9 +127,9 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 
 ## 4. BaseHeight + CurveMapper (Height Profile)
 
-**What it does:** `BaseHeight` crosses 0 at a named height reference. `CurveMapper` remaps that anchor through a hand-drawn curve to sculpt the vertical terrain profile -- flat plains, sharp cliffs, or rolling hills.
+**What it does:** `BaseHeight` anchors terrain vertically. With **Distance: on**, `CurveMapper` remaps height offset into density for cliffs, plateaus, and rolling hills.
 
-**When to use it:** Every terrain setup needs this as its vertical backbone before adding noise.
+**When to use it:** Every terrain setup needs a vertical backbone before adding noise. Use **Distance: on** when CurveMapper shapes the profile.
 
 ```nodegraph
 {
@@ -518,7 +518,7 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "mn",  "to": "out" }
   ],
   "steps": [
-    { "nodeId": "bh",  "text": "BaseHeight -- the vertical zero-line. Outputs 0 at Y=64. Above 64 is positive (solid); below is negative (air). This is always the first node in any terrain graph." },
+    { "nodeId": "bh",  "text": "BaseHeight anchors terrain at the named height (Distance: off) or outputs height offset for CurveMapper (Distance: on). For this stack, use Distance: on when feeding CurveMapper." },
     { "nodeId": "cf",  "text": "CurveMapper shapes the terrain profile. The curve maps height values to new density values -- creating cliffs, plateaus, and slopes without any noise." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds organic horizontal variation. Low frequency (e.g. 0.005) gives broad rolling hills. Higher frequency gives rocky jagged surfaces." },
     { "nodeId": "sum", "text": "Sum combines the height profile and the noise into a single density field. Positive = solid, negative = air. This is your base terrain before caves are carved." },

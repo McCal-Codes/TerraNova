@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { internalToHytaleBiome } from "../internalToHytale";
 import {
   extractPreservedNodeEditorMetadata,
+  generateHytaleNodeEditorMetadata,
   mergePreservedNodeEditorMetadata,
 } from "../nodeEditorMetadata";
 
@@ -68,5 +69,21 @@ describe("nodeEditorMetadata preservation", () => {
     const meta = biome.$NodeEditorMetadata as Record<string, unknown>;
     expect(meta.$WorkspaceID).toBe("workspace-123");
     expect(meta.$Links).toEqual([{ $from: "n1", $to: "n2" }]);
+  });
+
+  it("skips graph nodes missing data or array holes", () => {
+    const metadata = generateHytaleNodeEditorMetadata([
+      { id: "bad", type: "Material:Imported", position: { x: 0, y: 0 } } as never,
+      undefined,
+      {
+        id: "ok",
+        type: "Constant",
+        position: { x: 1, y: 2 },
+        data: { type: "Constant", fields: {} },
+      },
+    ] as never[]);
+    const nodes = metadata.$Nodes as Record<string, Record<string, unknown>>;
+    expect(nodes.bad).toBeUndefined();
+    expect(nodes.ok.$Position).toEqual({ $x: 1, $y: 2 });
   });
 });

@@ -1,5 +1,6 @@
 type EventMap = {
   "project:close": void;
+  "project:file-saved": { path: string };
   "editor:dirty": void;
 };
 

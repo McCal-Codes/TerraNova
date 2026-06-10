@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { lazy, Suspense, useState, useCallback, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AssetTree } from "@/components/sidebar/AssetTree";
 import { FileActions } from "@/components/sidebar/FileActions";
@@ -6,17 +6,27 @@ import { NodePalette } from "@/components/editor/NodePalette";
 import { BookmarkPanel } from "@/components/editor/BookmarkPanel";
 import { CenterPanel } from "@/components/editor/CenterPanel";
 import { PropertyPanel } from "@/components/properties/PropertyPanel";
-import { DocsPanel } from "@/components/docs/DocsPanel";
+
+const DocsPanel = lazy(() =>
+  import("@/components/docs/DocsPanel").then((m) => ({ default: m.DocsPanel })),
+);
 import { HistoryPanel } from "@/components/editor/HistoryPanel";
 import { ValidationPanel } from "@/components/editor/ValidationPanel";
 import { Toolbar } from "@/components/layout/Toolbar";
 import { useGraphDiagnostics } from "@/hooks/useGraphDiagnostics";
+import { PreviewEvaluationHost } from "@/components/preview/PreviewEvaluationHost";
 import { useSessionRestoreFile } from "@/hooks/useSessionRestore";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { useUIStore, type SidebarSectionId } from "@/stores/uiStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useDiagnosticsStore } from "@/stores/diagnosticsStore";
+import { useProjectLegacyStore } from "@/stores/projectLegacyStore";
+import { computeIssueBadgeCount } from "@/utils/issueBadgeCount";
+import { useDeveloperMode } from "@/hooks/useDeveloperMode";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { DevToolsPanel } from "@/components/dev/DevToolsPanel";
+import { ChromeIconButton, SegmentTabBar } from "@/components/ui/editorChrome";
 
 const MIN_PANEL_WIDTH = 180;
 const DEFAULT_LEFT = 240;
@@ -113,68 +123,34 @@ function BookmarkSection() {
 
 function TabSidebar() {
   const [leftTab, setLeftTab] = useState<LeftTab>("nodes");
+  const diagnosticsCount = useDiagnosticsStore((s) => s.diagnostics.length);
+  const projectLegacyHits = useProjectLegacyStore((s) => s.hits);
+  const currentFile = useProjectStore((s) => s.currentFile);
+  const issueCount = computeIssueBadgeCount(diagnosticsCount, projectLegacyHits, currentFile);
+
+  const sidebarTabs = [
+    { id: "nodes" as const, label: "Nodes" },
+    { id: "files" as const, label: "Files" },
+    { id: "history" as const, label: "History" },
+    {
+      id: "validation" as const,
+      label: "Issues",
+      badge: issueCount > 0 ? (
+        <span className="rounded-full bg-amber-500/20 px-1.5 text-[9px] font-medium text-amber-400">
+          {issueCount}
+        </span>
+      ) : undefined,
+    },
+  ];
 
   return (
     <>
-      {/* Tab bar */}
-      <div className="flex border-b border-tn-border shrink-0" role="tablist" aria-label="Editor sidebar tabs">
-        <button
-          className={`flex-1 px-3 py-1.5 text-xs font-medium ${
-            leftTab === "nodes"
-              ? "text-tn-accent border-b-2 border-tn-accent"
-              : "text-tn-text-muted hover:text-tn-text"
-          }`}
-          onClick={() => setLeftTab("nodes")}
-          role="tab"
-          aria-selected={leftTab === "nodes"}
-          aria-controls="nodes-panel"
-          id="tab-nodes"
-        >
-          Nodes
-        </button>
-        <button
-          className={`flex-1 px-3 py-1.5 text-xs font-medium ${
-            leftTab === "files"
-              ? "text-tn-accent border-b-2 border-tn-accent"
-              : "text-tn-text-muted hover:text-tn-text"
-          }`}
-          onClick={() => setLeftTab("files")}
-          role="tab"
-          aria-selected={leftTab === "files"}
-          aria-controls="files-panel"
-          id="tab-files"
-        >
-          Files
-        </button>
-        <button
-          className={`flex-1 px-3 py-1.5 text-xs font-medium ${
-            leftTab === "history"
-              ? "text-tn-accent border-b-2 border-tn-accent"
-              : "text-tn-text-muted hover:text-tn-text"
-          }`}
-          onClick={() => setLeftTab("history")}
-          role="tab"
-          aria-selected={leftTab === "history"}
-          aria-controls="history-panel"
-          id="tab-history"
-        >
-          History
-        </button>
-        <button
-          className={`flex-1 px-3 py-1.5 text-xs font-medium ${
-            leftTab === "validation"
-              ? "text-tn-accent border-b-2 border-tn-accent"
-              : "text-tn-text-muted hover:text-tn-text"
-          }`}
-          onClick={() => setLeftTab("validation")}
-          role="tab"
-          aria-selected={leftTab === "validation"}
-          aria-controls="validation-panel"
-          id="tab-validation"
-        >
-          Issues
-        </button>
-      </div>
+      <SegmentTabBar
+        tabs={sidebarTabs}
+        active={leftTab}
+        onChange={setLeftTab}
+        ariaLabel="Editor sidebar"
+      />
 
       {/* Tab content — both rendered always; inactive hidden via CSS to preserve state */}
       <div className="flex-1 overflow-y-auto">
@@ -209,7 +185,10 @@ function AccordionSidebar() {
   const toggleSection = useUIStore((s) => s.toggleSection);
   const reorderSections = useUIStore((s) => s.reorderSections);
   const bookmarkCount = useUIStore((s) => s.bookmarks.size);
-  const issueCount = useDiagnosticsStore((s) => s.diagnostics.length);
+  const diagnosticsCount = useDiagnosticsStore((s) => s.diagnostics.length);
+  const projectLegacyHits = useProjectLegacyStore((s) => s.hits);
+  const currentFile = useProjectStore((s) => s.currentFile);
+  const issueCount = computeIssueBadgeCount(diagnosticsCount, projectLegacyHits, currentFile);
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -292,6 +271,7 @@ export function PanelLayout() {
   const initial = loadPersistedWidths();
   const [leftWidth, setLeftWidth] = useState(initial.left);
   const [rightWidth, setRightWidth] = useState(initial.right);
+  const [docsPanelMounted, setDocsPanelMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const leftPanelVisible = useUIStore((s) => s.leftPanelVisible);
@@ -299,12 +279,20 @@ export function PanelLayout() {
   const rightPanelMode = useUIStore((s) => s.rightPanelMode);
   const setRightPanelVisible = useUIStore((s) => s.setRightPanelVisible);
   const setRightPanelMode = useUIStore((s) => s.setRightPanelMode);
+
+  useEffect(() => {
+    if (rightPanelMode === "docs") {
+      setDocsPanelMounted(true);
+    }
+  }, [rightPanelMode]);
   const useAccordion = useUIStore((s) => s.useAccordionSidebar);
   const compactAssetInspector = useUIStore((s) => s.compactAssetInspector);
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const rawJsonContent = useEditorStore((s) => s.rawJsonContent);
   const currentFile = useProjectStore((s) => s.currentFile);
   const assetInspectorActive = !selectedNodeId && Boolean(rawJsonContent) && isAssetInspectorFile(currentFile);
+  const devActive = useDeveloperMode();
+  const showDevToolsDock = useSettingsStore((s) => s.showDevToolsDock);
   const displayRightWidth = compactAssetInspector && assetInspectorActive
     ? Math.min(rightWidth, COMPACT_RIGHT)
     : rightWidth;
@@ -364,7 +352,9 @@ export function PanelLayout() {
   );
 
   return (
-    <div ref={containerRef} className="flex flex-1 overflow-hidden">
+    <>
+      <PreviewEvaluationHost />
+      <div ref={containerRef} className="flex flex-1 overflow-hidden">
       {/* Left sidebar */}
       {leftPanelVisible && (
         <>
@@ -384,20 +374,23 @@ export function PanelLayout() {
       )}
 
       {/* Center: editor canvas */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col min-h-0">
         <Toolbar />
-        <CenterPanel />
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <CenterPanel />
+          {devActive && showDevToolsDock && <DevToolsPanel />}
+        </div>
       </div>
 
       {!rightPanelVisible && (
-        <button
-          type="button"
-          onClick={() => setRightPanelVisible(true)}
-          title="Show Right Panel"
-          className="flex w-7 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface/90 text-tn-text-muted transition-colors hover:bg-tn-surface hover:text-tn-text"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
+        <div className="flex w-8 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface/90">
+          <ChromeIconButton
+            size="sm"
+            label="Show right panel"
+            onClick={() => setRightPanelVisible(true)}
+            icon={<ChevronLeft className="h-4 w-4" strokeWidth={2} />}
+          />
+        </div>
       )}
 
       {/* Right panel */}
@@ -409,50 +402,36 @@ export function PanelLayout() {
             onMouseDown={handleDrag("right")}
           />
 
-          <button
-            type="button"
-            onClick={() => setRightPanelVisible(false)}
-            title="Hide Right Panel"
-            className="flex w-7 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface/90 text-tn-text-muted transition-colors hover:bg-tn-surface hover:text-tn-text"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          <div className="flex w-8 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface/90">
+            <ChromeIconButton
+              size="sm"
+              label="Hide right panel"
+              onClick={() => setRightPanelVisible(false)}
+              icon={<ChevronRight className="h-4 w-4" strokeWidth={2} />}
+            />
+          </div>
 
           {/* Right panel: properties / docs — both stay mounted so scroll+state is preserved */}
           <div
             className="flex flex-col bg-tn-surface border-l border-tn-border overflow-hidden shrink-0 transition-all duration-150 min-h-0"
             style={{ width: displayRightWidth }}
           >
-            <div className="flex items-center border-b border-tn-border bg-tn-panel/70 px-3 py-2">
-              <button
-                type="button"
-                className={`text-[11px] font-semibold px-2 py-1 rounded ${
-                  rightPanelMode === "properties"
-                    ? "bg-tn-accent/20 text-tn-text"
-                    : "text-tn-text-muted hover:bg-tn-accent/10"
-                }`}
-                onClick={() => setRightPanelMode("properties")}
-                title="Properties (Ctrl+`)"
-              >
-                Properties
-              </button>
-              <button
-                type="button"
-                className={`ml-2 text-[11px] font-semibold px-2 py-1 rounded ${
-                  rightPanelMode === "docs"
-                    ? "bg-tn-accent/20 text-tn-text"
-                    : "text-tn-text-muted hover:bg-tn-accent/10"
-                }`}
-                onClick={() => setRightPanelMode("docs")}
-                title="Docs (Ctrl+`)"
-              >
-                Docs
-              </button>
-              <div className="flex-1" />
-            </div>
-            {/* Keep both mounted so DocsPanel preserves scroll + nav history when switching */}
+            <SegmentTabBar
+              tabs={[
+                { id: "properties" as const, label: "Properties" },
+                { id: "docs" as const, label: "Docs" },
+              ]}
+              active={rightPanelMode}
+              onChange={(mode) => setRightPanelMode(mode)}
+              ariaLabel="Right panel"
+            />
+            {/* Lazy-mount docs on first visit; keep mounted afterward for scroll + nav history */}
             <div className={`flex-1 min-h-0 ${rightPanelMode === "docs" ? "flex flex-col" : "hidden"}`}>
-              <DocsPanel />
+              {docsPanelMounted && (
+                <Suspense fallback={<div className="flex flex-1 items-center justify-center text-xs text-tn-text-muted">Loading docs…</div>}>
+                  <DocsPanel />
+                </Suspense>
+              )}
             </div>
             <div className={`flex-1 min-h-0 ${rightPanelMode === "properties" ? "flex flex-col" : "hidden"}`}>
               <PropertyPanel />
@@ -461,5 +440,6 @@ export function PanelLayout() {
         </>
       )}
     </div>
+    </>
   );
 }

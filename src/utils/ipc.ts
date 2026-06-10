@@ -72,6 +72,11 @@ export async function writeTextFile(path: string, content: string): Promise<void
   return invoke("write_text_file", { path, content });
 }
 
+/** Write text to a user-chosen export path (save dialog). */
+export async function exportTextFile(path: string, content: string): Promise<void> {
+  return invoke("export_text_file", { path, content });
+}
+
 export async function pathExists(path: string): Promise<boolean> {
   return invoke<boolean>("path_exists", { path });
 }
@@ -103,6 +108,27 @@ export interface HytaleAssetSyncResult {
 
 export async function getHytaleAssetCacheRoot(): Promise<string> {
   return invoke<string>("get_hytale_asset_cache_root");
+}
+
+export interface BlockAssetIndexData {
+  textureIndex: Record<string, string>;
+  modelIndex: Record<string, Array<{ relPath: string; absPath: string }>>;
+  modelTexIndex: Record<string, string>;
+  decoThemes: Record<string, string>;
+}
+
+export async function scanHytaleBlockAssetIndex(): Promise<BlockAssetIndexData> {
+  return invoke<BlockAssetIndexData>("scan_hytale_block_asset_index");
+}
+
+export async function resolveHytalePrefabPath(
+  relativePath: string,
+  projectRoot?: string | null,
+): Promise<string> {
+  return invoke<string>("resolve_hytale_prefab_path", {
+    relativePath,
+    projectRoot: projectRoot ?? null,
+  });
 }
 
 export async function countHytaleAssetsToSync(
@@ -213,6 +239,45 @@ export async function createBlankProject(targetPath: string): Promise<void> {
   return invoke("create_blank_project", { targetPath });
 }
 
+export interface PackWizardConfig {
+  targetPath: string;
+  packGroup: string;
+  packName: string;
+  worldStructureTemplate: string;
+  biomeName: string;
+  biomeTemplate: string;
+  includeStarterProps: boolean;
+  starterPrefabPath?: string | null;
+  primaryMaterialBlockId?: string | null;
+  atmosphereMode: string;
+  atmosphereImportId?: string | null;
+  instanceName: string;
+  gameMode: string;
+}
+
+export interface PackWizardResult {
+  biomeFilePath: string;
+  atmosphereImportFallback: boolean;
+  environmentFilePath?: string | null;
+  weatherFilePath?: string | null;
+}
+
+export async function createPackWizard(config: PackWizardConfig): Promise<PackWizardResult> {
+  return invoke<PackWizardResult>("create_pack_wizard", { config });
+}
+
+export interface PackWizardBundleTemplate {
+  id: string;
+  displayName: string;
+  description: string;
+  biomeRelativePath: string;
+  hasWorldStructure: boolean;
+}
+
+export async function listPackWizardBundleTemplates(): Promise<PackWizardBundleTemplate[]> {
+  return invoke<PackWizardBundleTemplate[]>("list_pack_wizard_bundle_templates");
+}
+
 export async function showInFolder(path: string): Promise<void> {
   return invoke("show_in_folder", { path });
 }
@@ -237,6 +302,62 @@ export interface ServerStatus {
   player_count: number;
   port: number;
   singleplayer?: boolean;
+  save_root?: string;
+  bridge_mode?: string;
+  /** Sidecar/plugin feature flags (e.g. save_chunks, queue_console_commands). */
+  capabilities?: string[];
+}
+
+export interface SaveModPackEntry {
+  folderName: string;
+  path: string;
+  hasManifest: boolean;
+  hasWorldgen: boolean;
+  isBridgePack: boolean;
+}
+
+export interface InstanceWorldStatus {
+  worldId: string;
+  label: string;
+  worldStructure?: string;
+  isLive: boolean;
+}
+
+export interface BridgeDiscovery {
+  portOpen: boolean;
+  saveName: string;
+  saveRoot?: string;
+  modPackPath?: string;
+  modPackFolder?: string;
+  saveModPacks?: SaveModPackEntry[];
+  bridgeModPackPath?: string;
+  suggestedModPackPath?: string;
+  enabledModIds?: string[];
+  playerWorldLabel?: string;
+  playerWorldSource?: string;
+  /** Raw PlayerData.World — may lag after instance hops. */
+  playerSaveWorldId?: string;
+  hytaleSessionActive?: boolean;
+  playerWorldLive?: boolean;
+  playerPositionStale?: boolean;
+  /** per_world | server_log | player_save */
+  playerPositionSource?: string;
+  /** Player chunk column exists in save `*.region.bin` (same instance slug counts). */
+  playerChunkOnDisk?: boolean;
+  instanceWorlds?: InstanceWorldStatus[];
+  configPath?: string;
+  authTokenFromConfig?: string;
+  bridgeVersion?: string;
+  bridgeMode?: string;
+  playerName?: string;
+  playerWorld?: string;
+  playerX?: number;
+  playerY?: number;
+  playerZ?: number;
+  chunkX?: number;
+  chunkZ?: number;
+  singleplayer?: boolean;
+  error?: string;
 }
 
 export interface BridgeResponse {
@@ -251,9 +372,69 @@ export interface PlayerInfo {
   y?: number;
   z?: number;
   world?: string;
+  worldLabel?: string;
+  positionSource?: string;
+}
+
+/** Structured diagnostics for Bridge troubleshooting (save, log, player resolution). */
+export interface BridgeDebugSnapshot {
+  saveRoot: string;
+  saveExists: boolean;
+  bridgeConfigExists: boolean;
+  preferLiveSignals: boolean;
+  sessionActive: boolean;
+  serverLogPath?: string;
+  serverLogAgeSecs?: number;
+  logWorldStack?: string;
+  activePlayerFile?: string;
+  playerFileAgeSecs?: number;
+  resolvedWorldId?: string;
+  resolvedWorldLabel?: string;
+  resolvedWorldSource?: string;
+  resolvedPositionSource?: string;
+  resolvedX?: number;
+  resolvedY?: number;
+  resolvedZ?: number;
+  playerChunkOnDisk?: boolean;
+  sidecarSaveRoot?: string;
+  saveRootMismatch: boolean;
+  pendingCommandLines: string[];
+  warnings: string[];
 }
 
 // ── Bridge IPC wrappers ──
+
+export async function bridgeDebugSnapshot(options?: {
+  saveName?: string;
+  saveRoot?: string;
+  modPackPath?: string;
+  host?: string;
+  port?: number;
+}): Promise<BridgeDebugSnapshot> {
+  return invoke<BridgeDebugSnapshot>("bridge_debug_snapshot", {
+    saveName: options?.saveName ?? null,
+    saveRoot: options?.saveRoot ?? null,
+    modPackPath: options?.modPackPath ?? null,
+    host: options?.host ?? null,
+    port: options?.port ?? null,
+  });
+}
+
+export async function bridgeDiscover(options?: {
+  saveName?: string;
+  saveRoot?: string;
+  modPackPath?: string;
+  host?: string;
+  port?: number;
+}): Promise<BridgeDiscovery> {
+  return invoke<BridgeDiscovery>("bridge_discover", {
+    saveName: options?.saveName ?? null,
+    saveRoot: options?.saveRoot ?? null,
+    modPackPath: options?.modPackPath ?? null,
+    host: options?.host ?? null,
+    port: options?.port ?? null,
+  });
+}
 
 export async function bridgeConnect(host: string, port: number, authToken: string): Promise<ServerStatus> {
   return invoke<ServerStatus>("bridge_connect", { host, port, authToken });
@@ -298,6 +479,8 @@ export interface ChunkDataResponse {
   sizeZ: number;
   blocks: number[];
   heightmap: number[];
+  /** `"save"` from region file, `"synthetic"` sidecar fallback */
+  dataSource?: "save" | "synthetic";
 }
 
 export interface BlockPaletteResponse {

@@ -80,7 +80,22 @@ describe("BiomeDashboard", () => {
       <BiomeDashboard onBiomeConfigChange={noop} onBlur={noop} />,
     );
 
-    expect(screen.getByText("Default")).toBeTruthy();
+    expect(screen.getByText("uses server default")).toBeTruthy();
+  });
+
+  it("shows uses server default for empty EnvironmentProvider", () => {
+    setupBiomeState();
+    useEditorStore.setState({
+      biomeConfig: {
+        ...useEditorStore.getState().biomeConfig!,
+        EnvironmentProvider: {},
+      },
+    });
+    render(
+      <BiomeDashboard onBiomeConfigChange={noop} onBlur={noop} />,
+    );
+
+    expect(screen.getByText("uses server default")).toBeTruthy();
   });
 
   it("renders section summary cards with node counts", () => {

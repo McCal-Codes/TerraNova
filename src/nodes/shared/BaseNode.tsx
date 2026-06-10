@@ -4,9 +4,21 @@ import { Handle, useStore, type NodeProps, type Node } from "@xyflow/react";
 import type { HandleDef } from "./handles";
 import { getHandleColor, INPUT_HANDLE_COLOR } from "./handles";
 import { AssetCategory, CATEGORY_COLORS, EvalStatus } from "@/schema/types";
-import { ROW_H, handleTop, inputPosition, outputPosition, inputSide, outputSide } from "./nodeLayout";
+import {
+  ROW_H,
+  handleTop,
+  resolveHandleRow,
+  isPortLabelSignificant,
+  inputPosition,
+  outputPosition,
+  inputSide,
+  outputSide,
+} from "./nodeLayout";
 import { usePreviewStore } from "@/stores/previewStore";
 import { NodeThumbnail } from "@/components/nodes/NodeThumbnail";
+import { PropPlacementMiniCanvas } from "@/components/nodes/PropPlacementMiniCanvas";
+import { PrefabPreviewMini } from "@/components/nodes/PrefabPreviewMini";
+import { usePropEditingContext } from "@/hooks/usePropEditingContext";
 import { useLanguage } from "@/languages/useLanguage";
 import { getEvalStatus } from "@/utils/densityEvaluator";
 import { NODE_TIPS } from "@/schema/nodeTips";
@@ -15,10 +27,16 @@ import { useDragStore } from "@/stores/dragStore";
 import { isAcceptableTarget } from "@/hooks/useConnectionSuggestions";
 import type { DiagnosticSeverity } from "@/utils/graphDiagnostics";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { useEditorStore } from "@/stores/editorStore";
 import { getDensityAccentColor } from "@/schema/densitySubcategories";
+import { densitySkipsInlinePreview } from "@/utils/densityNoInlinePreview";
 import { getHandles } from "@/nodes/handleRegistry";
-import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
+import { CATEGORY_TO_EDITOR_PREFIX } from "@/schema/categoryPrefixes";
+import {
+  getDeprecationTier,
+  getLegacyReplacement,
+} from "@/nodes/shared/legacyTypes";
 import { getBridgeInfo } from "@/data/bridgeRegistry";
 import { getSchemaPortDescription } from "@/schema/schemaLoader";
 
@@ -85,15 +103,6 @@ const SHADOW_OUTPUT = "0 0 0 2px #f59e0b, 0 0 12px rgba(245,158,11,0.4), 0 2px 8
 const SHADOW_SELECTED = "0 0 0 2px #f59e0b, 0 2px 8px rgba(0,0,0,0.4)";
 const SHADOW_DEFAULT = "0 2px 8px rgba(0,0,0,0.4)";
 
-/** Returns true if the label conveys meaningful type info beyond generic "Input"/"Output". */
-function isLabelSignificant(label: string): boolean {
-  if (label === "Input" || label === "Output") return false;
-  if (/^Input \d+$/.test(label) || /^Output \d+$/.test(label)) return false;
-  if (/^Input [A-Z]$/.test(label)) return false;
-  if (/^Entry \d+$/.test(label)) return false;
-  return true;
-}
-
 export interface BaseNodeData extends Record<string, unknown> {
   type: string;
   fields: Record<string, any>;
@@ -112,6 +121,7 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
   const nodeData = data as unknown as BaseNodeData;
   const headerColor = CATEGORY_COLORS[category];
   const showThumbnails = usePreviewStore((s) => s.showInlinePreviews);
+  const { isPropContext } = usePropEditingContext();
   const { getTypeDisplayName } = useLanguage();
   const rfType = type ?? nodeData.type;
   const rfDisplayName = getTypeDisplayName(rfType);
@@ -119,13 +129,20 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
   const displayName = customLabel || ((rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(nodeData.type));
   const isLocked = useEditorStore((s) => s.nodes.find((n) => n.id === id)?.draggable === false);
   const flowDirection = useSettingsStore((s) => s.flowDirection);
+  const devActive = useDeveloperMode();
+  const showNodeIdsOnCanvas = useSettingsStore((s) => s.showNodeIdsOnCanvas);
   const inPos = inputPosition(flowDirection);
   const outPos = outputPosition(flowDirection);
   const inSide = inputSide(flowDirection);
   const outSide = outputSide(flowDirection);
 
   const isOutputNode = !!(data as Record<string, unknown>)._outputNode;
+  const inspectorNote =
+    typeof nodeData.fields?._comment === "string" ? nodeData.fields._comment.trim() : "";
   const isDensity = category === AssetCategory.Density;
+  const showPlacementMini = showThumbnails && isPropContext && category === AssetCategory.PositionProvider;
+  const showPrefabMini = showThumbnails && isPropContext && (type === "Prop:Prefab" || nodeData.type === "Prefab");
+  const showDensityThumb = showThumbnails && isDensity && !showPrefabMini && !densitySkipsInlinePreview(nodeData.type);
   const densitySubColor = isDensity ? getDensityAccentColor(nodeData.type) : undefined;
   const effectiveColor = densitySubColor ?? headerColor;
   const evalStatus = isDensity ? getEvalStatus(nodeData.type) : null;
@@ -134,30 +151,11 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
   const tips = NODE_TIPS[rfType] ?? NODE_TIPS[nodeData.type];
   const headerTip = tips?.[0]?.message;
 
-  // Determine legacy status — density nodes use bare type, others use "Category:Type"
-  const CATEGORY_TO_PREFIX: Partial<Record<AssetCategory, string>> = {
-    [AssetCategory.Curve]: "Curve",
-    [AssetCategory.MaterialProvider]: "Material",
-    [AssetCategory.Pattern]: "Pattern",
-    [AssetCategory.PositionProvider]: "Position",
-    [AssetCategory.Prop]: "Prop",
-    [AssetCategory.EnvironmentProvider]: "Environment",
-    [AssetCategory.TintProvider]: "Tint",
-    [AssetCategory.Directionality]: "Directionality",
-    [AssetCategory.Scanner]: "Scanner",
-    [AssetCategory.PropDistribution]: "PropDistribution",
-    [AssetCategory.Condition]: "Condition",
-    [AssetCategory.Layer]: "Layer",
-    [AssetCategory.PointGenerator]: "PointGenerator",
-    [AssetCategory.Terrain]: "Terrain",
-    [AssetCategory.CaveGenerator]: "CaveGenerator",
-    [AssetCategory.Generator]: "Generator",
-    [AssetCategory.Biome]: "Biome",
-    [AssetCategory.WorldStructure]: "WorldStructure",
-  };
-  const legacyPrefix = CATEGORY_TO_PREFIX[category];
+  const legacyPrefix = CATEGORY_TO_EDITOR_PREFIX[category];
   const legacyKey = legacyPrefix ? `${legacyPrefix}:${nodeData.type}` : nodeData.type;
-  const isLegacy = isLegacyTypeKey(legacyKey);
+  const deprecationTier = getDeprecationTier(legacyKey);
+  const isLegacy = deprecationTier !== "active";
+  const legacyReplacement = isLegacy ? getLegacyReplacement(legacyKey) : null;
 
   // Connection suggestion highlight
   const connectingCategory = useDragStore((s) => s.connectingCategory);
@@ -238,6 +236,15 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
             <span className="block text-[9px] font-normal opacity-50">{nodeData.type}</span>
           )}
         </div>
+        {inspectorNote && (
+          <span
+            className="shrink-0 px-1 py-px rounded text-[8px] font-bold leading-none"
+            style={{ backgroundColor: "rgba(251, 191, 36, 0.35)", color: "#fde68a" }}
+            title={inspectorNote}
+          >
+            NOTE
+          </span>
+        )}
         {isLocked && (
           <span
             className="shrink-0 opacity-70 text-[10px] leading-none"
@@ -257,10 +264,14 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
         {isLegacy && (
           <span
             className="shrink-0 px-1 py-px rounded text-[8px] font-bold leading-none"
-            style={{ backgroundColor: "#d97706", color: "#000" }}
-            title="Legacy type: not present in the Hytale pre-release API"
+            style={{ backgroundColor: deprecationTier === "legacy" ? "#d97706" : "#f59e0b", color: "#000" }}
+            title={
+              legacyReplacement
+                ? `${deprecationTier === "legacy" ? "Legacy" : "Deprecated"} type — prefer ${legacyReplacement}`
+                : `${deprecationTier === "legacy" ? "Legacy" : "Deprecated"} type — removed or superseded in current Hytale generator API`
+            }
           >
-            LEGACY
+            {deprecationTier === "legacy" ? "LEGACY" : "DEPRECATED"}
           </span>
         )}
         {bridgeInfo && (
@@ -305,10 +316,11 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
         <div className="relative" style={{ height: maxRows * ROW_H }}>
           {/* Input handles + labels + tooltips */}
           {inputs.map((handle, i) => {
+            const row = resolveHandleRow(i, "input", inputs.length, outputs.length);
             const portDesc = getSchemaPortDescription(nodeData.type, handle.id);
             return (
             <Fragment key={handle.id}>
-              <div className="group" style={{ position: "absolute", [inSide]: -7, top: handleTop(i), transform: "translateY(-50%)" }}>
+              <div className="group" style={{ position: "absolute", [inSide]: -7, top: handleTop(row), transform: "translateY(-50%)" }}>
                 <Handle
                   type="target"
                   position={inPos}
@@ -333,13 +345,13 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
                   )}
                 </div>
               </div>
-              {(isLabelSignificant(handle.label) || showIndex) && (
+              {(isPortLabelSignificant(handle.label) || showIndex) && (
                 <div
                   className={`absolute ${inSide}-4 text-xs text-tn-text-muted`}
-                  style={{ top: handleTop(i), transform: "translateY(-50%)" }}
+                  style={{ top: handleTop(row), transform: "translateY(-50%)" }}
                 >
                   {showIndex
-                    ? isLabelSignificant(handle.label) ? `[${i}] ${handle.label}` : `[${i}]`
+                    ? isPortLabelSignificant(handle.label) ? `[${i}] ${handle.label}` : `[${i}]`
                     : handle.label}
                 </div>
               )}
@@ -349,10 +361,11 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
 
           {/* Output handles + labels + tooltips */}
           {outputs.map((handle, i) => {
+            const row = resolveHandleRow(i, "output", inputs.length, outputs.length);
             const outPortDesc = getSchemaPortDescription(nodeData.type, handle.id);
             return (
             <Fragment key={handle.id}>
-              <div className="group" style={{ position: "absolute", [outSide]: -7, top: handleTop(i), transform: "translateY(-50%)" }}>
+              <div className="group" style={{ position: "absolute", [outSide]: -7, top: handleTop(row), transform: "translateY(-50%)" }}>
                 <Handle
                   type="source"
                   position={outPos}
@@ -377,13 +390,13 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
                   )}
                 </div>
               </div>
-              {(isLabelSignificant(handle.label) || showOutputIndex) && (
+              {(isPortLabelSignificant(handle.label) || showOutputIndex) && (
                 <div
                   className={`absolute ${outSide}-4 text-xs text-tn-text-muted`}
-                  style={{ top: handleTop(i), transform: "translateY(-50%)" }}
+                  style={{ top: handleTop(row), transform: "translateY(-50%)" }}
                 >
                   {showOutputIndex
-                    ? isLabelSignificant(handle.label) ? `[${i}] ${handle.label}` : `[${i}]`
+                    ? isPortLabelSignificant(handle.label) ? `[${i}] ${handle.label}` : `[${i}]`
                     : handle.label}
                 </div>
               )}
@@ -406,12 +419,23 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
       )}
 
       {/* Inline thumbnail zone */}
-      {showThumbnails && isDensity && (
+      {(showDensityThumb || showPlacementMini || showPrefabMini) && (
         <div
           className="px-3 pt-1 pb-2 flex justify-center"
           style={{ borderTop: `1px solid ${effectiveColor}33` }}
         >
-          <NodeThumbnail nodeId={id} />
+          {showDensityThumb && <NodeThumbnail nodeId={id} />}
+          {showPlacementMini && <PropPlacementMiniCanvas nodeId={id} />}
+          {showPrefabMini && <PrefabPreviewMini fields={nodeData.fields ?? {}} />}
+        </div>
+      )}
+
+      {devActive && showNodeIdsOnCanvas && (
+        <div
+          className="px-2 py-0.5 text-[8px] font-mono text-white/45 truncate border-t border-white/10"
+          title={id}
+        >
+          {id}
         </div>
       )}
     </div>

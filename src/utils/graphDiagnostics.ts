@@ -3,8 +3,10 @@ import type { BaseNodeData } from "@/nodes/shared/BaseNode";
 import { getHandles, findHandleDef } from "@/nodes/handleRegistry";
 import { getConstraints, OUTPUT_RANGES } from "@/schema/constraints";
 import { validateFields } from "@/schema/validation";
-import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
+import { isDeprecatedOrLegacyTypeKey, getLegacyReplacement, getDeprecationTier } from "@/nodes/shared/legacyTypes";
+import { nodeTypes } from "@/nodes/index";
 import { getEvalStatus } from "@/utils/densityEvaluator";
+import { findDensityRoot } from "./density/evalTypes";
 import { EvalStatus } from "@/schema/types";
 import {
   cloneDelimiterRecords,
@@ -12,7 +14,20 @@ import {
   validateEnvironmentDelimiters,
 } from "@/utils/environmentDelimiters";
 import type { AssetReferenceKind } from "@/utils/environmentAssetLookup";
+import { usesServerDefaultEnvironment } from "@/utils/atmosphere";
 import connectionsData from "@/data/connections.json";
+import {
+  CURVE_INPUT_HANDLE_IDS,
+  hasInlineCurveField,
+  isCurveFieldConstraintSatisfied,
+} from "@/utils/propertyPanelFields";
+import {
+  getCurveMapperManualInRange,
+  isBaseHeightDistanceInput,
+  isLikelyNormalizedCurveOnBlockOffsetInput,
+  resolveCurveMapperInputNode,
+} from "@/utils/curveMapperDiagnostics";
+import { sumHasRawNoisePlusHeightCurveMapper } from "@/utils/sumTerrainPattern";
 
 // ── Hytale known environment names (from Server/Environments/) ──────────────
 
@@ -86,8 +101,16 @@ export type GraphDiagnosticCode =
   | "biome-tint-unknown-ref"
   | "biome-name-missing"
   | "legacy-node"
+  | "unknown-node-type"
   | "prop-conditional-lossy-export"
-  | "material-block-unknown";
+  | "material-block-unknown"
+  | "assignment-import-unknown-ref"
+  | "duplicate-export-as"
+  | "prop-prefab-incomplete"
+  | "column-scanner-range"
+  | "curvemapper-in-range-mismatch"
+  | "curvemapper-out-range-hint"
+  | "sum-raw-noise-height-curvemapper";
 
 export interface GraphDiagnostic {
   nodeId: string | null;
@@ -99,16 +122,17 @@ export interface GraphDiagnostic {
   meta?: Record<string, unknown>;
 }
 
-const UNSUPPORTED_TYPES = new Set([
-  "HeightAboveSurface",
-  "SurfaceDensity",
-  "TerrainBoolean",
-  "TerrainMask",
-  "BeardDensity",
-  "ColumnDensity",
-  "CaveDensity",
-  "Imported",
-]);
+function collectUpstreamIds(
+  nodeId: string,
+  reverseAdj: Map<string, string[]>,
+  out: Set<string>,
+): void {
+  if (out.has(nodeId)) return;
+  out.add(nodeId);
+  for (const src of reverseAdj.get(nodeId) ?? []) {
+    collectUpstreamIds(src, reverseAdj, out);
+  }
+}
 
 function getNodeType(node: Node): string {
   return (node.data as BaseNodeData).type ?? "";
@@ -135,6 +159,7 @@ function buildKnownAssetNameSets(knownAssetNames?: KnownAssetNameMap | null): Re
     tint: new Set<string>(),
     material: new Set<string>(),
     prop: new Set<string>(),
+    assignment: new Set<string>(),
   };
 
   if (!knownAssetNames) return sets;
@@ -158,6 +183,7 @@ function getImportedAssetKind(node: Node): AssetReferenceKind | null {
   if (rfType === "Tint:Imported") return "tint";
   if (rfType === "Material:Imported") return "material";
   if (rfType === "Prop:Imported") return "prop";
+  if (rfType === "Assignment:Imported") return "assignment";
   return null;
 }
 
@@ -171,7 +197,41 @@ function getAssetKindLabel(kind: AssetReferenceKind): string {
       return "Material";
     case "prop":
       return "Prop";
+    case "assignment":
+      return "Assignment";
   }
+}
+
+interface InlineImportedRef {
+  fieldPath: string;
+  name: string;
+}
+
+/** Collect inline `Type: Imported` Name references from nested field trees. */
+export function collectInlineImportedRefs(
+  value: unknown,
+  fieldPath = "root",
+  out: InlineImportedRef[] = [],
+): InlineImportedRef[] {
+  if (!value || typeof value !== "object") return out;
+  const row = value as Record<string, unknown>;
+  if (row.Type === "Imported") {
+    const name = typeof row.Name === "string" ? row.Name.trim() : "";
+    if (name) {
+      out.push({ fieldPath, name });
+    }
+  }
+  for (const [key, child] of Object.entries(row)) {
+    if (key.startsWith("$") || key === "_comment") continue;
+    if (Array.isArray(child)) {
+      child.forEach((item, index) => {
+        collectInlineImportedRefs(item, `${fieldPath}.${key}[${index}]`, out);
+      });
+    } else if (child && typeof child === "object") {
+      collectInlineImportedRefs(child, `${fieldPath}.${key}`, out);
+    }
+  }
+  return out;
 }
 
 function isEnvironmentDensityDelimitedNode(node: Node): boolean {
@@ -227,12 +287,19 @@ export function analyzeGraph(
     const handles = getHandles(type);
     if (!handles.length) continue;
 
+    const fields = getNodeFields(node);
     const connectedHandles = incomingByTarget.get(node.id) ?? new Set();
     const inputHandles = handles.filter((h) => h.type === "target");
     const showIdx = inputHandles.length >= 2;
     for (let idx = 0; idx < inputHandles.length; idx++) {
       const handle = inputHandles[idx];
       if (!connectedHandles.has(handle.id)) {
+        if (
+          CURVE_INPUT_HANDLE_IDS.has(handle.id)
+          && hasInlineCurveField(fields, "Curve")
+        ) {
+          continue;
+        }
         const label = showIdx ? `[${idx}] ${handle.label}` : handle.label;
         diagnostics.push({
           nodeId: node.id,
@@ -243,13 +310,31 @@ export function analyzeGraph(
     }
   }
 
-  // 2. Unsupported preview types
+  // 2. Unsupported / approximated preview types on evaluation path
+  const previewReverseAdj = new Map<string, string[]>();
+  for (const edge of edges) {
+    if (!previewReverseAdj.has(edge.target)) previewReverseAdj.set(edge.target, []);
+    previewReverseAdj.get(edge.target)!.push(edge.source);
+  }
+  const previewRoot = findDensityRoot(nodes, edges);
+  const onPreviewPath = new Set<string>();
+  if (previewRoot) {
+    collectUpstreamIds(previewRoot.id, previewReverseAdj, onPreviewPath);
+  }
+
   for (const node of nodes) {
     const type = getNodeType(node);
-    if (UNSUPPORTED_TYPES.has(type)) {
+    const status = getEvalStatus(type);
+    if (status === EvalStatus.Unsupported) {
       diagnostics.push({
         nodeId: node.id,
         message: `${type}: not supported in preview (returns 0)`,
+        severity: onPreviewPath.has(node.id) ? "warning" : "info",
+      });
+    } else if (status === EvalStatus.Approximated && onPreviewPath.has(node.id)) {
+      diagnostics.push({
+        nodeId: node.id,
+        message: `${type}: approximated preview semantics on evaluation path`,
         severity: "info",
       });
     }
@@ -269,18 +354,34 @@ export function analyzeGraph(
     }
   }
 
-  // 2b. Legacy node warnings
+  // 2b. Legacy / deprecated node warnings
   for (const node of nodes) {
     const type = getNodeType(node);
-    // Density nodes use bare type; for others, the node.type from ReactFlow includes the prefix
     const nodeTypeKey = node.type ?? type;
-    if (isLegacyTypeKey(nodeTypeKey)) {
+    if (isDeprecatedOrLegacyTypeKey(nodeTypeKey)) {
+      const tier = getDeprecationTier(nodeTypeKey);
+      const replacement = getLegacyReplacement(nodeTypeKey);
+      const preferMsg = replacement ? ` — prefer ${replacement}` : "";
       diagnostics.push({
         nodeId: node.id,
-        message: `${type}: legacy type not present in the Hytale pre-release API`,
+        message: `${type}: ${tier} type superseded in the current Hytale generator API${preferMsg}`,
         severity: "warning",
         code: "legacy-node",
-        meta: { legacyTypeKey: nodeTypeKey },
+        meta: { legacyTypeKey: nodeTypeKey, deprecationTier: tier, replacement },
+      });
+    } else if (
+      nodeTypeKey
+      && nodeTypeKey !== "default"
+      && nodeTypeKey !== "comment"
+      && nodeTypeKey !== "frame"
+      && !(nodeTypeKey in nodeTypes)
+    ) {
+      diagnostics.push({
+        nodeId: node.id,
+        message: `${type}: unknown node type "${nodeTypeKey}" — not registered in TerraNova`,
+        severity: "warning",
+        code: "unknown-node-type",
+        meta: { nodeTypeKey },
       });
     }
   }
@@ -428,9 +529,21 @@ export function analyzeGraph(
     const fields = getNodeFields(node);
     const issues = validateFields(fields, constraints);
     for (const issue of issues) {
+      const constraint = constraints[issue.field];
+      if (
+        issue.severity === "error"
+        && constraint?.required
+        && isCurveFieldConstraintSatisfied(
+          issue.field,
+          fields,
+          node.id,
+          incomingByTarget,
+        )
+      ) {
+        continue;
+      }
       const isMissingImportName =
         getImportedAssetKind(node) !== null && issue.field === "Name";
-      const constraint = constraints[issue.field];
       diagnostics.push({
         nodeId: node.id,
         message: `${typeKey}.${issue.field}: ${issue.message}`,
@@ -511,6 +624,108 @@ export function analyzeGraph(
       field: "Name",
       meta: { assetKind, importName },
     });
+  }
+
+  // 8c2. Inline Imported assignment references (FieldFunction delimiters, weighted entries, etc.)
+  const knownAssignments = knownAssetSets.assignment;
+  if (knownAssignments.size > 0) {
+    for (const node of nodes) {
+      const fields = getNodeFields(node);
+      const inlineRefs = collectInlineImportedRefs(fields);
+      for (const ref of inlineRefs) {
+        if (knownAssignments.has(normalizeKnownName(ref.name))) continue;
+        diagnostics.push({
+          nodeId: node.id,
+          message: `Imported assignment "${ref.name}" not found under Server/HytaleGenerator/Assignments`,
+          severity: "warning",
+          code: "assignment-import-unknown-ref",
+          field: ref.fieldPath,
+          meta: { assetKind: "assignment", importName: ref.name },
+        });
+      }
+    }
+  }
+
+  // 8c3. Duplicate ExportAs names across nodes
+  const exportAsOwners = new Map<string, string[]>();
+  for (const node of nodes) {
+    const fields = getNodeFields(node);
+    const exportAs = typeof fields.ExportAs === "string" ? fields.ExportAs.trim() : "";
+    if (!exportAs) continue;
+    const key = normalizeKnownName(exportAs);
+    const owners = exportAsOwners.get(key) ?? [];
+    owners.push(node.id);
+    exportAsOwners.set(key, owners);
+  }
+  for (const [, ownerIds] of exportAsOwners) {
+    if (ownerIds.length <= 1) continue;
+    const sampleNode = nodes.find((n) => n.id === ownerIds[0]);
+    const sampleExportAs = sampleNode
+      ? (typeof getNodeFields(sampleNode).ExportAs === "string" ? getNodeFields(sampleNode).ExportAs as string : "")
+      : "";
+    for (const nodeId of ownerIds) {
+      diagnostics.push({
+        nodeId,
+        message: `Duplicate ExportAs "${sampleExportAs}" — shared by ${ownerIds.length} nodes`,
+        severity: "error",
+        code: "duplicate-export-as",
+        field: "ExportAs",
+        meta: { exportAs: sampleExportAs, ownerIds },
+      });
+    }
+  }
+
+  // 8c4. Prop completeness (Prefab paths, Column material/stack)
+  for (const node of nodes) {
+    const typeKey = node.type ?? "";
+    if (typeKey === "Prop:Prefab" || getNodeType(node) === "Prefab") {
+      const fields = getNodeFields(node);
+      const paths = fields.WeightedPrefabPaths;
+      const singlePath = typeof fields.Path === "string" ? fields.Path.trim() : "";
+      const hasPaths = Array.isArray(paths) && paths.some(
+        (p) => p && typeof p === "object" && typeof (p as { Path?: string }).Path === "string"
+          && ((p as { Path: string }).Path).trim(),
+      );
+      if (!hasPaths && !singlePath) {
+        diagnostics.push({
+          nodeId: node.id,
+          message: "Prefab prop has no prefab path — nothing will place",
+          severity: "warning",
+          code: "prop-prefab-incomplete",
+          field: "WeightedPrefabPaths",
+        });
+      }
+    }
+    if (typeKey === "Prop:Column" || getNodeType(node) === "Column") {
+      const fields = getNodeFields(node);
+      const blocks = fields.ColumnBlocks;
+      const hasBlocks = Array.isArray(blocks) && blocks.length > 0;
+      const hasHeightMaterial = fields.Material != null && fields.Material !== "";
+      if (!hasBlocks && !hasHeightMaterial) {
+        diagnostics.push({
+          nodeId: node.id,
+          message: "Column prop has no blocks or material configured",
+          severity: "warning",
+          code: "prop-prefab-incomplete",
+          field: "ColumnBlocks",
+        });
+      }
+      const scanner = fields.Scanner as Record<string, unknown> | undefined;
+      if (scanner?.Type === "ColumnLinear") {
+        const minY = typeof scanner.MinY === "number" ? scanner.MinY : null;
+        const maxY = typeof scanner.MaxY === "number" ? scanner.MaxY : null;
+        if (minY != null && maxY != null && maxY - minY > 512) {
+          diagnostics.push({
+            nodeId: node.id,
+            message: `Column scanner Y span (${maxY - minY}) exceeds 512 — may be slow or unintended`,
+            severity: "warning",
+            code: "column-scanner-range",
+            field: "Scanner",
+            meta: { minY, maxY, span: maxY - minY },
+          });
+        }
+      }
+    }
   }
 
   // 8d. Environment:DensityDelimited delimiter validation
@@ -644,6 +859,51 @@ export function analyzeGraph(
     }
   }
 
+  // 10b. CurveMapper curve In range vs BaseHeight Distance input
+  for (const node of nodes) {
+    const typeKey = getNodeType(node);
+    if (typeKey !== "CurveMapper" && typeKey !== "CurveFunction") continue;
+
+    const inputNode = resolveCurveMapperInputNode(node.id, nodes, edges);
+    if (!isBaseHeightDistanceInput(inputNode)) continue;
+
+    const inRange = getCurveMapperManualInRange(node, nodes, edges);
+    if (!inRange) continue;
+
+    if (isLikelyNormalizedCurveOnBlockOffsetInput(inRange)) {
+      diagnostics.push({
+        nodeId: node.id,
+        message:
+          `CurveMapper curve In range [${inRange.minIn}, ${inRange.maxIn}] looks normalized (0–1) but Input is BaseHeight Distance (block offsets). Use In = blocks from surface (e.g. -80…120) and Out = density — flat terrain / solid slab preview otherwise.`,
+        severity: "warning",
+        code: "curvemapper-in-range-mismatch",
+        field: "Curve",
+      });
+    } else if (inRange.minOut >= 0) {
+      diagnostics.push({
+        nodeId: node.id,
+        message:
+          `CurveMapper curve Out never goes negative (min Out ${inRange.minOut}) — air may not form above the surface; Out should cross below 0 above ground.`,
+        severity: "info",
+        code: "curvemapper-out-range-hint",
+        field: "Curve",
+      });
+    }
+  }
+
+  // 10c. Sum(SimplexNoise, CurveMapper(BaseHeight)) — sparse pillars / void (not Example_Curve_Mapper)
+  for (const node of nodes) {
+    if (getNodeType(node) !== "Sum") continue;
+    if (!sumHasRawNoisePlusHeightCurveMapper(node.id, nodes, edges)) continue;
+    diagnostics.push({
+      nodeId: node.id,
+      message:
+        "Sum adds raw noise directly with a BaseHeight CurveMapper — this often yields pillars and void, not continuous ground. Use two CurveMappers like Examples/Example_Curve_Mapper.json: CurveMapper(noise) + CurveMapper(BaseHeight Distance).",
+      severity: "warning",
+      code: "sum-raw-noise-height-curvemapper",
+    });
+  }
+
   return diagnostics;
 }
 
@@ -682,6 +942,7 @@ export function analyzeBiome(
 
   // Check EnvironmentProvider references
   const envProvider = biomeConfig.EnvironmentProvider;
+  const envUsesServerDefault = usesServerDefaultEnvironment(envProvider);
   if (!envProvider) {
     diags.push({
       nodeId: null,
@@ -722,7 +983,7 @@ export function analyzeBiome(
     }
     if (
       refs.length === 0
-      && envProviderType !== "Default"
+      && !envUsesServerDefault
       && envProviderType !== "Imported"
       && envProviderType !== "Exported"
     ) {

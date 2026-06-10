@@ -153,9 +153,9 @@ export const SchemaFields = memo(function SchemaFields({
       {displayable.map((def) => {
         const value = fields[def.name];
         return (
-          <div key={def.name} className="flex justify-between">
-            <span className="text-tn-text-muted">{getLabel(def.name)}</span>
-            <span>{formatFieldValue(value, def)}</span>
+          <div key={def.name} className="flex items-start justify-between gap-2 min-w-0">
+            <span className="text-tn-text-muted shrink-0">{getLabel(def.name)}</span>
+            <span className="min-w-0 truncate text-right">{formatFieldValue(value, def)}</span>
           </div>
         );
       })}

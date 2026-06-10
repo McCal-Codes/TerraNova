@@ -104,6 +104,17 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Prepare release notes
+        if: inputs.publish
+        id: release_notes
+        run: |
+          BODY=$(node scripts/release-notes.mjs "${{ inputs.version }}")
+          {
+            echo "body<<RELEASE_BODY_EOF"
+            echo "$BODY"
+            echo "RELEASE_BODY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and release (signed)
         if: inputs.publish && inputs.sign
         uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
@@ -116,6 +127,7 @@ jobs:
           updaterJsonPreferNsis: true
           tagName: ${{ inputs.tag }}
           releaseName: 'TerraNova ${{ inputs.tag }}'
+          releaseBody: ${{ steps.release_notes.outputs.body }}
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.rust_target != '' && format('--target {0}', matrix.rust_target) || '' }}
@@ -129,6 +141,7 @@ jobs:
           includeUpdaterJson: false
           tagName: ${{ inputs.tag }}
           releaseName: 'TerraNova ${{ inputs.tag }}'
+          releaseBody: ${{ steps.release_notes.outputs.body }}
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.rust_target != '' && format('--no-sign --target {0}', matrix.rust_target) || '--no-sign' }}

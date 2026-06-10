@@ -17,13 +17,30 @@ jobs:
     outputs:
       version: ${{ steps.v.outputs.version }}
       tag: ${{ steps.v.outputs.tag }}
+      sign: ${{ steps.v.outputs.sign }}
     steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
       - id: v
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
           VERSION="${TAG#v}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if echo "$VERSION" | grep -qE '-(alpha|beta|rc)\.'; then
+            echo "sign=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "sign=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify tag matches package.json
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$PKG_VERSION" != "${{ steps.v.outputs.version }}" ]; then
+            echo "Tag version (${{ steps.v.outputs.version }}) must match package.json ($PKG_VERSION)"
+            exit 1
+          fi
+          node scripts/release-notes.mjs "${{ steps.v.outputs.version }}" >/dev/null
 
   package:
     needs: resolve
@@ -32,5 +49,5 @@ jobs:
       version: ${{ needs.resolve.outputs.version }}
       tag: ${{ needs.resolve.outputs.tag }}
       publish: true
-      sign: true
+      sign: ${{ needs.resolve.outputs.sign == 'true' }}
     secrets: inherit

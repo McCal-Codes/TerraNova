@@ -1,0 +1,56 @@
+name: Alpha Feedback
+description: Share closed-alpha testing feedback that is not a specific bug or feature request.
+title: "[Alpha]: "
+labels: ["alpha", "feedback"]
+body:
+  - type: input
+    id: appVersion
+    attributes:
+      label: App Version
+      placeholder: 0.1.8-alpha.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of TerraNova did you exercise?
+      options:
+        - Onboarding
+        - Create Pack
+        - Preview
+        - Export
+        - Bridge
+        - Pack backup
+        - Bug reporter
+        - Editor
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Feedback
+      description: What worked well, felt confusing, or needs polish before wider release?
+      placeholder: |
+        Example: Preview settings sidebar was easy to find after I noticed the toolbar Settings button.
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestions
+    attributes:
+      label: Suggestions (optional)
+      description: Concrete improvements or missing affordances you noticed while testing.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Confirmation Checklist
+      options:
+        - label: I searched [existing issues](https://github.com/McCal-Codes/TerraNova/issues) and this is not a duplicate bug report.
+          required: true
+        - label: I agree to follow this project's [Code of Conduct](https://github.com/McCal-Codes/TerraNova/blob/main/CODE_OF_CONDUCT.md).
+          required: true

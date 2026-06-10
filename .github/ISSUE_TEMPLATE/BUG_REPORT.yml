@@ -9,7 +9,7 @@ body:
     attributes:
       label: App Version
       description: The version of TerraNova you have installed (shown in the title bar or About dialog)
-      placeholder: 0.1.7-beta.1
+      placeholder: 0.1.8-alpha.1
     validations:
       required: true
 
@@ -43,6 +43,7 @@ body:
         - Export
         - Bridge
         - Create Pack
+        - Onboarding
         - Import
         - Editor
         - Other
@@ -50,6 +51,7 @@ body:
       required: true
 
   - type: textarea
+    id: description
     attributes:
       label: Bug Description
       description: Provide a clear and concise description of the issue or unexpected behavior.
@@ -58,6 +60,7 @@ body:
       required: true
 
   - type: textarea
+    id: steps
     attributes:
       label: Steps to Reproduce
       description: Provide a detailed, step-by-step guide on how to reproduce the issue.
@@ -70,6 +73,7 @@ body:
       required: true
 
   - type: textarea
+    id: expected
     attributes:
       label: Expected Behavior
       description: Provide a detailed explanation of what you expected to happen instead of the observed issue. Be as specific as possible.
@@ -103,10 +107,24 @@ body:
       description: If the issue involves a specific asset pack or biome file, describe its structure (number of nodes, file size, etc.)
 
   - type: textarea
+    id: attachments
+    attributes:
+      label: Attachments (screenshots & files)
+      description: |
+        GitHub cannot accept uploads via the in-app issue link. After opening this form:
+        1. Paste the Session snapshot JSON below.
+        2. Drag screenshots or files from the paths listed in the copied report onto this issue body.
+        3. Or use **Capture preview screenshot** / **Attach files** in Settings → File a Bug Report first.
+      placeholder: |
+        Attached:
+        - preview-screenshot.png
+        - terranova-bug-report-bundle.json
+
+  - type: textarea
     id: screenshots
     attributes:
-      label: Media
-      description: If available, please upload screenshots or videos to illustrate the issue.
+      label: Media notes (optional)
+      description: Describe any screenshots or videos if you cannot attach them here.
 
   - type: textarea
     id: informationContext

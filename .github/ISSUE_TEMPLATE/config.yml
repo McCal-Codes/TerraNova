@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Join the HyperSystems Discord
-    url: https://discord.gg/SNPjyfkYPc
-    about: Come and chat with other players and the HyperSystems team!
-  - name: HyperSystems Website
-    url: https://hypersystems.dev
-    about: Visit our website for more information about HyperSystems.
+  - name: TerraNova Discord
+    url: https://discord.gg/NHPzsjkQeu
+    about: Support and closed-alpha feedback for TerraNova testers.
+  - name: TerraNova Releases
+    url: https://github.com/McCal-Codes/TerraNova/releases
+    about: Download the latest alpha builds for Windows, macOS, and Linux.
   - name: "TerraNova Documentation"
     url: "https://github.com/McCal-Codes/TerraNova#readme"
     about: "Find guides and documentation for TerraNova."

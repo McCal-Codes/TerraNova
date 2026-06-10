@@ -8,7 +8,12 @@ on:
         required: true
         type: string
       publish:
-        description: 'Create draft GitHub prerelease with artifacts'
+        description: 'Create draft GitHub prerelease with artifacts (run once with false to verify builds first)'
+        required: false
+        type: boolean
+        default: false
+      sign:
+        description: 'Sign updater artifacts (requires TAURI_SIGNING_* secrets; leave false for manual-download alpha)'
         required: false
         type: boolean
         default: false
@@ -48,10 +53,16 @@ jobs:
       - name: Validate
         run: pnpm validate
 
-      - name: Changelog version reminder
+      - name: Alpha cut checklist
         run: |
-          echo "Packaging version: ${{ inputs.version }}"
-          echo "Before publish: promote docs/CHANGELOG.md Unreleased to [${{ inputs.version }}] and paste sections into the GitHub release body."
+          echo "Version: ${{ inputs.version }}"
+          echo "publish=${{ inputs.publish }} sign=${{ inputs.sign }}"
+          echo ""
+          echo "Best practice (see docs/BETA_TESTING.md):"
+          echo "  1. Run with publish=false to verify all platform builds."
+          echo "  2. Re-run with publish=true for a draft prerelease."
+          echo "  3. Paste docs/CHANGELOG.md [${{ inputs.version }}] sections into the release body."
+          echo "  4. Keep sign=false until TAURI_SIGNING_* secrets and tauri.conf.json pubkey are configured."
 
   package:
     needs: gate
@@ -60,4 +71,5 @@ jobs:
       version: ${{ inputs.version }}
       tag: v${{ inputs.version }}
       publish: ${{ inputs.publish }}
+      sign: ${{ inputs.sign }}
     secrets: inherit

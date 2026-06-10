@@ -9,7 +9,7 @@ import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { FlowDirection } from "@/constants";
-import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, type AssetStalenessInfo } from "@/utils/ipc";
+import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, backupPackDirectory, showInFolder, type AssetStalenessInfo } from "@/utils/ipc";
 import { formatHytaleSyncToast, runHytaleAssetSync } from "@/utils/hytaleAssetSyncAction";
 import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolders";
 import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
@@ -24,10 +24,18 @@ import { clearHardwareDetectionCache, detectHardware, type HardwareInfo } from "
 import { isTauriRuntime } from "@/utils/platform";
 import { getAppVersion } from "@/utils/fetchReleases";
 import { copyTextToClipboard } from "@/utils/devTools";
-import { buildBugReportBundle } from "@/utils/bugReport";
+import { buildBugReportBundle, formatBugReportClipboard } from "@/utils/bugReport";
 import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { useDevMetricsStore } from "@/stores/devMetricsStore";
 import { DevSettingRow } from "@/components/dev/devUi";
+import { useProjectStore } from "@/stores/projectStore";
+import {
+  CLOSED_ALPHA_PACK_BACKUP_ENABLED,
+  clearAllPackBackupSkips,
+  formatPackBackupTimestamp,
+  formatPackPathLabel,
+  suggestPackBackupPath,
+} from "@/utils/alphaPackBackup";
 
 function getWhatsNewSuppressed(): boolean {
   try { return localStorage.getItem(WHATS_NEW_SUPPRESS_KEY) === "true"; } catch { return false; }
@@ -111,6 +119,11 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const setDebugWorkerLogging = useSettingsStore((s) => s.setDebugWorkerLogging);
   const showNodeIdsOnCanvas = useSettingsStore((s) => s.showNodeIdsOnCanvas);
   const setShowNodeIdsOnCanvas = useSettingsStore((s) => s.setShowNodeIdsOnCanvas);
+  const packBackupPromptEnabled = useSettingsStore((s) => s.packBackupPromptEnabled);
+  const setPackBackupPromptEnabled = useSettingsStore((s) => s.setPackBackupPromptEnabled);
+  const packBackupParentFolder = useSettingsStore((s) => s.packBackupParentFolder);
+  const setPackBackupParentFolder = useSettingsStore((s) => s.setPackBackupParentFolder);
+  const projectPath = useProjectStore((s) => s.projectPath);
   const showPerformanceOverlay = useDevMetricsStore((s) => s.showPerformanceOverlay);
   const setShowPerformanceOverlay = useDevMetricsStore((s) => s.setShowPerformanceOverlay);
   const devActive = useDeveloperMode();
@@ -135,6 +148,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const [exampleReleasePath, setExampleReleasePath] = useState("");
   const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
   const [refreshingHardware, setRefreshingHardware] = useState(false);
+  const [packBackupBusy, setPackBackupBusy] = useState(false);
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -178,6 +192,54 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
     }
     const selected = await openDialog({ directory: true, defaultPath: exportPath ?? undefined });
     if (selected) setExportPath(selected);
+  }
+
+  async function handleBrowsePackBackupParent() {
+    if (!isTauriRuntime()) {
+      addToast("Folder browsing is available in the TerraNova desktop app.", "warning");
+      return;
+    }
+    const selected = await openDialog({
+      directory: true,
+      title: "Default pack backup folder",
+      defaultPath: packBackupParentFolder || projectPath || undefined,
+    });
+    if (typeof selected === "string") setPackBackupParentFolder(selected);
+  }
+
+  async function handleBackupCurrentProject() {
+    if (!projectPath?.trim()) {
+      addToast("Open a project first to back up its pack folder.", "warning");
+      return;
+    }
+    if (!isTauriRuntime()) {
+      addToast("Pack backup is available in the TerraNova desktop app.", "warning");
+      return;
+    }
+    setPackBackupBusy(true);
+    try {
+      const parent = packBackupParentFolder.trim() || undefined;
+      const destination = suggestPackBackupPath(projectPath, formatPackBackupTimestamp(), parent);
+      const result = await backupPackDirectory(projectPath, destination);
+      addToast(`Pack backed up (${result.filesCopied} files)`, "success", {
+        label: "Show backup",
+        onClick: () => {
+          void showInFolder(result.backupPath);
+        },
+      });
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : String(err), "error");
+    } finally {
+      setPackBackupBusy(false);
+    }
+  }
+
+  function handleClearPackBackupSkips() {
+    const removed = clearAllPackBackupSkips();
+    addToast(
+      removed > 0 ? `Cleared ${removed} pack skip flag${removed === 1 ? "" : "s"}` : "No skip flags to clear",
+      removed > 0 ? "success" : "info",
+    );
   }
 
   const activeHytaleSourcePath = hytaleAssetSourceChannel === "pre-release"
@@ -240,10 +302,6 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
     }
     if (!activeHytaleSourcePath.trim()) {
       addToast("Choose a Hytale asset source path first.", "warning");
-      return;
-    }
-    if (hytaleCommonAssetsEnabled && !hytaleCommonAssetsPath.trim()) {
-      addToast("Choose a Common asset overlay path or turn it off.", "warning");
       return;
     }
     try {
@@ -446,6 +504,73 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                     </div>
                   )}
                 </div>
+
+                {CLOSED_ALPHA_PACK_BACKUP_ENABLED && (
+                  <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
+                    <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Pack backup (alpha)</label>
+                    <button
+                      onClick={() => setPackBackupPromptEnabled(!packBackupPromptEnabled)}
+                      className={`text-left px-3 py-2 rounded border text-sm ${
+                        packBackupPromptEnabled
+                          ? "border-tn-accent bg-tn-accent/10"
+                          : "border-tn-border bg-tn-bg hover:bg-tn-surface"
+                      }`}
+                    >
+                      <span className="font-medium">Prompt before opening packs</span>
+                      <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{packBackupPromptEnabled ? "On" : "Off"}</span>
+                      <p className="text-xs text-tn-text-muted mt-0.5">
+                        Offer a full folder copy when opening an existing pack via Open or Recent.
+                      </p>
+                    </button>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[11px] text-tn-text-muted">Default backup parent folder</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={packBackupParentFolder.trim() || "Beside pack (.terranova-backups)"}
+                          className="flex-1 px-3 py-1.5 rounded border border-tn-border bg-tn-bg text-sm text-tn-text-muted truncate font-mono text-[11px]"
+                        />
+                        <button
+                          onClick={() => void handleBrowsePackBackupParent()}
+                          className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap"
+                        >
+                          Browse…
+                        </button>
+                        <button
+                          onClick={() => setPackBackupParentFolder("")}
+                          className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted"
+                          disabled={!packBackupParentFolder.trim()}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      <p className="text-xs text-tn-text-muted">
+                        Leave empty to store backups in <span className="font-mono">.terranova-backups</span> next to each pack.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => void handleBackupCurrentProject()}
+                        disabled={!projectPath || packBackupBusy}
+                        className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {packBackupBusy ? "Backing up…" : "Back up open project now"}
+                      </button>
+                      <button
+                        onClick={handleClearPackBackupSkips}
+                        className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted"
+                      >
+                        Reset &quot;don&apos;t ask again&quot; list
+                      </button>
+                    </div>
+                    {projectPath && (
+                      <p className="text-[11px] text-tn-text-muted font-mono truncate">
+                        Open pack: {formatPackPathLabel(projectPath)}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
                   <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Recent Projects</label>
@@ -764,8 +889,8 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                         type="button"
                         onClick={() => {
                           void buildBugReportBundle().then((snap) =>
-                            copyTextToClipboard(JSON.stringify(snap, null, 2)).then((ok) => {
-                              addToast(ok ? "Copied debug bundle" : "Could not copy debug bundle", ok ? "success" : "error");
+                            copyTextToClipboard(formatBugReportClipboard(snap)).then((ok) => {
+                              addToast(ok ? "Copied debug report" : "Could not copy debug report", ok ? "success" : "error");
                             }),
                           );
                         }}
@@ -834,27 +959,42 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
 
                 {/* Authors */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Authors</label>
+                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Author</label>
                   <div className="flex flex-col gap-1.5">
-                    {[
-                      { name: "TerraNova Team", role: "TerraNova", description: "Core node graph editor, 3D voxel preview, weather & environment editors, Hytale asset cache sync, and Hytale V2 schema foundation." },
-                    ].map(({ name, role, description }) => (
-                      <div key={name} className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 flex flex-col gap-0.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-tn-text">{name}</span>
-                          <span className="text-[10px] rounded border border-tn-border/50 px-1.5 py-0.5 text-tn-text-muted">{role}</span>
-                        </div>
-                        <p className="text-[11px] text-tn-text-muted leading-relaxed">{description}</p>
+                    <div className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 flex flex-col gap-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-tn-text">McCal</span>
+                        <span className="text-[10px] rounded border border-tn-border/50 px-1.5 py-0.5 text-tn-text-muted">McCal-Codes</span>
                       </div>
-                    ))}
+                      <p className="text-[11px] text-tn-text-muted leading-relaxed">
+                        TerraNova — Hytale worldgen editor, preview, atmosphere stack, Bridge integration, and McCal-Codes closed alpha.
+                      </p>
+                    </div>
                   </div>
+                </div>
+
+                {/* Contributors */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Contributors</label>
+                  <p className="text-[11px] text-tn-text-muted leading-relaxed">
+                    McCal-Codes, nmang004, ZenithDevHQ, LeoWherle, derrickmehaffy — see{" "}
+                    <a
+                      href="https://github.com/McCal-Codes/TerraNova/graphs/contributors"
+                      className="text-tn-accent hover:opacity-80"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      GitHub contributors
+                    </a>
+                    .
+                  </p>
                 </div>
 
                 {/* Legal */}
                 <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
                   <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Legal</label>
                   <div className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 flex flex-col gap-1 text-[11px] text-tn-text-muted">
-                    <p>© 2024–2026 HyperSystems &amp; Contributors.</p>
+                    <p>© 2024–2026 McCal.</p>
                     <p>TerraNova is not affiliated with or endorsed by Hypixel Studios.</p>
                     <p>Hytale is a trademark of Hypixel Studios.</p>
                   </div>

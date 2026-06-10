@@ -54,8 +54,7 @@ export default function SyncProgressModal() {
             setPercent(null);
             setInProgress(true);
             setOpen(true);
-            // show with animation
-            setTimeout(() => setVisible(true), 10);
+            setVisible(true);
             startedAtRef.current = Date.now();
             lastUpdateAtRef.current = Date.now();
           }),
@@ -92,6 +91,25 @@ export default function SyncProgressModal() {
             addToast(`Hytale assets synced (${files} files)`, "success");
             setInProgress(false);
             // animate out
+            setVisible(false);
+            setTimeout(() => {
+              setOpen(false);
+              startedAtRef.current = null;
+              lastUpdateAtRef.current = null;
+            }, 260);
+          }),
+        );
+
+        // Error — close overlay so a failed sync cannot trap the UI behind a black screen
+        unlistenFns.push(
+          await ev.listen("hytale-sync-error", (e: unknown) => {
+            const event = e as { payload?: string };
+            const message =
+              typeof event.payload === "string" && event.payload.trim()
+                ? event.payload
+                : "Hytale asset sync failed";
+            addToast(message, "error");
+            setInProgress(false);
             setVisible(false);
             setTimeout(() => {
               setOpen(false);

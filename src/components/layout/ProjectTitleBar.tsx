@@ -13,6 +13,9 @@ import { isMac, isTauriRuntime } from "@/utils/platform";
 import { ChevronRight } from "lucide-react";
 import { useBugReportStore } from "@/stores/bugReportStore";
 import { CurrentContextBanner } from "./CurrentContextBanner";
+import { lazy, Suspense } from "react";
+
+const ProjectHealthLazy = lazy(() => import("@/components/debug/ProjectHealthPanel").then((m) => ({ default: m.ProjectHealthPanel })));
 
 interface MenuItemProps {
   label: string;
@@ -126,7 +129,11 @@ export function ProjectTitleBar({
   onShortcuts,
   onExportSvg,
 }: ProjectTitleBarProps) {
+  const [showProjectHealth, setShowProjectHealth] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const invalidJsonReadOnly = useEditorStore(
+    (s) => s.editingContext === "InvalidJson" && s.invalidJsonFile !== null,
+  );
   const appWindow = useMemo(
     () => (isTauriRuntime() ? getCurrentWindow() : null),
     [],
@@ -217,11 +224,11 @@ export function ProjectTitleBar({
           <MenuItem label="Close Project" onClick={onCloseProject} shortcut={resolveKeybinding("closeProject")} />
           <MenuSeparator />
           <MenuItem label="Open Asset Pack..." onClick={openAssetPack} shortcut={resolveKeybinding("openFile")} />
-          <MenuItem label="Save" onClick={saveFile} shortcut={resolveKeybinding("save")} />
-          <MenuItem label="Save As..." onClick={saveFileAs} shortcut={resolveKeybinding("saveAs")} />
+          <MenuItem label="Save" onClick={saveFile} shortcut={resolveKeybinding("save")} disabled={invalidJsonReadOnly} />
+          <MenuItem label="Save As..." onClick={saveFileAs} shortcut={resolveKeybinding("saveAs")} disabled={invalidJsonReadOnly} />
           <MenuSeparator />
           <MenuItem label="Export Asset Pack..." onClick={exportAssetPack} shortcut={resolveKeybinding("exportPack")} />
-          <MenuItem label="Export Current JSON..." onClick={exportCurrentJson} shortcut={resolveKeybinding("exportJson")} />
+          <MenuItem label="Export Current JSON..." onClick={exportCurrentJson} shortcut={resolveKeybinding("exportJson")} disabled={invalidJsonReadOnly} />
           <MenuItem label="Export Graph..." onClick={onExportSvg} shortcut={resolveKeybinding("exportSvg")} />
         </MenuDropdown>
 
@@ -385,11 +392,21 @@ export function ProjectTitleBar({
             shortcut="F1"
           />
           <MenuItem
+            label="Project Health..."
+            onClick={() => setShowProjectHealth(true)}
+          />
+          <MenuItem
             label={helpMode ? "Disable Help Mode" : "Enable Help Mode"}
             onClick={() => useUIStore.getState().toggleHelpMode()}
             shortcut={resolveKeybinding("toggleHelpMode")}
           />
         </MenuDropdown>
+        {showProjectHealth && (
+          // Lazy import to avoid bundling heavy IPC in the titlebar bundle
+          <Suspense fallback={null}>
+            <ProjectHealthLazy onClose={() => setShowProjectHealth(false)} />
+          </Suspense>
+        )}
       </div>
 
       <div

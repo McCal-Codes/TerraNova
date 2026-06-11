@@ -5,6 +5,7 @@ import { useEditorStore } from "@/stores/editorStore";
 import {
   saveAssetPack,
   readAssetFile,
+  readAssetFileText,
   writeAssetFile,
   listDirectory,
   createFromTemplate,
@@ -50,7 +51,9 @@ import { normalizeMaterialSectionNodeTypes } from "@/utils/materialSectionNodes"
 import { sanitizeGraphNodesAndEdges } from "@/utils/sanitizeGraphNodes";
 import { useUIStore } from "@/stores/uiStore";
 import { usePreviewStore } from "@/stores/previewStore";
+import { strictJsonParse } from "@/utils/safeLocalStorage";
 import { resolveBiomeAtmosphere } from "@/utils/resolveBiomeAtmosphere";
+import { blockInvalidJsonWrite } from "@/utils/invalidJsonReadOnly";
 import {
   discoverContentFieldsForBiome,
   inferBiomeNameFromFile,
@@ -115,6 +118,39 @@ function sanitizeBiomeSections(
       : { ...section, nodes, edges };
   }
   return sanitized;
+}
+
+function enterInvalidJsonReadOnly(filePath: string, rawText: string, error: string) {
+  useEditorStore.setState({
+    nodes: [],
+    edges: [],
+    selectedNodeId: null,
+    outputNodeId: null,
+    biomeSections: null,
+    activeBiomeSection: null,
+    biomeConfig: null,
+    biomeRanges: [],
+    noiseRangeConfig: null,
+    settingsConfig: null,
+    instanceConfig: null,
+    materialConfig: null,
+    originalWrapper: null,
+    preservedNodeEditorMetadata: null,
+    rawJsonContent: null,
+    jsonViewDraft: null,
+    editingContext: "InvalidJson",
+    invalidJsonFile: { path: filePath, rawText, error },
+    history: [{
+      nodes: [],
+      edges: [],
+      biomeRanges: [],
+      noiseRangeConfig: null,
+      biomeConfig: null,
+      settingsConfig: null,
+      label: "Initial",
+    }],
+    historyIndex: 0,
+  });
 }
 
 /**
@@ -405,10 +441,15 @@ export function useTauriIO() {
       }
 
       try {
-        // Cache the current file's graph before switching
+        const rawText = await readAssetFileText(filePath);
+        const parsedFile = strictJsonParse<unknown>(rawText);
+
+        // Cache the current file's graph before switching. Invalid JSON files
+        // are read-only views and should always be re-read from disk.
         const previousFile = useProjectStore.getState().currentFile;
         const wasDirty = useProjectStore.getState().isDirty;
-        if (previousFile) {
+        const previousEditingContext = useEditorStore.getState().editingContext;
+        if (previousFile && previousEditingContext !== "InvalidJson") {
           cacheCurrentFile(previousFile, wasDirty);
         }
 
@@ -418,6 +459,18 @@ export function useTauriIO() {
         // will be overridden later for biome files once the first section is known.
         const projectPath = useProjectStore.getState().projectPath ?? "";
         useUIStore.getState().reloadBookmarks(filePath, projectPath, "");
+
+        if (!parsedFile.ok) {
+          const { fileCache } = useEditorStore.getState();
+          const newCache = new Map(fileCache);
+          newCache.delete(filePath);
+          useEditorStore.setState({ fileCache: newCache });
+          enterInvalidJsonReadOnly(filePath, rawText, `Invalid JSON: ${parsedFile.error}`);
+          setDirty(false);
+          return;
+        }
+
+        useEditorStore.getState().setInvalidJsonFile(null);
 
         // Try restoring from cache first (cache includes editingContext + originalWrapper)
         const cached = restoreFromCache(filePath);
@@ -467,7 +520,7 @@ export function useTauriIO() {
 
         // Read from disk (fresh file is not dirty)
         setDirty(false);
-        const rawContent = await readAssetFile(filePath);
+        const rawContent = parsedFile.value;
 
         // Auto-detect Hytale native format and normalize to internal
         let content: unknown = rawContent;
@@ -642,7 +695,7 @@ export function useTauriIO() {
               try {
                 const wsEntries: DirectoryEntryData[] = await listDirectory(wsDir);
                 availableWorldStructures = wsEntries
-                  .filter((e) => !e.is_dir && e.name.endsWith(".json"))
+                  .filter((e) => !e.is_dir && !e.name.startsWith("._") && e.name.endsWith(".json"))
                   .map((e) => e.name.replace(/\.json$/, ""));
               } catch {
                 // WorldStructures dir doesn't exist
@@ -846,6 +899,7 @@ export function useTauriIO() {
   );
 
   const handleSaveFile = useCallback(async () => {
+    if (blockInvalidJsonWrite()) return;
     setLastError(null);
     try {
       const currentFile = useProjectStore.getState().currentFile;
@@ -857,8 +911,9 @@ export function useTauriIO() {
         const jsonDraft = useEditorStore.getState().jsonViewDraft;
         if (jsonDraft && currentFile) {
           try {
-            const parsed = JSON.parse(jsonDraft);
-            await writeAssetFile(currentFile, parsed);
+            const parsed = strictJsonParse<unknown>(jsonDraft);
+            if (!parsed.ok) throw new Error(parsed.error);
+            await writeAssetFile(currentFile, parsed.value);
             markFileSaved(currentFile);
           } catch {
             setLastError("Cannot save: invalid JSON");
@@ -1115,6 +1170,7 @@ export function useTauriIO() {
   }, [markFileSaved, setLastError]);
 
   const handleSaveFileAs = useCallback(async () => {
+    if (blockInvalidJsonWrite()) return;
     setLastError(null);
     try {
       const filePath = await save({

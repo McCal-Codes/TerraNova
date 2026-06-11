@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 const STORAGE_KEY = "tn-config";
 
@@ -37,13 +38,8 @@ const DEFAULTS = {
 // ── Hydration helpers ──
 
 function getStored(): Record<string, unknown> | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  const parsed = safeStoredJson<unknown>(STORAGE_KEY, null);
+  return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
 }
 
 function getStoredNumber(key: string, fallback: number): number {

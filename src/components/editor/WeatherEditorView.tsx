@@ -44,6 +44,7 @@ import {
   isRecord,
 } from "@/components/editor/atmosphere/weatherEditorUtils";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
+import { blockInvalidJsonWrite } from "@/utils/invalidJsonReadOnly";
 
 export function WeatherEditorView() {
   const rawJsonContent = useEditorStore((state) => state.rawJsonContent) as WeatherDoc | null;
@@ -63,6 +64,9 @@ export function WeatherEditorView() {
   const setRequestedDocSlug = useUIStore((state) => state.setRequestedDocSlug);
   const setRightPanelMode = useUIStore((state) => state.setRightPanelMode);
   const setRightPanelVisible = useUIStore((state) => state.setRightPanelVisible);
+  const invalidJsonReadOnly = useEditorStore(
+    (state) => state.editingContext === "InvalidJson" && state.invalidJsonFile !== null,
+  );
   const isAdvanced = editorUIMode === "advanced";
   const hasWeatherDoc = rawJsonContent !== null;
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
@@ -148,6 +152,7 @@ export function WeatherEditorView() {
   };
 
   const handleSave = async () => {
+    if (blockInvalidJsonWrite()) return;
     if (!currentFile || !rawJsonContent) return;
     try {
       await writeAssetFile(currentFile, doc);
@@ -312,7 +317,7 @@ export function WeatherEditorView() {
         hasDoc={hasWeatherDoc}
         isDirty={isDirty}
         saveStatus={saveStatus}
-        canSave={hasWeatherDoc && Boolean(currentFile)}
+        canSave={hasWeatherDoc && Boolean(currentFile) && !invalidJsonReadOnly}
         editorUIMode={editorUIMode}
         onEditorUIModeChange={setAtmosphereEditorUIMode}
         syncAtmospherePreview={syncAtmospherePreview}

@@ -35,6 +35,7 @@ import { usePreviewStore } from "@/stores/previewStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { ChromeIconButton } from "@/components/ui/editorChrome";
 import { useUIStore } from "@/stores/uiStore";
+import { safeJsonParse, safeStoredJson } from "@/utils/safeLocalStorage";
 
 // ── Inline node pill ─────────────────────────────────────────────────────────
 // Category colours match DocNodeGraph's CATEGORY_COLORS palette.
@@ -243,12 +244,8 @@ function formatDocsCurveValue(value: number): string {
 }
 
 function loadSettings(): DocsSettings {
-  try {
-    const raw = localStorage.getItem("tn-docs-settings");
-    return raw ? { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<DocsSettings>) } : DEFAULT_SETTINGS;
-  } catch {
-    return DEFAULT_SETTINGS;
-  }
+  const parsed = safeStoredJson<Partial<DocsSettings>>("tn-docs-settings", {});
+  return Object.keys(parsed).length > 0 ? { ...DEFAULT_SETTINGS, ...parsed } : DEFAULT_SETTINGS;
 }
 
 // Import all markdown docs under src/docs
@@ -1141,12 +1138,7 @@ function applyTextHighlight(root: HTMLElement, term: string): number {
 const WT_PROGRESS_KEY = "tn-docs-wt-progress";
 
 function loadWalkthroughProgress(): Record<string, number> {
-  try {
-    const raw = localStorage.getItem(WT_PROGRESS_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
-  } catch {
-    return {};
-  }
+  return safeStoredJson<Record<string, number>>(WT_PROGRESS_KEY, {});
 }
 
 function saveWalkthroughProgress(slug: string, step: number) {
@@ -1162,12 +1154,7 @@ const RECENT_DOCS_KEY = "tn-docs-recent";
 const RECENT_DOCS_MAX = 8;
 
 function loadRecentDocs(): string[] {
-  try {
-    const raw = localStorage.getItem(RECENT_DOCS_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
+  return safeStoredJson<string[]>(RECENT_DOCS_KEY, []);
 }
 
 function saveRecentDocs(slugs: string[]) {
@@ -1201,12 +1188,7 @@ export function DocsPanel() {
   const [backlinks, setBacklinks] = useState<Record<string, string[]>>({});
   const [outboundLinks, setOutboundLinks] = useState<Record<string, string[]>>({});
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>(() => {
-    try {
-      const stored = localStorage.getItem("tn-docs-collapsed");
-      return stored ? (JSON.parse(stored) as Record<string, boolean>) : {};
-    } catch {
-      return {};
-    }
+    return safeStoredJson<Record<string, boolean>>("tn-docs-collapsed", {});
   });
   const [walkthroughActive, setWalkthroughActive] = useState(false);
   const [walkthroughStep, setWalkthroughStep] = useState(0);
@@ -1899,7 +1881,7 @@ export function DocsPanel() {
           const secondLine = lines[1]?.trim();
           if (secondLine?.startsWith("{") && !secondLine.startsWith("[")) {
             try {
-              const meta = JSON.parse(secondLine) as { xLabel?: string; yLabel?: string };
+              const meta = safeJsonParse<{ xLabel?: string; yLabel?: string }>(secondLine, {});
               if (meta.xLabel) xLabel = meta.xLabel;
               if (meta.yLabel) yLabel = meta.yLabel;
               pointsJson = lines.slice(2).join("\n").trim();
@@ -1911,7 +1893,8 @@ export function DocsPanel() {
           }
         }
         try {
-          const points = JSON.parse(pointsJson) as [number, number][];
+          const points = safeJsonParse<[number, number][]>(pointsJson, []);
+          if (!points.length) throw new Error("Invalid points JSON");
           const xs = points.map((p) => p[0]);
           const ys = points.map((p) => p[1]);
           const xMin = Math.min(...xs), xMax = Math.max(...xs);
@@ -1977,13 +1960,14 @@ export function DocsPanel() {
       // }
       if (lang === "bounds") {
         try {
-          const parsed = JSON.parse(value) as {
+          const parsed = safeJsonParse<{
             min: number;
             max: number;
             label?: string;
             context?: [number, number];
             danger?: [number, number][];
-          };
+          }>(value, null as any);
+          if (!parsed) throw new Error("Invalid bounds JSON");
           const { min, max, label } = parsed;
           const ctxMin = parsed.context ? parsed.context[0] : min;
           const ctxMax = parsed.context ? parsed.context[1] : max;

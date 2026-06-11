@@ -10,17 +10,17 @@ import {
 import type { BugReportBundle } from "../bugReport";
 
 vi.mock("@/utils/fetchReleases", () => ({
-  getAppVersion: vi.fn().mockResolvedValue("0.1.8-alpha.1"),
+  getAppVersion: vi.fn().mockResolvedValue("0.1.8-alpha.2"),
 }));
 
 function minimalBundle(overrides: Partial<BugReportBundle> = {}): BugReportBundle {
   return {
     schemaVersion: BUG_REPORT_SCHEMA_VERSION,
     buildChannel: "closed-alpha",
-    alphaBuild: "0.1.8-alpha.1",
+    alphaBuild: "0.1.8-alpha.2",
     capturedAt: new Date().toISOString(),
     runtime: "tauri",
-    appVersion: "0.1.8-alpha.1",
+    appVersion: "0.1.8-alpha.2",
     os: { label: "Windows 11", platform: "Win32" },
     display: { width: 1920, height: 1080, devicePixelRatio: 1 },
     hardware: null,
@@ -98,7 +98,7 @@ describe("buildBugReportIssueUrl", () => {
     );
     expect(url).toContain("McCal-Codes/TerraNova");
     expect(url).toContain("template=BUG_REPORT.yml");
-    expect(url).toContain("appVersion=0.1.8-alpha.1");
+    expect(url).toContain("appVersion=0.1.8-alpha.2");
     expect(url).toContain("area=Preview");
     const parsed = new URL(url);
     expect(parsed.searchParams.get("title")).toBe("[Bug]: Heatmap blank");
@@ -112,7 +112,7 @@ describe("buildBugReportIssueUrl", () => {
 describe("formatBugReportClipboard", () => {
   it("includes header and JSON bundle", () => {
     const text = formatBugReportClipboard(minimalBundle());
-    expect(text).toContain("closed-alpha 0.1.8-alpha.1");
+    expect(text).toContain("closed-alpha 0.1.8-alpha.2");
     expect(text).toContain('"schemaVersion": 2');
     expect(text).toContain("Session snapshot");
   });

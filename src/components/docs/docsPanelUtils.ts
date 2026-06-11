@@ -2,6 +2,7 @@ import { normalizeImport } from "@/utils/fileTypeDetection";
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import type { ClipboardData } from "@/utils/clipboard";
 import type { DocNodeGraphProps } from "./DocNodeGraph";
+import { safeJsonParse } from "@/utils/safeLocalStorage";
 
 export interface ParsedDocSnippet {
   label?: string;
@@ -86,7 +87,7 @@ export function buildSnippetGraphData(
   snippetJson: string,
   idPrefix = "doc_snippet",
 ): DocSnippetGraphData {
-  const parsed = JSON.parse(snippetJson);
+  const parsed = safeJsonParse<unknown>(snippetJson, null);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Snippet must be a JSON object.");
   }

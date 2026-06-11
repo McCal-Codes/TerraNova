@@ -60,6 +60,10 @@ export async function readAssetFile(path: string): Promise<unknown> {
   return invoke("read_asset_file", { path });
 }
 
+export async function readAssetFileText(path: string): Promise<string> {
+  return invoke<string>("read_asset_file_text", { path });
+}
+
 export async function writeAssetFile(path: string, content: unknown): Promise<void> {
   return invoke("write_asset_file", { path, content });
 }

@@ -17,6 +17,7 @@ import type { DensityType } from "@/schema/density";
 import { isBridgeNode } from "@/data/bridgeRegistry";
 import { isPaletteTypeKeyVisible } from "@/nodes/shared/legacyTypes";
 import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 const SNIPPET_COLOR = "#a78bfa";
 const ROOT_PALETTE_COLOR = "#8B4450";
@@ -29,17 +30,11 @@ function allCategoriesCollapsed(): Set<AssetCategory> {
 
 function loadPaletteCollapsed(): Set<AssetCategory> {
   const collapsed = allCategoriesCollapsed();
-  try {
-    const raw = localStorage.getItem(PALETTE_EXPANDED_KEY);
-    if (!raw) return collapsed;
-    const expanded = JSON.parse(raw) as string[];
-    for (const cat of expanded) {
-      if ((Object.values(AssetCategory) as string[]).includes(cat)) {
-        collapsed.delete(cat as AssetCategory);
-      }
+  const expanded = safeStoredJson<string[]>(PALETTE_EXPANDED_KEY, []);
+  for (const cat of expanded) {
+    if ((Object.values(AssetCategory) as string[]).includes(cat)) {
+      collapsed.delete(cat as AssetCategory);
     }
-  } catch {
-    /* ignore */
   }
   return collapsed;
 }
@@ -57,20 +52,15 @@ function persistPaletteExpanded(collapsed: Set<AssetCategory>) {
 
 function loadDensitySubsCollapsed(): Set<DensitySubcategory> {
   const allSubs = new Set(DENSITY_SUB_ORDER);
-  try {
-    const raw = localStorage.getItem(PALETTE_DENSITY_SUBS_KEY);
-    if (!raw) return new Set();
-    const expanded = JSON.parse(raw) as string[];
-    const collapsed = new Set(allSubs);
-    for (const sub of expanded) {
-      if ((Object.values(DensitySubcategory) as string[]).includes(sub)) {
-        collapsed.delete(sub as DensitySubcategory);
-      }
+  const expanded = safeStoredJson<string[]>(PALETTE_DENSITY_SUBS_KEY, []);
+  const collapsed = new Set(allSubs);
+  for (const sub of expanded) {
+    if ((Object.values(DensitySubcategory) as string[]).includes(sub)) {
+      collapsed.delete(sub as DensitySubcategory);
     }
-    return collapsed;
-  } catch {
-    return new Set();
   }
+  if (expanded.length === 0) return new Set();
+  return collapsed;
 }
 
 function persistDensitySubsExpanded(collapsedSubs: Set<DensitySubcategory>) {

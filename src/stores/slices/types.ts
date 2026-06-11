@@ -45,6 +45,12 @@ export interface InstanceConfig {
   availableWorldStructures: string[];
 }
 
+export interface InvalidJsonFileState {
+  path: string;
+  rawText: string;
+  error: string;
+}
+
 export interface SectionHistoryEntry {
   nodes: Node[];
   edges: Edge[];
@@ -198,6 +204,7 @@ export interface ConfigSliceState {
   editingContext: string | null;
   rawJsonContent: Record<string, unknown> | null;
   jsonViewDraft: string | null;
+  invalidJsonFile: InvalidJsonFileState | null;
 
   setSettingsConfig: (config: SettingsConfig | null) => void;
   setInstanceConfig: (config: InstanceConfig | null) => void;
@@ -210,6 +217,7 @@ export interface ConfigSliceState {
   setEditingContext: (context: string | null) => void;
   setRawJsonContent: (content: Record<string, unknown> | null) => void;
   setJsonViewDraft: (draft: string | null) => void;
+  setInvalidJsonFile: (file: InvalidJsonFileState | null) => void;
 }
 
 // ---------------------------------------------------------------------------

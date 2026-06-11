@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useProjectStore } from "@/stores/projectStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { saveRef } from "@/utils/saveRef";
+import { isInvalidJsonReadOnlyActive } from "@/utils/invalidJsonReadOnly";
 
 /**
  * When Instant Save is enabled, watches the project store's isDirty flag
@@ -21,6 +22,7 @@ export function useInstantSave() {
       if (!instantSaveEnabled) return;
       if (!useProjectStore.getState().currentFile) return;
       if (!saveRef.current) return;
+      if (isInvalidJsonReadOnlyActive()) return;
 
       // Reset debounce timer
       if (timerRef.current !== null) {
@@ -33,6 +35,7 @@ export function useInstantSave() {
         if (!saveRef.current) return;
         if (!useProjectStore.getState().currentFile) return;
         if (!useSettingsStore.getState().instantSaveEnabled) return;
+        if (isInvalidJsonReadOnlyActive()) return;
 
         savingRef.current = true;
         try {

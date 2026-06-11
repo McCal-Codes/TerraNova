@@ -48,6 +48,7 @@ import {
 } from "@/components/editor/atmosphere/environmentEditorUtils";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 import { joinPath, inferServerRoot } from "@/utils/pathUtils";
+import { blockInvalidJsonWrite } from "@/utils/invalidJsonReadOnly";
 
 export function EnvironmentEditorView() {
   const rawJsonContent = useEditorStore((state) => state.rawJsonContent) as EnvironmentDoc | null;
@@ -68,6 +69,9 @@ export function EnvironmentEditorView() {
   const setAtmosphereEditorUIMode = useUIStore((state) => state.setAtmosphereEditorUIMode);
   const previewHour = useUIStore((state) => state.atmospherePreviewHour);
   const setPreviewHour = useUIStore((state) => state.setAtmospherePreviewHour);
+  const invalidJsonReadOnly = useEditorStore(
+    (state) => state.editingContext === "InvalidJson" && state.invalidJsonFile !== null,
+  );
   const isAdvanced = editorUIMode === "advanced";
   const hasEnvironmentDoc = rawJsonContent !== null;
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
@@ -384,6 +388,7 @@ export function EnvironmentEditorView() {
   };
 
   const handleSave = async () => {
+    if (blockInvalidJsonWrite()) return;
     if (!currentFile || !rawJsonContent) return;
     try {
       await writeAssetFile(currentFile, doc);
@@ -511,7 +516,7 @@ export function EnvironmentEditorView() {
         weathersDirPath={weathersDirPath}
         isDirty={isDirty}
         saveStatus={saveStatus}
-        canSave={hasEnvironmentDoc && Boolean(currentFile)}
+        canSave={hasEnvironmentDoc && Boolean(currentFile) && !invalidJsonReadOnly}
         editorUIMode={editorUIMode}
         onEditorUIModeChange={setAtmosphereEditorUIMode}
         syncAtmospherePreview={syncAtmospherePreview}

@@ -14,6 +14,7 @@ import { isPaletteTypeKeyVisible } from "@/nodes/shared/legacyTypes";
 import { entryMatchesSearch } from "@/utils/nodeTypeSearch";
 import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 import connectionsData from "@/data/connections.json";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 export { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 
@@ -52,12 +53,7 @@ const QUICK_ADD_MARGIN = 12;
 const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;
 
 function getRecentTypes(): string[] {
-  try {
-    const stored = localStorage.getItem(RECENT_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
+  return safeStoredJson<string[]>(RECENT_KEY, []);
 }
 
 function addRecentType(typeKey: string) {

@@ -10,6 +10,7 @@ import { useToastStore } from "@/stores/toastStore";
 import { matchesKeybinding } from "@/config/keybindings";
 import { exportAssetPack, exportCurrentJson } from "@/utils/exportAssetPack";
 import { handleAutoLayout, handleAutoLayoutSelected, handleTidyUp } from "@/utils/layoutActions";
+import { blockInvalidJsonWrite, isInvalidJsonReadOnlyActive } from "@/utils/invalidJsonReadOnly";
 
 interface GlobalShortcutCallbacks {
   onCloseProject: () => void;
@@ -120,6 +121,7 @@ export function useGlobalKeyboardShortcuts({
       // Auto layout all
       if (matchesKeybinding("autoLayoutAll", e)) {
         e.preventDefault();
+        if (isInvalidJsonReadOnlyActive()) return;
         handleAutoLayout(reactFlow);
         return;
       }
@@ -127,6 +129,7 @@ export function useGlobalKeyboardShortcuts({
       // Auto layout selected
       if (matchesKeybinding("autoLayoutSelected", e)) {
         e.preventDefault();
+        if (isInvalidJsonReadOnlyActive()) return;
         handleAutoLayoutSelected();
         return;
       }
@@ -134,6 +137,7 @@ export function useGlobalKeyboardShortcuts({
       // Auto layout selected with extra spacing for labels / handoff
       if (matchesKeybinding("autoLayoutSelectedComfortable", e)) {
         e.preventDefault();
+        if (isInvalidJsonReadOnlyActive()) return;
         handleAutoLayoutSelected("comfortable");
         return;
       }
@@ -141,6 +145,7 @@ export function useGlobalKeyboardShortcuts({
       // Tidy up
       if (matchesKeybinding("tidyUp", e)) {
         e.preventDefault();
+        if (isInvalidJsonReadOnlyActive()) return;
         handleTidyUp();
         return;
       }
@@ -209,6 +214,7 @@ export function useGlobalKeyboardShortcuts({
       // Export current JSON
       if (matchesKeybinding("exportJson", e)) {
         e.preventDefault();
+        if (blockInvalidJsonWrite()) return;
         exportCurrentJson();
         return;
       }
@@ -229,6 +235,7 @@ export function useGlobalKeyboardShortcuts({
       // Save as
       if (matchesKeybinding("saveAs", e)) {
         e.preventDefault();
+        if (blockInvalidJsonWrite()) return;
         saveFileAs();
         return;
       }
@@ -236,6 +243,7 @@ export function useGlobalKeyboardShortcuts({
       // Save (check after saveAs to avoid Ctrl+Shift+S matching Ctrl+S)
       if (matchesKeybinding("save", e)) {
         e.preventDefault();
+        if (blockInvalidJsonWrite()) return;
         saveFile();
         return;
       }

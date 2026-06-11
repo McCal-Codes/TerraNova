@@ -1,6 +1,7 @@
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { invoke } from "@tauri-apps/api/core";
 import { useUpdateStore } from "@/stores/updateStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
 
 let pendingUpdate: Update | null = null;
@@ -25,6 +26,9 @@ export async function checkForUpdates(manual = false): Promise<void> {
         `Update v${update.version} available`,
         "info",
       );
+      if (!manual && useSettingsStore.getState().autoCheckUpdates) {
+        void downloadAndInstall();
+      }
     } else {
       store.setStatus("idle");
       if (manual) {

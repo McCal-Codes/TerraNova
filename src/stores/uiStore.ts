@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { on } from "./storeEvents";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 function getStoredBool(key: string, fallback: boolean): boolean {
   try {
@@ -38,13 +39,7 @@ function persistJson(key: string, value: unknown) {
 }
 
 function getStoredJson<T>(key: string, fallback: T): T {
-  try {
-    const v = localStorage.getItem(key);
-    if (v === null) return fallback;
-    return JSON.parse(v) as T;
-  } catch {
-    return fallback;
-  }
+  return safeStoredJson<T>(key, fallback);
 }
 
 function getStoredPreviewHour(): number {
@@ -91,20 +86,12 @@ function bookmarksKey(): string {
 }
 
 function loadBookmarks(): Map<number, Bookmark> {
-  try {
-    const stored = localStorage.getItem(bookmarksKey());
-    if (stored) {
-      const parsed = JSON.parse(stored) as Record<string, Bookmark>;
-      const map = new Map<number, Bookmark>();
-      for (const [key, val] of Object.entries(parsed)) {
-        map.set(Number(key), val);
-      }
-      return map;
-    }
-  } catch {
-    // Ignore
+  const parsed = safeStoredJson<Record<string, Bookmark>>(bookmarksKey(), {});
+  const map = new Map<number, Bookmark>();
+  for (const [key, val] of Object.entries(parsed)) {
+    map.set(Number(key), val);
   }
-  return new Map();
+  return map;
 }
 
 function persistBookmarks(bookmarks: Map<number, Bookmark>) {

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 const STORAGE_KEY = "tn-recent-projects";
 const MAX_RECENT = 12;
@@ -18,14 +19,8 @@ interface RecentProjectsState {
 }
 
 function loadFromStorage(): RecentProject[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  const parsed = safeStoredJson<unknown>(STORAGE_KEY, []);
+  return Array.isArray(parsed) ? parsed : [];
 }
 
 function saveToStorage(projects: RecentProject[]) {

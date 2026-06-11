@@ -9,6 +9,7 @@ import type { ContourSegment } from "@/utils/shapePreview/marchingSquaresZeroCon
 import { SDF_DEFAULT_VOXEL_Y } from "@/utils/shapePreview/sdfPreviewDefaults";
 import { readStoredPreviewDefaults } from "@/stores/configStore";
 import { initial2dPreviewResolution, clamp2dPreviewResolution } from "@/utils/previewResolution";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 export type PreviewMode = "2d" | "3d" | "voxel" | "world";
 export type PropPreviewMode = "placement" | "prefab3d";
@@ -508,17 +509,13 @@ function hydratePersistedState() {
     })(),
     propManualPrefabPath: null,
     atmosphereSettings: (() => {
-      try {
-        const raw = getStored("tn-atmosphereSettings");
-        if (raw) return { ...DEFAULT_ATMOSPHERE_SETTINGS, ...JSON.parse(raw) } as AtmosphereSettings;
-      } catch { /* ignore */ }
+      const parsed = safeStoredJson<Record<string, unknown>>("tn-atmosphereSettings", {});
+      if (Object.keys(parsed).length > 0) return { ...DEFAULT_ATMOSPHERE_SETTINGS, ...parsed } as AtmosphereSettings;
       return DEFAULT_ATMOSPHERE_SETTINGS;
     })(),
     tintColors: (() => {
-      try {
-        const raw = getStored("tn-tintColors");
-        if (raw) return { ...DEFAULT_TINT_COLORS, ...JSON.parse(raw) } as TintColors;
-      } catch { /* ignore */ }
+      const parsed = safeStoredJson<Record<string, unknown>>("tn-tintColors", {});
+      if (Object.keys(parsed).length > 0) return { ...DEFAULT_TINT_COLORS, ...parsed } as TintColors;
       return DEFAULT_TINT_COLORS;
     })(),
   };

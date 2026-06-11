@@ -1,4 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
+import { safeJsonParse } from "@/utils/safeLocalStorage";
 
 export interface ClipboardData {
   version: "1";
@@ -35,20 +36,19 @@ function parseClipboardText(text: string): ClipboardData | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
 
-  try {
-    return extractClipboardData(JSON.parse(trimmed));
-  } catch {
-    // Not direct JSON, continue.
-  }
+  // Try direct JSON first; safeJsonParse returns the fallback (null) on parse
+  // failure instead of throwing, so check the result before proceeding.
+  const direct = safeJsonParse<unknown>(trimmed, null as unknown);
+  const extractedDirect = extractClipboardData(direct);
+  if (extractedDirect) return extractedDirect;
 
+  // Not direct JSON — try fenced nodegraph blocks
   const fencedMatch = trimmed.match(NODEGRAPH_FENCE_REGEX);
   if (!fencedMatch) return null;
 
-  try {
-    return extractClipboardData(JSON.parse(fencedMatch[1].trim()));
-  } catch {
-    return null;
-  }
+  const inner = fencedMatch[1].trim();
+  const parsedInner = safeJsonParse<unknown>(inner, null as unknown);
+  return extractClipboardData(parsedInner);
 }
 
 /**

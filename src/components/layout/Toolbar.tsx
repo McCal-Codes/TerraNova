@@ -102,6 +102,9 @@ export function Toolbar() {
     ),
 
   );
+  const invalidJsonReadOnly = useEditorStore(
+    (s) => s.editingContext === "InvalidJson" && s.invalidJsonFile !== null,
+  );
 
   const showMinimap = useUIStore((s) => s.showMinimap);
   const toggleMinimap = useUIStore((s) => s.toggleMinimap);
@@ -164,7 +167,9 @@ export function Toolbar() {
 
             onClick={() => window.dispatchEvent(new Event("terranova:open-quick-add"))}
 
-            title="Quick Add (Tab)"
+            disabled={invalidJsonReadOnly}
+
+            title={invalidJsonReadOnly ? "Visual editing disabled while invalid JSON is open" : "Quick Add (Tab)"}
 
           >
 
@@ -198,7 +203,9 @@ export function Toolbar() {
 
             onClick={() => handleAutoLayout(reactFlow)}
 
-            title="Auto Layout All (L)"
+            disabled={invalidJsonReadOnly}
+
+            title={invalidJsonReadOnly ? "Visual editing disabled while invalid JSON is open" : "Auto Layout All (L)"}
 
           >
 
@@ -212,7 +219,7 @@ export function Toolbar() {
 
             onClick={() => void handleAutoLayoutSelected()}
 
-            disabled={selectedCount < 2}
+            disabled={invalidJsonReadOnly || selectedCount < 2}
 
             title="Auto Layout Selection (Shift+L)"
 
@@ -228,7 +235,9 @@ export function Toolbar() {
 
             onClick={handleTidyUp}
 
-            title="Tidy Up (Ctrl+Shift+L)"
+            disabled={invalidJsonReadOnly}
+
+            title={invalidJsonReadOnly ? "Visual editing disabled while invalid JSON is open" : "Tidy Up (Ctrl+Shift+L)"}
 
           >
 

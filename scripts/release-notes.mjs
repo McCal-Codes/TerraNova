@@ -37,7 +37,7 @@ if (!body) {
 
 const isPrerelease = /-(alpha|beta|rc)\./i.test(version);
 const installNote = isPrerelease
-  ? "\n\n> **Closed alpha:** download the installer for your platform below. In-app auto-update is not enabled until updater signing is configured."
+  ? "\n\n> **Closed alpha:** download the installer for your platform below, or update in-app from `v0.1.8-alpha.1`+ (Settings → General → Check for updates; auto-check runs ~3s after launch)."
   : "";
 
 process.stdout.write(`${body}${installNote}\n`);

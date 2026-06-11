@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { DEFAULT_FLOW_DIRECTION, type FlowDirection } from "@/constants";
 import type { SvgExportSettings } from "@/utils/exportSvg";
 import { DEFAULT_SVG_EXPORT_SETTINGS } from "@/utils/exportSvg";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 const STORAGE_KEY = "tn-settings";
 const DEBUG_WORKERS_KEY = "tn-debug-workers";
@@ -13,14 +14,8 @@ export type HytaleAssetSourceChannel = "pre-release" | "release";
 // src/utils/hytaleDefaultPaths.ts to get OS/user-correct paths at runtime.
 
 function getStoredSettingsObject(): Record<string, unknown> | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
-  } catch {
-    return null;
-  }
+  const parsed = safeStoredJson<unknown>(STORAGE_KEY, null);
+  return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
 }
 
 function getStoredFlowDirection(): FlowDirection {

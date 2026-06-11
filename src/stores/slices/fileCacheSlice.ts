@@ -89,6 +89,7 @@ export const createFileCacheSlice: SliceCreator<FileCacheSliceState> = (set, get
       originalWrapper: cached.originalWrapper,
       preservedNodeEditorMetadata: cached.preservedNodeEditorMetadata ?? null,
       rawJsonContent: cached.rawJsonContent,
+      invalidJsonFile: null,
       outputNodeId: cached.outputNodeId,
       history: cached.history,
       historyIndex: cached.historyIndex,

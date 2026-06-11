@@ -1,4 +1,5 @@
 export const LAYOUT_PICKER_POSITION_KEY = "terranova-layout-picker-position";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 export interface LayoutPickerPosition {
   x: number;
@@ -41,19 +42,14 @@ export function clampLayoutPickerPosition(
 }
 
 export function loadLayoutPickerPosition(): StoredLayoutPickerPosition | null {
-  try {
-    const raw = localStorage.getItem(LAYOUT_PICKER_POSITION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredLayoutPickerPosition;
-    if (
-      typeof parsed.x === "number"
-      && typeof parsed.y === "number"
-      && typeof parsed.custom === "boolean"
-    ) {
-      return parsed;
-    }
-  } catch {
-    // ignore corrupt storage
+  const parsed = safeStoredJson<StoredLayoutPickerPosition | null>(LAYOUT_PICKER_POSITION_KEY, null);
+  if (
+    parsed
+    && typeof parsed.x === "number"
+    && typeof parsed.y === "number"
+    && typeof parsed.custom === "boolean"
+  ) {
+    return parsed;
   }
   return null;
 }

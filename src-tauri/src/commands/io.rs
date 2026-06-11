@@ -71,6 +71,13 @@ pub fn read_asset_file(path: String) -> Result<Value, String> {
     serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))
 }
 
+/// Read a single asset file as raw text without parsing.
+#[tauri::command]
+pub fn read_asset_file_text(path: String) -> Result<String, String> {
+    path_scope::validate_path_str(&path)?;
+    fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
+}
+
 /// Write a single JSON asset file with atomic write.
 #[tauri::command]
 pub fn write_asset_file(path: String, content: Value) -> Result<(), String> {
@@ -143,22 +150,41 @@ mod export_text_tests {
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    fn temp_export_path(name: &str) -> PathBuf {
+    fn temp_path(name: &str, ext: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock")
             .as_nanos();
-        std::env::temp_dir().join(format!("terranova-export-test-{name}-{nanos}.svg"))
+        std::env::temp_dir().join(format!("terranova-export-test-{name}-{nanos}.{ext}"))
     }
 
     #[test]
     fn export_text_file_writes_outside_registered_project_roots() {
-        let path = temp_export_path("outside-root");
+        let path = temp_path("outside-root", "svg");
         let content = "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>";
         export_text_file(path.to_string_lossy().into_owned(), content.to_string())
             .expect("export should succeed");
         let written = fs::read_to_string(&path).expect("read export");
         assert_eq!(written, content);
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn read_asset_file_text_returns_invalid_json_raw_text() {
+        let path = temp_path("invalid-json", "json");
+        let content = "{ invalid";
+        fs::write(&path, content).expect("write invalid json");
+        if let Some(parent) = path.parent() {
+            path_scope::register_allowed_root(parent);
+        }
+
+        let raw = read_asset_file_text(path.to_string_lossy().into_owned())
+            .expect("raw read should succeed");
+        assert_eq!(raw, content);
+        let parsed = read_asset_file(path.to_string_lossy().into_owned());
+        assert!(parsed
+            .expect_err("parsed read should fail")
+            .contains("Invalid JSON"));
         let _ = fs::remove_file(&path);
     }
 }

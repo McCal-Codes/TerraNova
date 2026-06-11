@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
+import { safeJsonParse } from "@/utils/safeLocalStorage";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useUIStore } from "@/stores/uiStore";
 import { writeTextFile, pathExists, listDirectory, listTemplateBiomes, readAssetFile, type TemplateBiomeEntry } from "@/utils/ipc";
@@ -242,9 +243,15 @@ const DEFAULT_BIOME_TINT_COLORS = ["#5b9e28", "#6ca229", "#7ea629"] as const;
 function loadAtmosphere(): AtmosphereState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...DEFAULT_ATMOSPHERE, ...JSON.parse(raw) };
+    const parsed = raw ? safeJsonParse<Record<string, unknown>>(raw, {}) : null;
+    if (parsed) return { ...DEFAULT_ATMOSPHERE, ...parsed };
   } catch {
-    // ignore
+    // Corrupted atmosphere storage — remove key and fall back to defaults
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
   }
   return DEFAULT_ATMOSPHERE;
 }

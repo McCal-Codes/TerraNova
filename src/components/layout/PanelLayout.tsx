@@ -27,6 +27,7 @@ import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { DevToolsPanel } from "@/components/dev/DevToolsPanel";
 import { ChromeIconButton, SegmentTabBar } from "@/components/ui/editorChrome";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 const MIN_PANEL_WIDTH = 180;
 const DEFAULT_LEFT = 240;
@@ -41,17 +42,12 @@ function isAssetInspectorFile(path: string | null): boolean {
 }
 
 function loadPersistedWidths(): { left: number; right: number } {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        left: Math.max(MIN_PANEL_WIDTH, parsed.left ?? DEFAULT_LEFT),
-        right: Math.max(MIN_PANEL_WIDTH, parsed.right ?? DEFAULT_RIGHT),
-      };
-    }
-  } catch {
-    // Ignore corrupted localStorage
+  const parsed = safeStoredJson<{ left?: number; right?: number }>(STORAGE_KEY, {});
+  if (Object.keys(parsed).length > 0) {
+    return {
+      left: Math.max(MIN_PANEL_WIDTH, parsed.left ?? DEFAULT_LEFT),
+      right: Math.max(MIN_PANEL_WIDTH, parsed.right ?? DEFAULT_RIGHT),
+    };
   }
   return { left: DEFAULT_LEFT, right: DEFAULT_RIGHT };
 }

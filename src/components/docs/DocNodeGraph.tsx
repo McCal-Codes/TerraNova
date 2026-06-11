@@ -1,3 +1,4 @@
+import { safeJsonParse } from "@/utils/safeLocalStorage";
 import { useMemo, useState, useEffect, useCallback, type ReactNode } from "react";
 import {
   ReactFlow,
@@ -393,7 +394,8 @@ export function DocNodeGraph({ nodes, edges, height, steps, headerAction }: DocN
 /** Parse a JSON nodegraph block from a markdown fenced code block. */
 export function parseNodeGraph(src: string): DocNodeGraphProps | null {
   try {
-    const parsed = JSON.parse(src) as DocNodeGraphProps;
+    const parsed = safeJsonParse<DocNodeGraphProps | null>(src, null);
+    if (!parsed) return null;
     if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) return null;
     return parsed;
   } catch {

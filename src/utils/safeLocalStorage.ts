@@ -71,3 +71,43 @@ export function safeLocalStorageGetItem(key: string): string | null {
     return null;
   }
 }
+
+export function safeJsonParse<T>(raw: string, fallback: T): T {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export type StrictJsonParseResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: string };
+
+export function strictJsonParse<T = unknown>(raw: string): StrictJsonParseResult<T> {
+  try {
+    return { ok: true, value: JSON.parse(raw) as T };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: message };
+  }
+}
+
+export function safeStoredJson<T>(key: string, fallback: null): T | null;
+export function safeStoredJson<T>(key: string, fallback: T): T;
+export function safeStoredJson<T>(key: string, fallback: T | null): T | null {
+  if (typeof localStorage === "undefined") return fallback;
+  const raw = safeLocalStorageGetItem(key);
+  if (raw === null) return fallback;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore cleanup failures.
+    }
+    return fallback;
+  }
+}

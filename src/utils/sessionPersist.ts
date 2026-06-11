@@ -6,6 +6,7 @@
  */
 
 const SESSION_KEY = "tn-session";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 export interface SessionState {
   projectPath: string | null;
@@ -24,13 +25,11 @@ export function saveSession(state: Partial<SessionState>): void {
 }
 
 export function loadSession(): SessionState {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return { projectPath: null, currentFile: null, activeBiomeSection: null };
-    return JSON.parse(raw) as SessionState;
-  } catch {
-    return { projectPath: null, currentFile: null, activeBiomeSection: null };
-  }
+  return safeStoredJson<SessionState>(SESSION_KEY, {
+    projectPath: null,
+    currentFile: null,
+    activeBiomeSection: null,
+  });
 }
 
 export function clearSession(): void {

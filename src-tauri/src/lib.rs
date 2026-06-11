@@ -29,6 +29,7 @@ pub fn run() {
             io_commands::open_asset_pack,
             io_commands::save_asset_pack,
             io_commands::read_asset_file,
+            io_commands::read_asset_file_text,
             io_commands::write_asset_file,
             io_commands::export_asset_file,
             io_commands::write_text_file,

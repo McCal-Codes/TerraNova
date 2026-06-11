@@ -1,5 +1,5 @@
 import type { BiomeMaterialConfig } from "@/utils/materialResolver";
-import type { SliceCreator, ConfigSliceState, SettingsConfig, InstanceConfig } from "./types";
+import type { SliceCreator, ConfigSliceState, SettingsConfig, InstanceConfig, InvalidJsonFileState } from "./types";
 
 // ---------------------------------------------------------------------------
 // Initial state
@@ -15,6 +15,7 @@ export const configInitialState = {
   editingContext: null as string | null,
   rawJsonContent: null as Record<string, unknown> | null,
   jsonViewDraft: null as string | null,
+  invalidJsonFile: null as InvalidJsonFileState | null,
 };
 
 // ---------------------------------------------------------------------------
@@ -33,4 +34,5 @@ export const createConfigSlice: SliceCreator<ConfigSliceState> = (set) => ({
   setEditingContext: (context) => set({ editingContext: context }),
   setRawJsonContent: (content) => set({ rawJsonContent: content }),
   setJsonViewDraft: (draft) => set({ jsonViewDraft: draft }),
+  setInvalidJsonFile: (file) => set({ invalidJsonFile: file }),
 });

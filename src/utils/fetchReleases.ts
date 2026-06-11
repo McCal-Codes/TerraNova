@@ -1,5 +1,6 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { GITHUB_RELEASES_API } from "@/constants/github";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -28,15 +29,10 @@ interface StoredCache {
 }
 
 function readLocalStorageCache(): ReleaseData[] | null {
-  try {
-    const raw = localStorage.getItem(CACHE_STORAGE_KEY);
-    if (!raw) return null;
-    const stored: StoredCache = JSON.parse(raw);
-    if (Date.now() - stored.timestamp > CACHE_TTL_MS) return null;
-    return stored.releases;
-  } catch {
-    return null;
-  }
+  const stored = safeStoredJson<StoredCache>(CACHE_STORAGE_KEY, null);
+  if (!stored) return null;
+  if (Date.now() - stored.timestamp > CACHE_TTL_MS) return null;
+  return stored.releases;
 }
 
 function writeLocalStorageCache(releases: ReleaseData[]) {
@@ -107,32 +103,32 @@ const RELEASES_URL = GITHUB_RELEASES_API;
 /** Shown in What's New when GitHub has not published the alpha tag yet. */
 function bundledAlphaRelease(): ReleaseData {
   return {
-    version: "0.1.8-alpha.1",
-    date: "Jun 10, 2026",
+    version: "0.1.8-alpha.2",
+    date: "Jun 11, 2026",
     name: "0.1.8 Closed Alpha",
     sections: [
       {
         title: "Highlights",
         items: [
           {
-            label: "Closed alpha on McCal-Codes",
+            label: "Invalid JSON read-only mode",
             description:
-              "First prerelease for Windows, macOS, and Linux — tag v0.1.8-alpha.1. See Releases for installers.",
+              "Broken generator JSON opens as raw text; save and graph edits blocked until fixed and reopened.",
           },
           {
-            label: "Onboarding + asset sync",
+            label: "Project Health",
             description:
-              "Four-step wizard; Step 3 syncs Hytale release assets in-app with auto-filled Common overlay path.",
+              "Title-bar scan lists pack validation issues with open-in-editor shortcuts.",
           },
           {
-            label: "Pack backup",
+            label: "Auto-download updates",
             description:
-              "Prompt before opening existing packs; full copy to .terranova-backups with per-pack skip.",
+              "New alpha builds download in the background when auto-check is on; restart from the status bar.",
           },
           {
             label: "Signed updater",
             description:
-              "This build ships signed updater metadata when installed from the GitHub prerelease.",
+              "Alpha.1+ users update in-app from releases/latest/download/latest.json.",
           },
         ],
       },

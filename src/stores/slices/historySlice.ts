@@ -10,6 +10,7 @@ import type {
   SettingsConfig,
 } from "./types";
 import type { Node, Edge } from "@xyflow/react";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 // ---------------------------------------------------------------------------
 // History persistence helpers (localStorage)
@@ -85,9 +86,12 @@ export function schedulePersist() {
 export function loadPersistedHistory(projectPath: string, filePath: string) {
   try {
     const key = `tn-history:${projectPath}:${filePath}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
+    const data = safeStoredJson<{
+      v?: number;
+      t?: number;
+      g?: { h: HistoryEntry[]; i: number };
+      s?: Record<string, { h: SectionHistoryEntry[]; i: number }>;
+    }>(key, null);
     if (data?.v !== 1) return null;
     return data as {
       v: 1; t: number;

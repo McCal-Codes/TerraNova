@@ -16,6 +16,7 @@ import { resolveDefaultExportModsRoot } from "@/utils/hytaleSavePaths";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import { normalizeMaterialSectionNodeTypes } from "@/utils/materialSectionNodes";
 import { sanitizeGraphNodesAndEdges } from "@/utils/sanitizeGraphNodes";
+import { blockInvalidJsonWrite, isInvalidJsonReadOnlyActive } from "@/utils/invalidJsonReadOnly";
 
 /**
  * BFS upstream from a root node to collect all nodes feeding into it.
@@ -60,6 +61,7 @@ function sanitizeBiomeSections<T extends { nodes: import("@xyflow/react").Node[]
 export function serializeCurrentFile(): Record<string, unknown> | null {
   const currentFile = useProjectStore.getState().currentFile;
   if (!currentFile) return null;
+  if (isInvalidJsonReadOnlyActive()) return null;
 
   const {
     nodes,
@@ -343,6 +345,8 @@ export async function exportCurrentJson(): Promise<void> {
   const addToast = useToastStore.getState().addToast;
 
   try {
+    if (blockInvalidJsonWrite()) return;
+
     const json = serializeCurrentFile();
     if (!json) {
       addToast("No file open to export", "error");

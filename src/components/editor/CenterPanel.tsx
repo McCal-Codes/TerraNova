@@ -107,6 +107,10 @@ export function CenterPanel() {
   usePropPreviewSectionDefaults(isPropContext, propSectionKey);
   usePreviewPropertiesLayout();
 
+  if (editingContext === "InvalidJson") {
+    return <InvalidJsonReadOnlyView />;
+  }
+
   if (editingContext === "NoiseRange") {
     return <NoiseRangeView />;
   }
@@ -141,6 +145,41 @@ export function CenterPanel() {
   }
 
   return <EditorCanvas />;
+}
+
+function InvalidJsonReadOnlyView() {
+  const invalidJsonFile = useEditorStore((s) => s.invalidJsonFile);
+
+  if (!invalidJsonFile) {
+    return (
+      <div className="flex h-full items-center justify-center bg-tn-bg text-sm text-tn-text-muted">
+        No invalid JSON file is open.
+      </div>
+    );
+  }
+
+  const fileName = invalidJsonFile.path.split(/[/\\]/).pop() ?? invalidJsonFile.path;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-tn-bg">
+      <div
+        role="alert"
+        className="shrink-0 border-b border-amber-500/30 bg-amber-950/35 px-4 py-3 text-sm text-amber-100"
+      >
+        <div className="font-medium">Invalid JSON opened read-only</div>
+        <div className="mt-1 text-xs leading-relaxed text-amber-100/80">
+          {fileName} could not be parsed, so visual editing and saving are disabled to prevent overwriting this file.
+          Fix the JSON externally, then reopen it.
+        </div>
+        <div className="mt-2 rounded border border-amber-500/20 bg-black/20 px-2 py-1 font-mono text-[11px] text-amber-50/90">
+          {invalidJsonFile.error}
+        </div>
+      </div>
+      <div className="min-h-0 flex-1">
+        <JsonEditorView rawText={invalidJsonFile.rawText} readOnly />
+      </div>
+    </div>
+  );
 }
 
 const ROW_H = 28;

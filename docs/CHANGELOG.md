@@ -6,6 +6,36 @@ All notable changes to [TerraNova](https://github.com/McCal-Codes/TerraNova) are
 
 _Next alpha cycle — add bullets here as features land._
 
+## [0.1.8-alpha.2] — 2026-06-11 — Closed alpha
+
+Second **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.2`.  
+**Updates:** Users on `v0.1.8-alpha.1` receive this build via the in-app updater (~3s after launch when auto-check is on).
+
+### Highlights
+
+- **Invalid JSON read-only mode** — Corrupt generator JSON opens in a raw text editor instead of failing silently; graph editing and save/export are blocked until the file is fixed and reopened
+- **Project Health** — Title-bar scan surfaces pack validation errors/warnings with one-click open-in-editor
+- **localStorage hardening** — Safer settings/session persistence with quota recovery (prunes large undo blobs) and path sanitization
+- **Auto-download updates** — When auto-check is enabled, available builds download in the background; restart from the status bar to apply
+
+### Invalid JSON & editor safety
+
+- Rust `read_asset_file_text` returns raw text for broken JSON; parsed `read_asset_file` still errors with a clear message
+- **InvalidJson** editing context shows read-only CodeMirror with the parse error; toolbar graph actions disabled
+- Save, instant save, export, and atmosphere saves blocked with a single toast message
+- Status bar shows **Read-only** while invalid JSON is open
+
+### Project health & diagnostics
+
+- **Project Health** panel (title bar) runs `validate_asset_pack` and lists issues by severity
+- Open affected file or reveal in folder from the panel
+
+### Persistence & QoL
+
+- `safeLocalStorage` helpers used across settings, recent projects, pack wizard prefs, and session restore
+- `strictJsonParse` for file loads; clipboard and layout picker use sanitized paths
+- Graph sanitize-on-save strips invalid React Flow nodes/edges from biome sections before write
+
 ## [0.1.8-alpha.1] — 2026-06-10 — Closed alpha
 
 First **McCal-Codes** closed-alpha build for Windows, macOS, and Linux testers.

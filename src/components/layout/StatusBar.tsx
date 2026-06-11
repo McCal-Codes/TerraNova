@@ -29,6 +29,9 @@ export function StatusBar() {
   const instantSaveEnabled = useSettingsStore((s) => s.instantSaveEnabled);
   const devActive = useDeveloperMode();
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
+  const invalidJsonReadOnly = useEditorStore(
+    (s) => s.editingContext === "InvalidJson" && s.invalidJsonFile !== null,
+  );
 
   // Node/edge/selection counts
   const nodeCount = useEditorStore((s) => s.nodes.length);
@@ -189,8 +192,10 @@ export function StatusBar() {
         Instant
       </button>
 
-      <span aria-label={isDirty ? "Unsaved changes" : "File saved"}>
-        {isDirty ? (
+      <span aria-label={invalidJsonReadOnly ? "File open read-only" : isDirty ? "Unsaved changes" : "File saved"}>
+        {invalidJsonReadOnly ? (
+          <span className="text-amber-300">Read-only</span>
+        ) : isDirty ? (
           <span className="text-amber-400">Unsaved</span>
         ) : (
           <span className="text-emerald-400/90">Saved</span>

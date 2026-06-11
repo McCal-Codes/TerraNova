@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 export type HudPosition = { x: number; y: number };
 
 export function useDraggableHudPosition(storageKey: string, defaultPosition: HudPosition) {
   const [position, setPosition] = useState<HudPosition>(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (!saved) return defaultPosition;
-      const parsed = JSON.parse(saved) as HudPosition;
-      if (typeof parsed.x === "number" && typeof parsed.y === "number") {
-        return parsed;
-      }
-    } catch {
-      // ignore
+    const parsed = safeStoredJson<HudPosition | null>(storageKey, null);
+    if (parsed && typeof parsed.x === "number" && typeof parsed.y === "number") {
+      return parsed;
     }
     return defaultPosition;
   });

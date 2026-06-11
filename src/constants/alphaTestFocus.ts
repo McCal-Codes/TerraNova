@@ -1,6 +1,6 @@
 /** Closed-alpha tester checklist — shown once per alpha build after onboarding. */
 
-export const ALPHA_WHAT_TO_TEST_VERSION = "0.1.8-alpha.1";
+export const ALPHA_WHAT_TO_TEST_VERSION = "0.1.8-alpha.2";
 
 /** Primary contact for serious alpha issues (Discord). */
 export const ALPHA_DISCORD_CONTACT = "@mcc_cal";
@@ -92,7 +92,7 @@ export const ALPHA_TEST_FOCUS_ITEMS: AlphaTestFocusItem[] = [
       "Settings → File a Bug Report (or About → Report a bug on home).",
       "Pick an area, add steps to reproduce, use Capture preview screenshot or Attach files when helpful.",
       "Copy the bundle, open the GitHub issue form, paste JSON into Session snapshot, and drag attachments onto the issue.",
-      "Confirm version 0.1.8-alpha.1 and OS are prefilled.",
+      "Confirm version 0.1.8-alpha.2 and OS are prefilled.",
     ],
   },
 ];

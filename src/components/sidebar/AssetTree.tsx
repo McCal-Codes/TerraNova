@@ -152,7 +152,7 @@ async function findSeedAssetFile(sourceDir: string): Promise<DirectoryEntryData 
   }
 
   const jsonFiles = entries
-    .filter((entry) => !entry.is_dir && entry.name.toLowerCase().endsWith(".json"))
+    .filter((entry) => !entry.is_dir && !entry.name.startsWith("._") && entry.name.toLowerCase().endsWith(".json"))
     .sort((a, b) => a.name.localeCompare(b.name));
   const defaultJson = jsonFiles.find((entry) => entry.name.toLowerCase() === "default.json");
   if (defaultJson) return defaultJson;

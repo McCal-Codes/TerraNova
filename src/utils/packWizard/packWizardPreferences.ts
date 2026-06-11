@@ -1,4 +1,5 @@
 import { slugifyPackIdentifier, type AtmosphereMode } from "@/data/packWizardTemplates";
+import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 const STORAGE_KEY = "tn-pack-wizard-prefs";
 
@@ -35,21 +36,15 @@ export function suggestBiomeNameFromPack(packName: string): string {
 }
 
 export function loadPackWizardPreferences(): Partial<PackWizardPreferences> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Partial<PackWizardPreferences>;
-    return {
-      packGroup: typeof parsed.packGroup === "string" ? parsed.packGroup : undefined,
-      targetDir: typeof parsed.targetDir === "string" ? parsed.targetDir : undefined,
-      uiMode: normalizeUiMode(parsed.uiMode),
-      atmosphereMode: normalizeAtmosphereMode(parsed.atmosphereMode),
-      atmosphereImportId:
-        typeof parsed.atmosphereImportId === "string" ? parsed.atmosphereImportId : undefined,
-    };
-  } catch {
-    return {};
-  }
+  const parsed = safeStoredJson<Partial<PackWizardPreferences>>(STORAGE_KEY, {});
+  return {
+    packGroup: typeof parsed.packGroup === "string" ? parsed.packGroup : undefined,
+    targetDir: typeof parsed.targetDir === "string" ? parsed.targetDir : undefined,
+    uiMode: normalizeUiMode(parsed.uiMode),
+    atmosphereMode: normalizeAtmosphereMode(parsed.atmosphereMode),
+    atmosphereImportId:
+      typeof parsed.atmosphereImportId === "string" ? parsed.atmosphereImportId : undefined,
+  };
 }
 
 export function savePackWizardPreferences(prefs: Partial<PackWizardPreferences>): void {

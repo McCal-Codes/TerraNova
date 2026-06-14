@@ -18,5 +18,14 @@ window.setTimeout(() => removeSplash(), 15_000);
 
 // Catch async errors that escape React's error boundary (workers, IPC, fire-and-forget promises).
 window.addEventListener("unhandledrejection", (event) => {
-  console.error("[TerraNova] Unhandled promise rejection:", event.reason);
+  const reason = event.reason;
+  // Suppress intentional cancellations — they aren't errors.
+  if (reason === "cancelled" || (reason instanceof Error && reason.message === "cancelled")) return;
+  console.error("[TerraNova] Unhandled promise rejection:", reason);
+  // Best-effort toast — store may not be mounted on very early errors, so swallow failures.
+  import("./stores/toastStore")
+    .then(({ useToastStore }) => {
+      useToastStore.getState().addToast("An unexpected error occurred — check the console for details", "error");
+    })
+    .catch(() => {});
 });

@@ -262,3 +262,60 @@ export function graphToJsonMulti(nodes: Node[], edges: Edge[]): V2Asset[] {
 
   return results;
 }
+
+export interface GraphIssues {
+  /** True if the graph contains at least one cycle (some inputs will be silently dropped on export). */
+  hasCycle: boolean;
+  /** True if no dedicated output node exists and the export falls back to the first available node. */
+  noOutputNode: boolean;
+}
+
+/**
+ * Pre-flight check for common graph problems that cause silent data loss on export.
+ * Call this before exporting and surface any issues to the user.
+ */
+export function detectGraphIssues(nodes: Node[], edges: Edge[]): GraphIssues {
+  const sanitized = sanitizeGraphNodesAndEdges(nodes, edges);
+  const expanded = expandGroups(sanitized.nodes, sanitized.edges);
+
+  // Cycle detection: DFS from every node
+  const adjOut = new Map<string, string[]>();
+  for (const edge of expanded.edges) {
+    const list = adjOut.get(edge.source) ?? [];
+    list.push(edge.target);
+    adjOut.set(edge.source, list);
+  }
+
+  let hasCycle = false;
+  const globalVisited = new Set<string>();
+
+  function dfs(id: string, stack: Set<string>): boolean {
+    if (stack.has(id)) return true;
+    if (globalVisited.has(id)) return false;
+    globalVisited.add(id);
+    stack.add(id);
+    for (const neighbor of adjOut.get(id) ?? []) {
+      if (dfs(neighbor, stack)) return true;
+    }
+    stack.delete(id);
+    return false;
+  }
+
+  for (const node of expanded.nodes) {
+    if (node?.id && !globalVisited.has(node.id)) {
+      if (dfs(node.id, new Set())) {
+        hasCycle = true;
+        break;
+      }
+    }
+  }
+
+  const hasOutputNode = expanded.nodes.some(
+    (n) => n && (n.data as Record<string, unknown> | undefined)?._outputNode === true,
+  );
+  const sourceIds = new Set(expanded.edges.map((e) => e.source));
+  const rootCandidates = expanded.nodes.filter((n) => n && !sourceIds.has(n.id));
+  const noOutputNode = !hasOutputNode && rootCandidates.length !== 1;
+
+  return { hasCycle, noOutputNode };
+}

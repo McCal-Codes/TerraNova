@@ -334,16 +334,24 @@ pub fn start_hytale_assets_sync(
     let overlay = common_overlay_path.clone();
 
     std::thread::spawn(move || {
-        let res = crate::io::hytale_assets::sync_hytale_assets_from_source_with_progress(
-            Path::new(&src),
-            overlay
-                .as_deref()
-                .filter(|v| !v.trim().is_empty())
-                .map(Path::new),
-            &win,
-        );
-        if let Err(e) = res {
-            let _ = win.emit("hytale-sync-error", &e.to_string());
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            crate::io::hytale_assets::sync_hytale_assets_from_source_with_progress(
+                Path::new(&src),
+                overlay
+                    .as_deref()
+                    .filter(|v| !v.trim().is_empty())
+                    .map(Path::new),
+                &win,
+            )
+        }));
+        match result {
+            Ok(Err(e)) => {
+                let _ = win.emit("hytale-sync-error", &e.to_string());
+            }
+            Err(_panic) => {
+                let _ = win.emit("hytale-sync-error", "Asset sync crashed unexpectedly");
+            }
+            Ok(Ok(())) => {}
         }
     });
 

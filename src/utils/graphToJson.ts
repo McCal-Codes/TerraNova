@@ -50,6 +50,7 @@ function buildAsset(
     if (match) {
       const baseKey = match[1];
       const index = parseInt(match[2], 10);
+      if (!Number.isFinite(index) || index < 0 || index > 4096) continue;
       if (!arrayCollectors.has(baseKey)) arrayCollectors.set(baseKey, []);
       arrayCollectors.get(baseKey)!.push({ index, child });
     } else {

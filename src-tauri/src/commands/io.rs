@@ -63,10 +63,27 @@ pub fn save_asset_pack(pack: AssetPack) -> Result<(), String> {
 
 // ── Single-file commands ────────────────────────────────────────────────────
 
+const MAX_ASSET_FILE_BYTES: u64 = 64 * 1024 * 1024; // 64 MB
+
+fn check_file_size(path: &str) -> Result<(), String> {
+    let size = fs::metadata(path)
+        .map_err(|e| format!("Failed to stat file: {}", e))?
+        .len();
+    if size > MAX_ASSET_FILE_BYTES {
+        return Err(format!(
+            "File exceeds maximum allowed size ({} MB): {}",
+            MAX_ASSET_FILE_BYTES / (1024 * 1024),
+            path
+        ));
+    }
+    Ok(())
+}
+
 /// Read a single JSON asset file.
 #[tauri::command]
 pub fn read_asset_file(path: String) -> Result<Value, String> {
     path_scope::validate_path_str(&path)?;
+    check_file_size(&path)?;
     let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
     serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))
 }
@@ -75,6 +92,7 @@ pub fn read_asset_file(path: String) -> Result<Value, String> {
 #[tauri::command]
 pub fn read_asset_file_text(path: String) -> Result<String, String> {
     path_scope::validate_path_str(&path)?;
+    check_file_size(&path)?;
     fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
 }
 

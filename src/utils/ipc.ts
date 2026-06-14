@@ -195,7 +195,7 @@ export async function syncHytaleAssets(
         cleanup();
         reject(err);
       }
-    })();
+    })().catch(reject);
   });
 }
 

@@ -97,7 +97,15 @@ export function safeStoredJson<T>(key: string, fallback: null): T | null;
 export function safeStoredJson<T>(key: string, fallback: T): T;
 export function safeStoredJson<T>(key: string, fallback: T | null): T | null {
   if (typeof localStorage === "undefined") return fallback;
-  const raw = safeLocalStorageGetItem(key);
+  // Read directly — safeLocalStorageGetItem truncates entries > MAX_PATH_LEN (512 bytes)
+  // and deletes them, which is correct for path strings but destroys large JSON blobs
+  // such as persisted undo history.
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(key);
+  } catch {
+    return fallback;
+  }
   if (raw === null) return fallback;
 
   try {

@@ -15,3 +15,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 
 // Failsafe: never leave the HTML splash covering the window if React stalls.
 window.setTimeout(() => removeSplash(), 15_000);
+
+// Catch async errors that escape React's error boundary (workers, IPC, fire-and-forget promises).
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("[TerraNova] Unhandled promise rejection:", event.reason);
+});

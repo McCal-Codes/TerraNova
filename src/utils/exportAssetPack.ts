@@ -355,7 +355,7 @@ export async function exportCurrentJson(): Promise<void> {
 
     // Run lightweight pre-export validation (warn but don't block)
     const currentFile = useProjectStore.getState().currentFile ?? "";
-    const { nodes, biomeSections } = useEditorStore.getState();
+    const { nodes, edges, biomeSections } = useEditorStore.getState();
     const propConditionalWarnings: string[] = [];
     const scanNodes = (list: typeof nodes) => {
       for (const node of list) {

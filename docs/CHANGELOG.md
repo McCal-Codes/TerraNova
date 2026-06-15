@@ -6,6 +6,10 @@ All notable changes to [TerraNova](https://github.com/McCal-Codes/TerraNova) are
 
 _Next alpha cycle — add bullets here as features land._
 
+## [0.1.8-alpha.3] — 2026-06-15 — Closed alpha
+
+- Fix React Flow node drag handler typing alignment with the current `OnNodeDrag` signature to prevent release-build type failures.
+
 ## [0.1.8-alpha.2] — 2026-06-11 — Closed alpha
 
 Second **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.2`.  

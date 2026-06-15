@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import {
   ReactFlow,
   Background,
@@ -625,13 +625,13 @@ export function EditorCanvas({
     setQuickAddOpen(true);
   }, []);
 
-  const handleAnnotationDragStart = useCallback((_event: MouseEvent | TouchEvent, node: Node) => {
+  const handleAnnotationDragStart = useCallback((_event: ReactMouseEvent, node: Node) => {
     if (node.type === "frame" || node.type === "comment") {
       suppressPointerClickRef.current = true;
     }
   }, []);
 
-  const handleAnnotationDragStop = useCallback((_event: MouseEvent | TouchEvent, node: Node) => {
+  const handleAnnotationDragStop = useCallback((_event: ReactMouseEvent, node: Node) => {
     if (node.type === "frame" || node.type === "comment") {
       setTimeout(() => {
         suppressPointerClickRef.current = false;
@@ -640,7 +640,7 @@ export function EditorCanvas({
   }, []);
 
   const handleNodeDragStop = useCallback(
-    (event: MouseEvent | TouchEvent, node: Node) => {
+    (event: ReactMouseEvent, node: Node) => {
       interjectOnNodeDragStop(event, node);
       handleAnnotationDragStop(event, node);
     },

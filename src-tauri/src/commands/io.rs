@@ -285,6 +285,7 @@ pub fn sync_hytale_assets(
     window: tauri::Window,
     source_path: String,
     common_overlay_path: Option<String>,
+    channel: Option<String>,
 ) -> Result<crate::io::hytale_assets::HytaleAssetSyncResult, String> {
     // Register the user-selected source path as an allowed root, then validate.
     path_scope::register_allowed_root(Path::new(&source_path));
@@ -302,6 +303,7 @@ pub fn sync_hytale_assets(
             .filter(|value| !value.trim().is_empty())
             .map(Path::new),
         &window,
+        channel.as_deref(),
     )
     .map_err(|e| e.to_string())
 }
@@ -337,6 +339,7 @@ pub fn start_hytale_assets_sync(
     window: tauri::Window,
     source_path: String,
     common_overlay_path: Option<String>,
+    channel: Option<String>,
 ) -> Result<(), String> {
     path_scope::register_allowed_root(Path::new(&source_path));
     path_scope::validate_path_str(&source_path)?;
@@ -350,6 +353,7 @@ pub fn start_hytale_assets_sync(
     let win = window.clone();
     let src = source_path.clone();
     let overlay = common_overlay_path.clone();
+    let ch = channel.clone();
 
     std::thread::spawn(move || {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -360,6 +364,7 @@ pub fn start_hytale_assets_sync(
                     .filter(|v| !v.trim().is_empty())
                     .map(Path::new),
                 &win,
+                ch.as_deref(),
             )
         }));
         match result {
@@ -386,11 +391,13 @@ pub fn cancel_hytale_assets_sync() -> Result<(), String> {
 #[tauri::command]
 pub fn check_hytale_asset_staleness(
     source_path: String,
+    channel: Option<String>,
 ) -> Result<crate::io::hytale_assets::AssetStalenessInfo, String> {
     path_scope::register_allowed_root(Path::new(&source_path));
     path_scope::validate_path_str(&source_path)?;
     Ok(crate::io::hytale_assets::check_asset_staleness(
         &source_path,
+        channel.as_deref(),
     ))
 }
 

@@ -136,7 +136,7 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
         .filter((k) => k.startsWith("Props["))
         .sort()
         .map((k) => {
-          const origIdx = parseInt(/\[(\d+)\]/.exec(k)![1]);
+          const origIdx = parseInt(/\[(\d+)\]/.exec(k)?.[1] ?? "0");
           return { section: synced[k], meta: biomeConfig?.propMeta[origIdx] ?? { Runtime: 0, Skip: false } };
         });
 

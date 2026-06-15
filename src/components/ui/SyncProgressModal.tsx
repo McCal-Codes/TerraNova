@@ -199,21 +199,26 @@ export default function SyncProgressModal() {
         }}
       />
 
-      <div className={modalClass} role="dialog" aria-modal="true" aria-label="Hytale asset sync">
+      <div className={modalClass} role="dialog" aria-modal="true" aria-labelledby="sync-modal-title" aria-describedby="sync-modal-status">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-lg font-semibold">Syncing Hytale assets</div>
-          <div className="text-sm text-tn-muted">{inProgress ? "In progress" : "Idle"}</div>
+          <div id="sync-modal-title" className="text-lg font-semibold">Syncing Hytale assets</div>
+          <div className="text-sm text-tn-muted" aria-live="polite">{inProgress ? "In progress" : "Idle"}</div>
         </div>
 
         <div className="h-3 bg-tn-progress-bg rounded overflow-hidden mb-2">
           <div
             id="sync-modal-progress"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={totalFiles ?? 100}
+            aria-valuenow={filesWritten}
+            aria-label={pct != null ? `${pct}% complete` : "Syncing…"}
             className="h-full bg-tn-accent transition-all"
             style={{ width: pct != null ? `${pct}%` : `${Math.min(100, (filesWritten % 10) * 10)}%` }}
           />
         </div>
 
-        <div className="text-sm text-tn-muted mb-2">
+        <div id="sync-modal-status" className="text-sm text-tn-muted mb-2" aria-live="polite" aria-atomic="true">
           {pct != null ? <span className="font-medium">{pct}%</span> : <span className="font-medium">Working…</span>}
           <span className="ml-2">{filesWritten} files{totalFiles != null ? ` of ${totalFiles}` : ""}</span>
           {etaText ? <span className="ml-2">• ETA {etaText}</span> : null}

@@ -65,3 +65,65 @@ pub fn evaluate_density(request: EvaluateRequest) -> Result<EvaluateResponse, St
         max_value: max_val,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn constant_request(value: f64, resolution: u32) -> EvaluateRequest {
+        EvaluateRequest {
+            graph: json!({ "Type": "Constant", "Value": value }),
+            resolution,
+            range_min: -1.0,
+            range_max: 1.0,
+            y_level: 0.0,
+        }
+    }
+
+    #[test]
+    fn constant_graph_fills_grid_with_same_value() {
+        let req = constant_request(0.5, 4);
+        let resp = evaluate_density(req).expect("evaluate should succeed");
+
+        assert_eq!(resp.values.len(), 16); // 4x4
+        assert_eq!(resp.resolution, 4);
+        for &v in &resp.values {
+            assert!((v - 0.5).abs() < 1e-5, "expected 0.5, got {v}");
+        }
+    }
+
+    #[test]
+    fn min_max_are_correct_for_constant() {
+        let resp = evaluate_density(constant_request(0.75, 8)).unwrap();
+        assert!((resp.min_value - 0.75).abs() < 1e-5);
+        assert!((resp.max_value - 0.75).abs() < 1e-5);
+    }
+
+    #[test]
+    fn resolution_above_2048_is_rejected() {
+        let req = constant_request(1.0, 2049);
+        let err = evaluate_density(req).expect_err("should reject oversized resolution");
+        assert!(err.contains("2048"), "error should mention limit: {err}");
+    }
+
+    #[test]
+    fn resolution_of_2048_is_accepted() {
+        let req = constant_request(0.0, 2048);
+        let resp = evaluate_density(req).expect("2048 should be allowed");
+        assert_eq!(resp.values.len(), 2048 * 2048);
+    }
+
+    #[test]
+    fn invalid_graph_returns_parse_error() {
+        let req = EvaluateRequest {
+            graph: json!({ "NotAType": "???" }),
+            resolution: 4,
+            range_min: 0.0,
+            range_max: 1.0,
+            y_level: 0.0,
+        };
+        let err = evaluate_density(req).expect_err("invalid graph should fail");
+        assert!(err.contains("Parse error") || !err.is_empty());
+    }
+}

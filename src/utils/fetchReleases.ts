@@ -103,32 +103,27 @@ const RELEASES_URL = GITHUB_RELEASES_API;
 /** Shown in What's New when GitHub has not published the alpha tag yet. */
 function bundledAlphaRelease(): ReleaseData {
   return {
-    version: "0.1.8-alpha.2",
-    date: "Jun 11, 2026",
+    version: "0.1.8-alpha.3",
+    date: "Jun 15, 2026",
     name: "0.1.8 Closed Alpha",
     sections: [
       {
         title: "Highlights",
         items: [
           {
-            label: "Invalid JSON read-only mode",
+            label: "Pre-release node layer",
             description:
-              "Broken generator JSON opens as raw text; save and graph edits blocked until fixed and reopened.",
+              "Cube, Axis, and Angle density nodes are now available when the pre-release asset channel is selected in Settings. They export correct Hytale JSON and show a PRE badge in the palette and on canvas.",
           },
           {
-            label: "Project Health",
+            label: "Validation panel fixes",
             description:
-              "Title-bar scan lists pack validation issues with open-in-editor shortcuts.",
+              "Pre-release nodes on the wrong channel now show a Remove node quick-fix action. OffsetConstant input connections now round-trip correctly through Hytale JSON.",
           },
           {
-            label: "Auto-download updates",
+            label: "Smarter property sliders",
             description:
-              "New alpha builds download in the background when auto-check is on; restart from the status bar.",
-          },
-          {
-            label: "Signed updater",
-            description:
-              "Alpha.1+ users update in-app from releases/latest/download/latest.json.",
+              "Label drag-to-scrub scales with the field range (not step size). Shift for 10x finer. Scroll wheel on number inputs. Click a number to select-all for fast replacement.",
           },
         ],
       },

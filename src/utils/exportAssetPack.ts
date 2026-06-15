@@ -3,7 +3,7 @@ import { useProjectStore } from "@/stores/projectStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
-import { graphToJson, graphToJsonMulti } from "@/utils/graphToJson";
+import { graphToJson, graphToJsonMulti, detectGraphIssues } from "@/utils/graphToJson";
 import { normalizeExport, isBiomeFile, isSettingsFile, internalToHytaleBiome } from "@/utils/fileTypeDetection";
 import { isHytaleNativeFormat } from "@/utils/hytaleToInternal";
 import { exportAssetFile, copyFile, readAssetFile, listDirectory } from "@/utils/ipc";
@@ -355,7 +355,7 @@ export async function exportCurrentJson(): Promise<void> {
 
     // Run lightweight pre-export validation (warn but don't block)
     const currentFile = useProjectStore.getState().currentFile ?? "";
-    const { nodes, biomeSections } = useEditorStore.getState();
+    const { nodes, edges, biomeSections } = useEditorStore.getState();
     const propConditionalWarnings: string[] = [];
     const scanNodes = (list: typeof nodes) => {
       for (const node of list) {
@@ -375,6 +375,15 @@ export async function exportCurrentJson(): Promise<void> {
         scanNodes(section.nodes);
         if (propConditionalWarnings.length > 0) break;
       }
+    }
+
+    // Warn about graph structural issues that cause silent data loss
+    const graphIssues = detectGraphIssues(nodes, edges);
+    if (graphIssues.hasCycle) {
+      addToast("Graph has a cycle — nodes in the cycle were skipped during export", "warning");
+    }
+    if (graphIssues.noOutputNode) {
+      addToast("No output node set — export used the first available node as root", "warning");
     }
 
     const validationWarnings = [
@@ -451,7 +460,7 @@ function stripInternalFields(obj: Record<string, unknown>): Record<string, unkno
  */
 async function convertFileForExport(sourcePath: string): Promise<Record<string, unknown> | null> {
   const rawContent = await readAssetFile(sourcePath);
-  if (!rawContent || typeof rawContent !== "object") return rawContent as Record<string, unknown> | null;
+  if (!rawContent || typeof rawContent !== "object") return null;
 
   const content = rawContent as Record<string, unknown>;
 

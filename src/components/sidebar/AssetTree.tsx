@@ -350,13 +350,18 @@ function ContextMenu({
   }, [bundledAssetRelativePath, targetDirectory]);
 
   function handleReveal() {
-    showInFolder(menu.path).catch(() => {});
+    showInFolder(menu.path).catch(() => {
+      addToast("Could not open folder", "error");
+    });
     onClose();
   }
 
   function handleCopyPath() {
-    navigator.clipboard.writeText(menu.path).catch(() => {});
-    addToast("Path copied to clipboard", "success");
+    navigator.clipboard.writeText(menu.path).then(() => {
+      addToast("Path copied to clipboard", "success");
+    }).catch(() => {
+      addToast("Could not copy path to clipboard", "error");
+    });
     onClose();
   }
 

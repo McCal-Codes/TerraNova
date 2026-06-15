@@ -10,7 +10,7 @@ import type {
   SettingsConfig,
 } from "./types";
 import type { Node, Edge } from "@xyflow/react";
-import { safeStoredJson } from "@/utils/safeLocalStorage";
+import { safeStoredJson, safeLocalStorageSetItem } from "@/utils/safeLocalStorage";
 
 // ---------------------------------------------------------------------------
 // History persistence helpers (localStorage)
@@ -66,16 +66,20 @@ function persistHistory() {
         const offset = sec.history.length - trimmed.length;
         s[k] = { h: trimmed, i: sec.historyIndex - offset };
       }
-      localStorage.setItem(key, JSON.stringify({ v: 1, t: Date.now(), s }));
+      safeLocalStorageSetItem(key, JSON.stringify({ v: 1, t: Date.now(), s }));
     } else {
       const trimmed = state.history.slice(-getMaxPersistedHistory());
       const offset = state.history.length - trimmed.length;
-      localStorage.setItem(key, JSON.stringify({
+      safeLocalStorageSetItem(key, JSON.stringify({
         v: 1, t: Date.now(),
         g: { h: trimmed, i: state.historyIndex - offset },
       }));
     }
-  } catch { /* quota exceeded — silently fail */ }
+  } catch (err) {
+    if (!(err instanceof DOMException)) {
+      console.error("[TerraNova] History persist failed unexpectedly:", err);
+    }
+  }
 }
 
 export function schedulePersist() {

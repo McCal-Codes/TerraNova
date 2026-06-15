@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { readFileSync } from "node:fs";
+import { visualizer } from "rollup-plugin-visualizer";
 
 const host = process.env.TAURI_DEV_HOST;
 const packageJson = JSON.parse(
@@ -13,7 +14,11 @@ export default defineConfig({
   // Disable Fast Refresh to avoid HMR incompatibility warnings during
   // development. This is a temporary workaround — consider refactoring
   // re-exports from component modules to fix the underlying cause.
-  plugins: [react({ fastRefresh: false })],
+  plugins: [
+    react({ fastRefresh: false }),
+    // Run `ANALYZE=1 npm run build` to generate dist/stats.html
+    process.env.ANALYZE ? visualizer({ open: true, filename: "dist/stats.html", gzipSize: true }) : null,
+  ].filter(Boolean),
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
   },

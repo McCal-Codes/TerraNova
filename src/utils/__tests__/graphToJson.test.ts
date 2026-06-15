@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { graphToJson, graphToJsonMulti } from "../graphToJson";
+import { graphToJson, graphToJsonMulti, detectGraphIssues } from "../graphToJson";
 import type { Node, Edge } from "@xyflow/react";
 
 function makeNode(id: string, type: string, fields: Record<string, unknown> = {}): Node {
@@ -277,5 +277,61 @@ describe("graphToJsonMulti", () => {
     expect(results).toHaveLength(1);
     expect(results[0].Type).toBe("Clamp");
     expect(results[0].Input).toEqual({ Type: "Constant", Value: 0.5 });
+  });
+});
+
+describe("detectGraphIssues", () => {
+  it("reports no issues for a clean linear graph", () => {
+    const nodes = [
+      makeNode("root", "Clamp", {}),
+      makeNode("child", "Constant", {}),
+    ];
+    const edges: Edge[] = [
+      { id: "e1", source: "child", target: "root", targetHandle: "Input" },
+    ];
+    const issues = detectGraphIssues(nodes, edges);
+    expect(issues.hasCycle).toBe(false);
+    expect(issues.noOutputNode).toBe(false);
+  });
+
+  it("detects a direct cycle between two nodes", () => {
+    const nodes = [makeNode("a", "Passthrough", {}), makeNode("b", "Passthrough", {})];
+    const edges: Edge[] = [
+      { id: "e1", source: "a", target: "b", targetHandle: "Input" },
+      { id: "e2", source: "b", target: "a", targetHandle: "Input" },
+    ];
+    const issues = detectGraphIssues(nodes, edges);
+    expect(issues.hasCycle).toBe(true);
+  });
+
+  it("detects a self-loop", () => {
+    const nodes = [makeNode("a", "Passthrough", {})];
+    const edges: Edge[] = [{ id: "e1", source: "a", target: "a", targetHandle: "Input" }];
+    const issues = detectGraphIssues(nodes, edges);
+    expect(issues.hasCycle).toBe(true);
+  });
+
+  it("flags noOutputNode when multiple disconnected roots exist with no _outputNode", () => {
+    const nodes = [makeNode("a", "Constant", {}), makeNode("b", "Constant", {})];
+    const issues = detectGraphIssues(nodes, []);
+    expect(issues.noOutputNode).toBe(true);
+  });
+
+  it("does not flag noOutputNode when _outputNode is marked", () => {
+    const nodeWithOutput: Node = {
+      id: "root",
+      type: "Constant",
+      position: { x: 0, y: 0 },
+      data: { type: "Constant", fields: {}, _outputNode: true },
+    };
+    const other = makeNode("other", "Constant", {});
+    const issues = detectGraphIssues([nodeWithOutput, other], []);
+    expect(issues.noOutputNode).toBe(false);
+  });
+
+  it("reports no issues for empty graph", () => {
+    const issues = detectGraphIssues([], []);
+    expect(issues.hasCycle).toBe(false);
+    expect(issues.noOutputNode).toBe(false);
   });
 });

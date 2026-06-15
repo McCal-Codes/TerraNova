@@ -249,11 +249,11 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   useEffect(() => {
     if (!open || !activeHytaleSourcePath.trim()) return;
     setCheckingStaleness(true);
-    void checkHytaleAssetStaleness(activeHytaleSourcePath)
+    void checkHytaleAssetStaleness(activeHytaleSourcePath, hytaleAssetSourceChannel)
       .then(setStalenessInfo)
       .catch(() => setStalenessInfo(null))
       .finally(() => setCheckingStaleness(false));
-  }, [open, activeHytaleSourcePath]);
+  }, [open, activeHytaleSourcePath, hytaleAssetSourceChannel]);
 
   function setActiveHytaleSourcePath(path: string) {
     if (hytaleAssetSourceChannel === "pre-release") {
@@ -314,6 +314,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
         sourcePath: activeHytaleSourcePath,
         commonOverlayEnabled: hytaleCommonAssetsEnabled,
         commonOverlayPath: hytaleCommonAssetsPath,
+        channel: hytaleAssetSourceChannel,
       });
       setHytaleAssetCacheRoot(cacheRoot);
       setStalenessInfo(staleness);
@@ -758,23 +759,25 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                     <div className={`flex items-center gap-2 rounded border px-3 py-2 text-[11px] ${
                       checkingStaleness
                         ? "border-tn-border/50 text-tn-text-muted"
-                        : stalenessInfo?.isStale
+                        : (stalenessInfo?.channelMismatch || stalenessInfo?.isStale)
                           ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
                           : stalenessInfo?.syncedAt
                             ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
                             : "border-tn-border/50 text-tn-text-muted"
                     }`}>
                       <span className="shrink-0 text-base leading-none">
-                        {checkingStaleness ? "⏳" : stalenessInfo?.isStale ? "⚠️" : stalenessInfo?.syncedAt ? "✓" : "–"}
+                        {checkingStaleness ? "⏳" : (stalenessInfo?.channelMismatch || stalenessInfo?.isStale) ? "⚠️" : stalenessInfo?.syncedAt ? "✓" : "–"}
                       </span>
                       <span>
                         {checkingStaleness
                           ? "Checking source for updates…"
-                          : stalenessInfo?.isStale
-                            ? <><span>Source has files newer than your cache — </span><button onClick={() => { void handleSyncHytaleAssets(); }} className="underline hover:no-underline">Sync Now</button></>
-                            : stalenessInfo?.syncedAt
-                              ? `Cache is up to date · Last synced ${formatSyncedAt(stalenessInfo.syncedAt)}`
-                              : "Not synced yet — press Sync Now to build the cache"}
+                          : stalenessInfo?.channelMismatch
+                            ? <><span>Cache was built from a different channel — </span><button onClick={() => { void handleSyncHytaleAssets(); }} className="underline hover:no-underline">Re-sync to avoid conflicts</button></>
+                            : stalenessInfo?.isStale
+                              ? <><span>Source has files newer than your cache — </span><button onClick={() => { void handleSyncHytaleAssets(); }} className="underline hover:no-underline">Sync Now</button></>
+                              : stalenessInfo?.syncedAt
+                                ? `Cache is up to date · Last synced ${formatSyncedAt(stalenessInfo.syncedAt)}`
+                                : "Not synced yet — press Sync Now to build the cache"}
                       </span>
                     </div>
                   )}

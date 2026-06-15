@@ -14,12 +14,21 @@ static CANCEL_SYNC: AtomicBool = AtomicBool::new(false);
 
 const SYNC_MANIFEST_NAME: &str = "sync-manifest.json";
 
+/// Maximum number of entries we will iterate in a single ZIP archive.
+/// Malformed or crafted ZIPs can report millions of entries — this cap
+/// prevents runaway iteration from freezing the UI or exhausting memory.
+const MAX_ZIP_ENTRIES: usize = 100_000;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncManifest {
     pub synced_at: String,
     pub source_path: String,
     pub files_written: u64,
+    /// Asset channel that populated this cache ("release" or "pre-release").
+    /// Absent in manifests written before this field was added.
+    #[serde(default)]
+    pub channel: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -31,6 +40,9 @@ pub struct AssetStalenessInfo {
     pub source_path: Option<String>,
     /// Whether the source folder contains files newer than the last sync.
     pub is_stale: bool,
+    /// True when the cache was populated from a different channel than requested.
+    /// The caller should prompt the user to re-sync.
+    pub channel_mismatch: bool,
     /// The path of the newest file found in the source (for debugging).
     pub newest_source_file: Option<String>,
     /// Unix timestamp (seconds) of the newest source file, or null.
@@ -107,11 +119,13 @@ fn write_sync_manifest(
     cache_root: &Path,
     source_path: &Path,
     files_written: u64,
+    channel: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let manifest = SyncManifest {
         synced_at: now_iso8601(),
         source_path: source_path.to_string_lossy().to_string(),
         files_written,
+        channel: channel.map(|s| s.to_string()),
     };
     let json = serde_json::to_string_pretty(&manifest)?;
     fs::write(cache_root.join(SYNC_MANIFEST_NAME), json)?;
@@ -198,7 +212,7 @@ fn newest_mtime_in_dir(dir: &Path) -> Option<(u64, PathBuf)> {
     }
 }
 
-pub fn check_asset_staleness(source_path: &str) -> AssetStalenessInfo {
+pub fn check_asset_staleness(source_path: &str, channel: Option<&str>) -> AssetStalenessInfo {
     let cache_root = match get_hytale_assets_root() {
         Ok(p) => p,
         Err(_) => {
@@ -206,6 +220,7 @@ pub fn check_asset_staleness(source_path: &str) -> AssetStalenessInfo {
                 synced_at: None,
                 source_path: None,
                 is_stale: false,
+                channel_mismatch: false,
                 newest_source_file: None,
                 newest_source_secs: None,
                 synced_at_secs: None,
@@ -217,6 +232,19 @@ pub fn check_asset_staleness(source_path: &str) -> AssetStalenessInfo {
     let synced_at = manifest.as_ref().map(|m| m.synced_at.clone());
     let manifest_source = manifest.as_ref().map(|m| m.source_path.clone());
     let synced_at_secs = synced_at.as_deref().and_then(parse_iso8601_to_secs);
+
+    // Detect if the cache was built from a different channel than the one requested.
+    let channel_mismatch = if let (Some(requested), Some(manifest)) = (channel, manifest.as_ref()) {
+        match &manifest.channel {
+            Some(cached_channel) => cached_channel != requested,
+            // No channel field means an old manifest (pre-this-feature). Treat as
+            // a mismatch only when the user explicitly requests the pre-release channel,
+            // since old caches were always populated from release assets.
+            None => requested == "pre-release",
+        }
+    } else {
+        false
+    };
 
     let source_dir = Path::new(source_path);
     // For a zip source, check the zip file mtime directly.
@@ -244,6 +272,7 @@ pub fn check_asset_staleness(source_path: &str) -> AssetStalenessInfo {
         synced_at,
         source_path: manifest_source,
         is_stale,
+        channel_mismatch,
         newest_source_file: if newest_secs > 0 {
             Some(newest_path.to_string_lossy().to_string())
         } else {
@@ -530,7 +559,7 @@ fn count_changed_files_in_common_zip(
     let mut archive = ZipArchive::new(file)?;
     let mut changed: u64 = 0;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         let entry = archive.by_index(index)?;
         if entry.is_dir() {
             continue;
@@ -561,7 +590,7 @@ fn extract_common_zip_overlay(
     let mut archive = ZipArchive::new(file)?;
     let mut files_written = 0;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         if CANCEL_SYNC.load(Ordering::SeqCst) {
             return Err("sync cancelled by user".into());
         }
@@ -601,7 +630,7 @@ fn extract_common_zip_overlay_with_progress(
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         if CANCEL_SYNC.load(Ordering::SeqCst) {
             let _ = window.emit(
                 "hytale-sync-cancelled",
@@ -664,7 +693,7 @@ fn extract_assets_zip(
     let mut archive = ZipArchive::new(file)?;
     let mut files_written = 0;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         // Check for cancellation request
         if CANCEL_SYNC.load(Ordering::SeqCst) {
             return Err("sync cancelled by user".into());
@@ -765,7 +794,7 @@ fn count_changed_files_in_zip(
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
     let mut changed: u64 = 0;
-    for i in 0..archive.len() {
+    for i in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         let entry = archive.by_index(i)?;
         let entry_path = sanitize_archive_entry_path(entry.name())?;
         if let Some(Component::Normal(first)) = entry_path.components().next() {
@@ -960,7 +989,7 @@ fn extract_assets_zip_with_progress(
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         // Check for cancellation request
         if CANCEL_SYNC.load(Ordering::SeqCst) {
             let _ = window.emit(
@@ -1029,6 +1058,7 @@ pub fn sync_hytale_assets_from_source_with_progress(
     source_path: &Path,
     common_overlay_path: Option<&Path>,
     window: &Window,
+    channel: Option<&str>,
 ) -> Result<HytaleAssetSyncResult, Box<dyn std::error::Error>> {
     // Reset cancel flag before any work, including the counting phase.
     CANCEL_SYNC.store(false, Ordering::SeqCst);
@@ -1038,6 +1068,19 @@ pub fn sync_hytale_assets_from_source_with_progress(
     }
 
     let cache_root = ensure_hytale_assets_root()?;
+
+    // If the cache was previously populated from a different channel, clear it
+    // before syncing to prevent schema cross-contamination between release and
+    // pre-release assets.
+    if let Some(requested_channel) = channel {
+        let should_clear = read_sync_manifest(&cache_root)
+            .and_then(|m| m.channel)
+            .map(|cached| cached != requested_channel)
+            .unwrap_or(false);
+        if should_clear {
+            clear_cached_asset_subtrees(&cache_root)?;
+        }
+    }
 
     // Determine total file count for progress if possible — but count only files
     // that actually need to be written (new or changed) so progress is
@@ -1062,7 +1105,7 @@ pub fn sync_hytale_assets_from_source_with_progress(
         let file = File::open(zip_path)?;
         let mut archive = ZipArchive::new(file)?;
         let mut changed: u64 = 0;
-        for i in 0..archive.len() {
+        for i in 0..archive.len().min(MAX_ZIP_ENTRIES) {
             let entry = archive.by_index(i)?;
             let entry_path = sanitize_archive_entry_path(entry.name())?;
             if let Some(Component::Normal(first)) = entry_path.components().next() {
@@ -1277,7 +1320,7 @@ pub fn sync_hytale_assets_from_source_with_progress(
         };
 
     let total_written = files_written_inner + common_overlay_files_written;
-    write_sync_manifest(&cache_root, source_path, total_written)?;
+    write_sync_manifest(&cache_root, source_path, total_written, channel)?;
 
     let result = HytaleAssetSyncResult {
         cache_root: cache_root.to_string_lossy().to_string(),
@@ -1351,7 +1394,7 @@ pub fn sync_hytale_assets_from_source(
         };
 
     let total_written = files_written + common_overlay_files_written;
-    write_sync_manifest(&cache_root, source_path, total_written)?;
+    write_sync_manifest(&cache_root, source_path, total_written, None)?;
 
     Ok(HytaleAssetSyncResult {
         cache_root: cache_root.to_string_lossy().to_string(),

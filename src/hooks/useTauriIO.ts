@@ -484,8 +484,9 @@ export function useTauriIO() {
               projectPath,
             }).then((resolved) => {
               usePreviewStore.getState().setAtmosphereSettings(resolved.settings);
-            }).catch(() => {
+            }).catch((err: unknown) => {
               // Keep last preview atmosphere on resolver failure.
+              console.warn("[TerraNova] Atmosphere resolver failed:", err);
             });
           }
           setDirty(cached.isDirty);

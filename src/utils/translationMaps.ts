@@ -12,7 +12,7 @@
 export const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {
   // Single-input types (V2 names)
   Inverter: ["Input"], CurveMapper: ["Input"], Cache: ["Input"],
-  Abs: ["Input"], Sqrt: ["Input"], Cube: ["Input"],
+  Abs: ["Input"], Sqrt: ["Input"], Cube: ["Input"], OffsetConstant: ["Input"],
   CubeRoot: ["Input"], Inverse: ["Input"], Modulo: ["Input"],
   Clamp: ["Input"], SmoothClamp: ["Input"], Normalizer: ["Input"],
   AmplitudeConstant: ["Input"], FlatCache: ["Input"], Cache2D: ["Input"],
@@ -68,6 +68,7 @@ export const DENSITY_NAMED_TO_ARRAY: Record<string, string[]> = {
   Inverter: ["Input"],
   Cache: ["Input"],
   AmplitudeConstant: ["Input"],
+  OffsetConstant: ["Input"],
   Imported: ["Input"],
   Rotator: ["Input"],
   // Legacy / alternate internal names

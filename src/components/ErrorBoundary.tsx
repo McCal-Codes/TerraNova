@@ -73,6 +73,13 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
               <button
                 type="button"
+                className="px-4 py-2 rounded bg-tn-surface border border-tn-border text-sm hover:bg-tn-border"
+                onClick={() => window.location.reload()}
+              >
+                Reload Page
+              </button>
+              <button
+                type="button"
                 className="px-4 py-2 rounded border border-tn-border text-sm hover:bg-tn-surface"
                 onClick={() => void this.handleCopyBundle()}
               >

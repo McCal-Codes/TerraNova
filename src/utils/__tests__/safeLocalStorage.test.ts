@@ -128,14 +128,14 @@ describe("safeLocalStorageSetItem", () => {
 });
 
 describe("safeLocalStorageGetItem", () => {
-  it("returns null and removes oversized values", () => {
-    // Bypass safeLocalStorageSetItem's path limit to plant an oversized value
-    localStorage.setItem("tn-oversized", "x".repeat(600));
-    expect(safeLocalStorageGetItem("tn-oversized")).toBeNull();
-    expect(localStorage.getItem("tn-oversized")).toBeNull();
+  it("returns large values without deleting them", () => {
+    const big = "x".repeat(600);
+    localStorage.setItem("tn-large", big);
+    expect(safeLocalStorageGetItem("tn-large")).toBe(big);
+    expect(localStorage.getItem("tn-large")).toBe(big);
   });
 
-  it("returns value normally when within size limit", () => {
+  it("returns value normally", () => {
     localStorage.setItem("tn-ok", "/some/path");
     expect(safeLocalStorageGetItem("tn-ok")).toBe("/some/path");
   });

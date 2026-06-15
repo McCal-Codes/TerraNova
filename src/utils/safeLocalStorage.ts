@@ -61,12 +61,7 @@ export function safeLocalStorageSetItem(key: string, value: string): boolean {
 export function safeLocalStorageGetItem(key: string): string | null {
   if (typeof localStorage === "undefined") return null;
   try {
-    const raw = localStorage.getItem(key);
-    if (raw && raw.length > MAX_PATH_LEN) {
-      localStorage.removeItem(key);
-      return null;
-    }
-    return raw;
+    return localStorage.getItem(key);
   } catch {
     return null;
   }

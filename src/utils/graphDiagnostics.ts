@@ -7,7 +7,7 @@ import { resolveCompoundHandles } from "@/nodes/shared/resolveCompoundHandles";
 import { getConstraints, OUTPUT_RANGES } from "@/schema/constraints";
 import type { FieldConstraint } from "@/schema/validation";
 import { validateFields } from "@/schema/validation";
-import { isDeprecatedOrLegacyTypeKey, getLegacyReplacement, getDeprecationTier } from "@/nodes/shared/legacyTypes";
+import { isDeprecatedOrLegacyTypeKey, getLegacyReplacement, getDeprecationTier, isPrereleaseTypeKey } from "@/nodes/shared/legacyTypes";
 import { nodeTypes } from "@/nodes/index";
 import { getEvalStatus } from "@/utils/densityEvaluator";
 import { findDensityRoot } from "./density/evalTypes";
@@ -121,7 +121,8 @@ export type GraphDiagnosticCode =
   | "column-scanner-range"
   | "curvemapper-in-range-mismatch"
   | "curvemapper-out-range-hint"
-  | "sum-raw-noise-height-curvemapper";
+  | "sum-raw-noise-height-curvemapper"
+  | "prerelease-node";
 
 export interface GraphDiagnostic {
   nodeId: string | null;
@@ -380,6 +381,7 @@ export function analyzeGraph(
   nodes: Node[],
   edges: Edge[],
   knownAssetNames?: KnownAssetNameMap | null,
+  channel?: string | null,
 ): GraphDiagnostic[] {
   if (nodes.length === 0) return [];
 
@@ -507,6 +509,14 @@ export function analyzeGraph(
         severity: "warning",
         code: "legacy-node",
         meta: { legacyTypeKey: nodeTypeKey, deprecationTier: tier, replacement },
+      });
+    } else if (isPrereleaseTypeKey(nodeTypeKey) && channel !== "pre-release") {
+      diagnostics.push({
+        nodeId: node.id,
+        message: `${type}: pre-release node — only available in Hytale pre-release builds. Switch to the pre-release channel in Settings, or remove this node.`,
+        severity: "warning",
+        code: "prerelease-node",
+        meta: { nodeTypeKey },
       });
     } else if (
       nodeTypeKey

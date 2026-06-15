@@ -4,6 +4,23 @@
  * the current release generator. Legacy nodes still load and render correctly
  * but are hidden from the Quick Add palette and display an amber LEGACY badge.
  */
+
+// ---------------------------------------------------------------------------
+// Pre-release node types — only available in Hytale pre-release builds.
+// Hidden from the palette on the release channel; shown with a PRE badge
+// when the user selects the pre-release asset channel in Settings.
+// ---------------------------------------------------------------------------
+
+export const PRERELEASE_TYPE_KEYS: ReadonlySet<string> = new Set([
+  // Density — SDF / position nodes new in Hytale pre-release
+  "Cube",
+  "Axis",
+  "Angle",
+]);
+
+export function isPrereleaseTypeKey(typeKey: string): boolean {
+  return PRERELEASE_TYPE_KEYS.has(typeKey);
+}
 export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
   // Density (43 legacy — all removed from the registry)
   "SimplexRidgeNoise2D", "SimplexRidgeNoise3D",

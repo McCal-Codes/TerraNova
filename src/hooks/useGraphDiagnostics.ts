@@ -4,6 +4,7 @@ import { useEditorStore } from "@/stores/editorStore";
 import { useDiagnosticsStore } from "@/stores/diagnosticsStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { analyzeGraph, analyzeBiome } from "@/utils/graphDiagnostics";
+import { useSettingsStore } from "@/stores/settingsStore";
 import {
   buildAssetValidationBadge,
   type AssetReferenceKind,
@@ -16,6 +17,7 @@ import {
  * pushing merged results to the shared diagnosticsStore.
  */
 export function useGraphDiagnostics() {
+  const channel = useSettingsStore((s) => s.hytaleAssetSourceChannel);
   const { nodes, edges, biomeConfig, editingContext } = useEditorStore(
     useShallow((s) => ({
       nodes: s.nodes,
@@ -73,7 +75,7 @@ export function useGraphDiagnostics() {
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      const graphDiags = analyzeGraph(nodes, edges, knownAssetNames);
+      const graphDiags = analyzeGraph(nodes, edges, knownAssetNames, channel);
       const normalizedPath = currentFile?.replace(/\\/g, "/") ?? "";
       const isBiomeFile = /\/Biomes\//i.test(normalizedPath);
       const shouldAnalyzeBiome = editingContext === "Biome" || isBiomeFile;
@@ -89,5 +91,5 @@ export function useGraphDiagnostics() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [nodes, edges, biomeConfig, editingContext, currentFile, knownAssetNames, setDiagnostics]);
+  }, [nodes, edges, biomeConfig, editingContext, currentFile, knownAssetNames, channel, setDiagnostics]);
 }

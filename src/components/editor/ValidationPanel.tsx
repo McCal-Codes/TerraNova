@@ -189,6 +189,8 @@ export function ValidationPanel() {
         const replacement = typeKey ? getLegacyReplacement(typeKey) : null;
         return replacement ? `Replace with ${replacement}` : "Remove node";
       }
+      case "prerelease-node":
+        return "Remove node";
       case "biome-name-missing":
         return "Set name";
       case "biome-tint-missing-provider":
@@ -340,6 +342,14 @@ export function ValidationPanel() {
           setDirty(true);
           commitState(`Remove legacy node ${typeKey ?? diagnostic.nodeId}`);
         }
+        return;
+      }
+      case "prerelease-node": {
+        if (!diagnostic.nodeId) return;
+        const typeKey = typeof diagnostic.meta?.nodeTypeKey === "string" ? diagnostic.meta.nodeTypeKey : diagnostic.nodeId;
+        removeNode(diagnostic.nodeId);
+        setDirty(true);
+        commitState(`Remove pre-release node ${typeKey}`);
         return;
       }
       default:

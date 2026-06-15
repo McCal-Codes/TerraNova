@@ -583,13 +583,15 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
         const layerEdges = state.edges
           .filter((e) => e.target === sadNodeId && /^Layers\[\d+\]$/.test(e.targetHandle ?? ""))
           .sort((a, b) => {
-            const ai = parseInt(/\[(\d+)\]/.exec(a.targetHandle!)![1]);
-            const bi = parseInt(/\[(\d+)\]/.exec(b.targetHandle!)![1]);
+            const ai = parseInt(/\[(\d+)\]/.exec(a.targetHandle ?? "")?.[1] ?? "0");
+            const bi = parseInt(/\[(\d+)\]/.exec(b.targetHandle ?? "")?.[1] ?? "0");
             return ai - bi;
           });
 
+        if (fromIndex < 0 || fromIndex >= layerEdges.length) return {};
         const ordered = [...layerEdges];
         const [moved] = ordered.splice(fromIndex, 1);
+        if (moved === undefined) return {};
         ordered.splice(toIndex, 0, moved);
 
         const layerEdgeIds = new Set(layerEdges.map((e) => e.id));
@@ -677,8 +679,8 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
         const layerEdges = remainingEdges
           .filter((e) => e.target === sadNodeId && /^Layers\[\d+\]$/.test(e.targetHandle ?? ""))
           .sort((a, b) => {
-            const ai = parseInt(/\[(\d+)\]/.exec(a.targetHandle!)![1]);
-            const bi = parseInt(/\[(\d+)\]/.exec(b.targetHandle!)![1]);
+            const ai = parseInt(/\[(\d+)\]/.exec(a.targetHandle ?? "")?.[1] ?? "0");
+            const bi = parseInt(/\[(\d+)\]/.exec(b.targetHandle ?? "")?.[1] ?? "0");
             return ai - bi;
           });
 

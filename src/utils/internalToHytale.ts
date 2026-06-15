@@ -1855,8 +1855,8 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
       continue;
     }
 
-    // NewYAxis plain vector → Point3D format
-    if ((key === "NewYAxis" || key === "Vector") && value && typeof value === "object" && !Array.isArray(value) &&
+    // Plain {x,y,z} vector fields → Point3D format
+    if ((key === "NewYAxis" || key === "Vector" || key === "Axis") && value && typeof value === "object" && !Array.isArray(value) &&
         "x" in (value as Record<string, unknown>) && !("Type" in (value as Record<string, unknown>))) {
       const vec = value as { x: number; y: number; z: number };
       output[key] = {

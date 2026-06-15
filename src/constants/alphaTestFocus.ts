@@ -1,6 +1,6 @@
 /** Closed-alpha tester checklist — shown once per alpha build after onboarding. */
 
-export const ALPHA_WHAT_TO_TEST_VERSION = "0.1.8-alpha.2";
+export const ALPHA_WHAT_TO_TEST_VERSION = "0.1.8-alpha.3";
 
 /** Primary contact for serious alpha issues (Discord). */
 export const ALPHA_DISCORD_CONTACT = "@mcc_cal";

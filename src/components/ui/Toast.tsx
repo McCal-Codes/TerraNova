@@ -39,6 +39,13 @@ const STYLES: Record<ToastType, { bar: string; icon: string; text: string; borde
   },
 };
 
+const ARIA_ROLE: Record<ToastType, "alert" | "status"> = {
+  error: "alert",   // assertive — interrupts screen reader immediately
+  warning: "alert",
+  success: "status", // polite — announces when reader is idle
+  info: "status",
+};
+
 export function Toast() {
   const toasts = useToastStore((s) => s.toasts);
   const removeToast = useToastStore((s) => s.removeToast);
@@ -46,20 +53,27 @@ export function Toast() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full">
+    <div
+      className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none max-w-sm w-full"
+      aria-label="Notifications"
+    >
       {toasts.map((t) => {
         const s = STYLES[t.type];
         return (
           <button
             key={t.id}
             type="button"
+            role={ARIA_ROLE[t.type]}
+            aria-live={ARIA_ROLE[t.type] === "alert" ? "assertive" : "polite"}
+            aria-atomic="true"
             onClick={() => removeToast(t.id)}
+            aria-label={`${t.type}: ${t.message}. Click to dismiss.`}
             className={`pointer-events-auto relative overflow-hidden rounded border ${s.border} ${s.bg} shadow-2xl text-left animate-in fade-in slide-in-from-bottom-2 duration-200 w-full`}
           >
             {/* Left accent bar */}
-            <div className={`absolute inset-y-0 left-0 w-0.5 ${s.bar}`} />
+            <div className={`absolute inset-y-0 left-0 w-0.5 ${s.bar}`} aria-hidden="true" />
             <div className="flex items-start gap-2.5 px-3.5 py-2.5 pl-4">
-              <span className={`mt-px shrink-0 text-[13px] ${s.icon}`}>{ICONS[t.type]}</span>
+              <span className={`mt-px shrink-0 text-[13px] ${s.icon}`} aria-hidden="true">{ICONS[t.type]}</span>
               <div className="min-w-0 flex-1">
                 <p className={`text-[12px] leading-relaxed ${s.text}`}>{t.message}</p>
                 {t.action && (

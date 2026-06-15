@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePreviewStore } from "@/stores/previewStore";
+import { useToastStore } from "@/stores/toastStore";
 import { computeStatistics, computeHistogram, type Statistics, type Histogram } from "@/utils/statistics";
 
 export function StatisticsPanel() {
@@ -22,10 +23,16 @@ export function StatisticsPanel() {
     setHistogram(computeHistogram(values, 32));
   }, [values]);
 
+  const addToast = useToastStore((s) => s.addToast);
+
   const copyStats = useCallback(() => {
     if (!stats) return;
-    void navigator.clipboard.writeText(JSON.stringify(stats, null, 2)).catch(() => {});
-  }, [stats]);
+    navigator.clipboard.writeText(JSON.stringify(stats, null, 2)).then(() => {
+      addToast("Statistics copied to clipboard", "success");
+    }).catch(() => {
+      addToast("Could not copy statistics to clipboard", "error");
+    });
+  }, [stats, addToast]);
 
   if (!values) return null;
 

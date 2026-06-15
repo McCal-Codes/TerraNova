@@ -36,6 +36,7 @@ import { CATEGORY_TO_EDITOR_PREFIX } from "@/schema/categoryPrefixes";
 import {
   getDeprecationTier,
   getLegacyReplacement,
+  isPrereleaseTypeKey,
 } from "@/nodes/shared/legacyTypes";
 import { getBridgeInfo } from "@/data/bridgeRegistry";
 import { getSchemaPortDescription } from "@/schema/schemaLoader";
@@ -156,6 +157,7 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
   const deprecationTier = getDeprecationTier(legacyKey);
   const isLegacy = deprecationTier !== "active";
   const legacyReplacement = isLegacy ? getLegacyReplacement(legacyKey) : null;
+  const isPrerelease = !isLegacy && isPrereleaseTypeKey(legacyKey);
 
   // Connection suggestion highlight
   const connectingCategory = useDragStore((s) => s.connectingCategory);
@@ -272,6 +274,15 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
             }
           >
             {deprecationTier === "legacy" ? "LEGACY" : "DEPRECATED"}
+          </span>
+        )}
+        {isPrerelease && (
+          <span
+            className="shrink-0 px-1 py-px rounded text-[8px] font-bold leading-none"
+            style={{ backgroundColor: "#0e7490", color: "#fff" }}
+            title="Pre-release node — only available in Hytale pre-release builds. Switch to the pre-release channel in Settings."
+          >
+            PRE
           </span>
         )}
         {bridgeInfo && (

@@ -258,7 +258,15 @@ fn validate_asset_inner(file_path: &str, value: &Value, depth: usize) -> Vec<Val
             validate_required_field(file_path, obj, "Z", &mut errors);
         }
         "Slider" => {
-            // At least one slide axis should be present
+            let has_axis = ["X", "Y", "Z", "Scale"].iter().any(|f| obj.contains_key(*f));
+            if !has_axis {
+                errors.push(ValidationError {
+                    file: file_path.to_string(),
+                    field: "Slider".to_string(),
+                    message: "Slider requires at least one axis field (X, Y, Z, or Scale)".to_string(),
+                    severity: Severity::Warning,
+                });
+            }
         }
         "Min" | "Max" => {
             validate_min_array_length(file_path, obj, "Inputs", 2, &mut errors);
@@ -271,7 +279,39 @@ fn validate_asset_inner(file_path: &str, value: &Value, depth: usize) -> Vec<Val
             validate_required_field(file_path, obj, "SwitchCases", &mut errors);
         }
         "Exported" => {
-            // Exported should have either Density or Input
+            let has_input = obj.contains_key("Input") || obj.contains_key("Density");
+            if !has_input {
+                errors.push(ValidationError {
+                    file: file_path.to_string(),
+                    field: "Exported".to_string(),
+                    message: "Exported node requires an 'Input' or 'Density' field".to_string(),
+                    severity: Severity::Warning,
+                });
+            }
+        }
+        "Conditional" | "RangeChoice" => {
+            validate_required_field(file_path, obj, "Condition", &mut errors);
+            validate_required_field(file_path, obj, "TrueInput", &mut errors);
+            validate_required_field(file_path, obj, "FalseInput", &mut errors);
+        }
+        "Interpolate" => {
+            validate_required_field(file_path, obj, "InputA", &mut errors);
+            validate_required_field(file_path, obj, "InputB", &mut errors);
+            validate_required_field(file_path, obj, "Factor", &mut errors);
+        }
+        "MultiMix" => {
+            validate_required_field(file_path, obj, "Selector", &mut errors);
+            validate_min_array_length(file_path, obj, "Densities", 2, &mut errors);
+        }
+        "AverageFunction" => {
+            validate_min_array_length(file_path, obj, "Inputs", 2, &mut errors);
+        }
+        "YSampled" => {
+            validate_required_field(file_path, obj, "Input", &mut errors);
+            validate_required_field(file_path, obj, "YProvider", &mut errors);
+        }
+        "Pipeline" => {
+            validate_required_field(file_path, obj, "Input", &mut errors);
         }
         "Imported" => {
             validate_required_field(file_path, obj, "Name", &mut errors);
@@ -362,6 +402,13 @@ fn validate_settings(
                     field: "CustomConcurrency".to_string(),
                     message: "CustomConcurrency must be >= -1".to_string(),
                     severity: Severity::Error,
+                });
+            } else if n > 256 {
+                errors.push(ValidationError {
+                    file: file_path.to_string(),
+                    field: "CustomConcurrency".to_string(),
+                    message: "CustomConcurrency must be <= 256".to_string(),
+                    severity: Severity::Warning,
                 });
             }
         }
@@ -574,5 +621,100 @@ mod validation_tests {
                 .unwrap();
         let errors = validate_asset("Settings/Settings.json", &json);
         assert!(errors.iter().any(|e| e.field == "CustomConcurrency"));
+    }
+
+    #[test]
+    fn settings_concurrency_over_256_is_warned() {
+        let json: Value =
+            serde_json::from_str(r#"{"CustomConcurrency": 512, "BufferCapacityFactor": 0.3}"#)
+                .unwrap();
+        let errors = validate_asset("Settings/Settings.json", &json);
+        let cc_warn = errors.iter().find(|e| e.field == "CustomConcurrency");
+        assert!(cc_warn.is_some(), "expected warning for concurrency > 256");
+        assert_eq!(cc_warn.unwrap().severity, crate::schema::validation::Severity::Warning);
+    }
+
+    #[test]
+    fn settings_concurrency_of_256_is_valid() {
+        let json: Value =
+            serde_json::from_str(r#"{"CustomConcurrency": 256, "BufferCapacityFactor": 0.3, "TargetViewDistance": 512.0}"#)
+                .unwrap();
+        let errors = validate_asset("Settings/Settings.json", &json);
+        assert!(!errors.iter().any(|e| e.field == "CustomConcurrency"), "256 should be valid");
+    }
+
+    // ── New type validation rules ────────────────────────────────────────────
+
+    fn density_asset(type_name: &str, fields: serde_json::Value) -> Value {
+        let mut obj = fields.as_object().cloned().unwrap_or_default();
+        obj.insert("Type".to_string(), serde_json::json!(type_name));
+        Value::Object(obj)
+    }
+
+    #[test]
+    fn slider_with_no_axes_warns() {
+        let json = density_asset("Slider", serde_json::json!({}));
+        let errors = validate_asset("density/test.json", &json);
+        assert!(errors.iter().any(|e| e.field == "Slider"), "expected Slider axis warning");
+    }
+
+    #[test]
+    fn slider_with_x_axis_is_valid() {
+        let json = density_asset("Slider", serde_json::json!({ "X": 1.0 }));
+        let errors = validate_asset("density/test.json", &json);
+        assert!(!errors.iter().any(|e| e.field == "Slider"), "X axis should satisfy Slider");
+    }
+
+    #[test]
+    fn exported_with_no_input_warns() {
+        let json = density_asset("Exported", serde_json::json!({}));
+        let errors = validate_asset("density/test.json", &json);
+        assert!(errors.iter().any(|e| e.field == "Exported"), "expected Exported input warning");
+    }
+
+    #[test]
+    fn exported_with_input_is_valid() {
+        let json = density_asset("Exported", serde_json::json!({ "Input": { "Type": "Constant", "Value": 1.0 } }));
+        let errors = validate_asset("density/test.json", &json);
+        assert!(!errors.iter().any(|e| e.field == "Exported"));
+    }
+
+    #[test]
+    fn conditional_requires_all_three_fields() {
+        let json = density_asset("Conditional", serde_json::json!({ "Condition": {} }));
+        let errors = validate_asset("density/test.json", &json);
+        assert!(errors.iter().any(|e| e.field == "TrueInput"));
+        assert!(errors.iter().any(|e| e.field == "FalseInput"));
+    }
+
+    #[test]
+    fn interpolate_requires_inputs_and_factor() {
+        let json = density_asset("Interpolate", serde_json::json!({ "InputA": {} }));
+        let errors = validate_asset("density/test.json", &json);
+        assert!(errors.iter().any(|e| e.field == "InputB"));
+        assert!(errors.iter().any(|e| e.field == "Factor"));
+    }
+
+    #[test]
+    fn multi_mix_requires_selector_and_densities() {
+        let json = density_asset("MultiMix", serde_json::json!({}));
+        let errors = validate_asset("density/test.json", &json);
+        assert!(errors.iter().any(|e| e.field == "Selector"));
+        assert!(errors.iter().any(|e| e.field == "Densities"));
+    }
+
+    #[test]
+    fn pipeline_requires_input() {
+        let json = density_asset("Pipeline", serde_json::json!({}));
+        let errors = validate_asset("density/test.json", &json);
+        assert!(errors.iter().any(|e| e.field == "Input"));
+    }
+
+    #[test]
+    fn ysampled_requires_input_and_yprovider() {
+        let json = density_asset("YSampled", serde_json::json!({}));
+        let errors = validate_asset("density/test.json", &json);
+        assert!(errors.iter().any(|e| e.field == "Input"));
+        assert!(errors.iter().any(|e| e.field == "YProvider"));
     }
 }

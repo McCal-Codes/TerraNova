@@ -148,6 +148,7 @@ export async function countHytaleAssetsToSync(
 export async function syncHytaleAssets(
   sourcePath: string,
   commonOverlayPath?: string | null,
+  channel?: string | null,
 ): Promise<HytaleAssetSyncResult> {
   // Start the sync in the background on the Rust side. This returns once the
   // background thread is spawned; actual progress/completion is delivered via
@@ -155,6 +156,7 @@ export async function syncHytaleAssets(
   await invoke("start_hytale_assets_sync", {
     sourcePath,
     commonOverlayPath: commonOverlayPath ?? null,
+    channel: channel ?? null,
   });
 
   // Wait for either completion or error event and resolve/reject accordingly.
@@ -195,7 +197,7 @@ export async function syncHytaleAssets(
         cleanup();
         reject(err);
       }
-    })();
+    })().catch(reject);
   });
 }
 
@@ -206,6 +208,8 @@ export interface AssetStalenessInfo {
   sourcePath: string | null;
   /** True if any source file is newer than the last sync timestamp. */
   isStale: boolean;
+  /** True when the cache was populated from a different channel (release vs pre-release). */
+  channelMismatch: boolean;
   /** Path of the newest file found in the source tree (diagnostic). */
   newestSourceFile: string | null;
   /** Unix seconds of the newest source file. */
@@ -214,8 +218,8 @@ export interface AssetStalenessInfo {
   syncedAtSecs: number | null;
 }
 
-export async function checkHytaleAssetStaleness(sourcePath: string): Promise<AssetStalenessInfo> {
-  return invoke<AssetStalenessInfo>("check_hytale_asset_staleness", { sourcePath });
+export async function checkHytaleAssetStaleness(sourcePath: string, channel?: string | null): Promise<AssetStalenessInfo> {
+  return invoke<AssetStalenessInfo>("check_hytale_asset_staleness", { sourcePath, channel: channel ?? null });
 }
 
 export async function createFromTemplate(

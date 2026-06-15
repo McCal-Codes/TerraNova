@@ -63,10 +63,27 @@ pub fn save_asset_pack(pack: AssetPack) -> Result<(), String> {
 
 // ── Single-file commands ────────────────────────────────────────────────────
 
+const MAX_ASSET_FILE_BYTES: u64 = 64 * 1024 * 1024; // 64 MB
+
+fn check_file_size(path: &str) -> Result<(), String> {
+    let size = fs::metadata(path)
+        .map_err(|e| format!("Failed to stat file: {}", e))?
+        .len();
+    if size > MAX_ASSET_FILE_BYTES {
+        return Err(format!(
+            "File exceeds maximum allowed size ({} MB): {}",
+            MAX_ASSET_FILE_BYTES / (1024 * 1024),
+            path
+        ));
+    }
+    Ok(())
+}
+
 /// Read a single JSON asset file.
 #[tauri::command]
 pub fn read_asset_file(path: String) -> Result<Value, String> {
     path_scope::validate_path_str(&path)?;
+    check_file_size(&path)?;
     let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
     serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))
 }
@@ -75,6 +92,7 @@ pub fn read_asset_file(path: String) -> Result<Value, String> {
 #[tauri::command]
 pub fn read_asset_file_text(path: String) -> Result<String, String> {
     path_scope::validate_path_str(&path)?;
+    check_file_size(&path)?;
     fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
 }
 
@@ -267,6 +285,7 @@ pub fn sync_hytale_assets(
     window: tauri::Window,
     source_path: String,
     common_overlay_path: Option<String>,
+    channel: Option<String>,
 ) -> Result<crate::io::hytale_assets::HytaleAssetSyncResult, String> {
     // Register the user-selected source path as an allowed root, then validate.
     path_scope::register_allowed_root(Path::new(&source_path));
@@ -284,6 +303,7 @@ pub fn sync_hytale_assets(
             .filter(|value| !value.trim().is_empty())
             .map(Path::new),
         &window,
+        channel.as_deref(),
     )
     .map_err(|e| e.to_string())
 }
@@ -319,6 +339,7 @@ pub fn start_hytale_assets_sync(
     window: tauri::Window,
     source_path: String,
     common_overlay_path: Option<String>,
+    channel: Option<String>,
 ) -> Result<(), String> {
     path_scope::register_allowed_root(Path::new(&source_path));
     path_scope::validate_path_str(&source_path)?;
@@ -332,18 +353,28 @@ pub fn start_hytale_assets_sync(
     let win = window.clone();
     let src = source_path.clone();
     let overlay = common_overlay_path.clone();
+    let ch = channel.clone();
 
     std::thread::spawn(move || {
-        let res = crate::io::hytale_assets::sync_hytale_assets_from_source_with_progress(
-            Path::new(&src),
-            overlay
-                .as_deref()
-                .filter(|v| !v.trim().is_empty())
-                .map(Path::new),
-            &win,
-        );
-        if let Err(e) = res {
-            let _ = win.emit("hytale-sync-error", &e.to_string());
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            crate::io::hytale_assets::sync_hytale_assets_from_source_with_progress(
+                Path::new(&src),
+                overlay
+                    .as_deref()
+                    .filter(|v| !v.trim().is_empty())
+                    .map(Path::new),
+                &win,
+                ch.as_deref(),
+            )
+        }));
+        match result {
+            Ok(Err(e)) => {
+                let _ = win.emit("hytale-sync-error", &e.to_string());
+            }
+            Err(_panic) => {
+                let _ = win.emit("hytale-sync-error", "Asset sync crashed unexpectedly");
+            }
+            Ok(Ok(())) => {}
         }
     });
 
@@ -360,11 +391,13 @@ pub fn cancel_hytale_assets_sync() -> Result<(), String> {
 #[tauri::command]
 pub fn check_hytale_asset_staleness(
     source_path: String,
+    channel: Option<String>,
 ) -> Result<crate::io::hytale_assets::AssetStalenessInfo, String> {
     path_scope::register_allowed_root(Path::new(&source_path));
     path_scope::validate_path_str(&source_path)?;
     Ok(crate::io::hytale_assets::check_asset_staleness(
         &source_path,
+        channel.as_deref(),
     ))
 }
 

@@ -147,6 +147,18 @@ Toggle inline node previews — small thumbnails on each node — with **T**.
 | `Ctrl+Shift+1–9` | Save current viewport to bookmark slot |
 | `Alt+1–9` | Jump to bookmark slot |
 
+Bookmarks save your current canvas position and zoom level into one of nine numbered slots. They're per-file and persist across sessions — useful when your graph is large and you keep switching between the noise source area, the terrain shaping section, and the output node. The Bookmarks panel in the left sidebar lets you see, rename, and delete any saved slot.
+
+---
+
+## Hytale Asset Channel
+
+TerraNova supports two asset channels: **release** and **pre-release**. You set this in **Settings → Hytale Assets**.
+
+The channel controls which Hytale asset cache is synced (release and pre-release builds ship different blocks, prefabs, and textures) and which nodes show up in the palette. A few density nodes — `Cube`, `Axis`, `Angle` — are pre-release only and are hidden from the palette on the release channel. If you switch channels, TerraNova clears the old cache before syncing to avoid mixing assets from different builds.
+
+If you see a **PRE** badge on a node in the canvas, that node needs a pre-release Hytale build to run in-game.
+
 ---
 
 ## Next Steps

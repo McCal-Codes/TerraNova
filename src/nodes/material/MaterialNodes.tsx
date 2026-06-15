@@ -71,8 +71,8 @@ export const SpaceAndDepthMaterialNode = memo(function SpaceAndDepthMaterialNode
     // V2: Dynamic Layers[] handles
     const layerHandles = layerEdges
       .map((e) => {
-        const idx = parseInt(/\[(\d+)\]/.exec(e.targetHandle!)![1]);
-        return { idx, handle: e.targetHandle! };
+        const idx = parseInt(/\[(\d+)\]/.exec(e.targetHandle ?? "")?.[1] ?? "0");
+        return { idx, handle: e.targetHandle ?? `Layers[${idx}]` };
       })
       .sort((a, b) => a.idx - b.idx)
       .map(({ idx, handle }) => materialInput(handle, `Layer ${idx}`));
@@ -82,7 +82,7 @@ export const SpaceAndDepthMaterialNode = memo(function SpaceAndDepthMaterialNode
       layerHandles.push(materialInput("Layers[0]", "Layer 0"));
     } else {
       // Show an extra empty slot so users can drag-connect new layers
-      const maxIdx = Math.max(...layerEdges.map((e) => parseInt(/\[(\d+)\]/.exec(e.targetHandle!)![1])));
+      const maxIdx = Math.max(...layerEdges.map((e) => parseInt(/\[(\d+)\]/.exec(e.targetHandle ?? "")?.[1] ?? "0")));
       layerHandles.push(materialInput(`Layers[${maxIdx + 1}]`, `Layer ${maxIdx + 1}`));
     }
 

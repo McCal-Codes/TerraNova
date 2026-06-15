@@ -294,7 +294,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   },
   reloadBookmarks: (filePath?: string, projectPath?: string, biomeSection?: string) => {
     if (projectPath !== undefined) _currentProjectPath = projectPath;
-    _currentFilePath = filePath ?? "default";
+    if (filePath !== undefined) _currentFilePath = filePath;
     if (biomeSection !== undefined) _currentBiomeSection = biomeSection;
     set({ bookmarks: loadBookmarks() });
   },

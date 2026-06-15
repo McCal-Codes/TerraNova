@@ -13,6 +13,9 @@ export interface RunHytaleAssetSyncParams {
   sourcePath: string;
   commonOverlayEnabled?: boolean;
   commonOverlayPath?: string | null;
+  /** "release" or "pre-release" — written to the sync manifest so TerraNova
+   *  can detect a channel switch and clear stale assets before re-syncing. */
+  channel?: string | null;
 }
 
 export interface RunHytaleAssetSyncOutcome {
@@ -76,13 +79,14 @@ export async function runHytaleAssetSync(
   const result = await syncHytaleAssets(
     params.sourcePath,
     commonOverlayPath,
+    params.channel,
   );
   clearHytaleAssetCaches();
 
   const cacheRoot = await getHytaleAssetCacheRoot();
   let staleness: AssetStalenessInfo | null = null;
   try {
-    staleness = await checkHytaleAssetStaleness(params.sourcePath);
+    staleness = await checkHytaleAssetStaleness(params.sourcePath, params.channel);
   } catch {
     staleness = null;
   }

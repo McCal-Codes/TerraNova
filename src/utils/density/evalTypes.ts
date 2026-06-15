@@ -63,7 +63,10 @@ export const DENSITY_TYPES = new Set([
   "GradientWarp", "VectorWarp",
   "Terrain", "CellWallDistance", "DistanceToBiomeEdge", "Pipeline",
   "Ellipsoid", "Cuboid", "Cylinder", "Plane", "Shell",
+  "Cube", "Axis",
   "Angle",
+  "OffsetConstant",
+  "Cache2D",
 ]);
 
 export function getNodeType(node: Node): string {

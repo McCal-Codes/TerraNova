@@ -44,7 +44,7 @@ fn scan_textures(
         if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
             out.insert(
                 stem.to_lowercase(),
-                path.file_name().unwrap().to_string_lossy().to_string(),
+                entry.file_name().to_string_lossy().to_string(),
             );
         }
     }

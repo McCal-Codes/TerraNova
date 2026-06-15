@@ -56,8 +56,9 @@ export function useGraphDiagnostics() {
         setAssetNamesByKind(lookup.namesByKind);
         setAssetPathIndexByKind(lookup.pathIndexByKind);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (disposed) return;
+        console.warn("[TerraNova] Asset validation lookup failed:", err);
         setKnownAssetNames(null);
         setAssetValidationBadge(buildAssetValidationBadge({}));
         setAssetNamesByKind({});

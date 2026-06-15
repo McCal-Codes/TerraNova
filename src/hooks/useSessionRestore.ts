@@ -86,8 +86,9 @@ export function useSessionRestoreFile(
             switchBiomeSection(session.activeBiomeSection);
           }
         }
-      } catch {
+      } catch (err) {
         // File no longer exists — user can manually pick a new one
+        console.warn("[TerraNova] Session file restore failed:", err);
       }
     }, 50);
 

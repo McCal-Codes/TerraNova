@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import type { Node } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
 import { findNearestEdge, NODE_CENTER_OFFSET_X, NODE_CENTER_OFFSET_Y } from "@/utils/graphGeometry";
@@ -134,7 +134,7 @@ export function useNodeInterjection() {
    * Called during ReactFlow's onNodeDrag to detect interjection targets.
    */
   const onNodeDrag = useCallback(
-    (_event: MouseEvent | TouchEvent, node: Node) => {
+    (_event: ReactMouseEvent, node: Node) => {
       if (rafRef.current !== null) return; // throttle to rAF
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
@@ -153,7 +153,7 @@ export function useNodeInterjection() {
    * Called on ReactFlow's onNodeDragStop — performs the interjection if applicable.
    */
   const onNodeDragStop = useCallback(
-    (_event: MouseEvent | TouchEvent, node: Node) => {
+    (_event: ReactMouseEvent, node: Node) => {
       // Cancel any pending rAF
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);

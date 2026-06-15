@@ -374,7 +374,7 @@ pub fn start_hytale_assets_sync(
             Err(_panic) => {
                 let _ = win.emit("hytale-sync-error", "Asset sync crashed unexpectedly");
             }
-            Ok(Ok(())) => {}
+            Ok(Ok(_)) => {}
         }
     });
 

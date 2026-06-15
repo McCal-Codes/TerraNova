@@ -15,7 +15,7 @@ pub struct EvaluateRequest {
     pub y_level: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct EvaluateResponse {
     /// Flattened NxN density values (row-major)
     pub values: Vec<f32>,

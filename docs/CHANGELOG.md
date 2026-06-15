@@ -293,7 +293,6 @@ First **McCal-Codes** closed-alpha build for Windows, macOS, and Linux testers.
 - **Manual Curve Interactive Sliders** — Range sliders beneath Manual Curve point In/Out number inputs with default [-2, 2] range while number inputs accept any value for manual override beyond slider bounds ([#42])
 - **FieldFunction Delimiter Nodes** — Standalone FieldFunction MaterialProviders with Delimiters are now fully supported in the import/export pipeline and rendered as dedicated graph nodes with editable From/To delimiter ranges and add/remove controls ([#37], Closes [#30])
 - **Manual Curve Static Bounds** — Preview bounds are computed once on initial data load instead of recomputing on every point change. Compact mode continues to auto-fit, presets reset bounds to [0,1], and switching nodes forces a remount so bounds recompute ([#41], Closes [#22])
-- **AI Transparency Documentation** — Added AI transparency disclaimer with development workflow details, and security disclaimer to `docs/AI_TRANSPARENCY.md`
 
 ### Fixed
 

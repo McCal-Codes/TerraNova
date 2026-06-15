@@ -316,7 +316,7 @@ export function detectGraphIssues(nodes: Node[], edges: Edge[]): GraphIssues {
   );
   const sourceIds = new Set(expanded.edges.map((e) => e.source));
   const rootCandidates = expanded.nodes.filter((n) => n && !sourceIds.has(n.id));
-  const noOutputNode = !hasOutputNode && rootCandidates.length !== 1;
+  const noOutputNode = expanded.nodes.length > 0 && !hasOutputNode && rootCandidates.length !== 1;
 
   return { hasCycle, noOutputNode };
 }

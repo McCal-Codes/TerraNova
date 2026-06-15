@@ -191,6 +191,10 @@ export function CurvePointList({
             <span />
           </div>
 
+          {sorted.length === 0 && (
+            <p className="text-[10px] text-tn-text-muted/60 text-center py-2">No points — click + to add one</p>
+          )}
+
           {sorted.map((pt, sortIdx) => (
             <div
               key={pt.origIdx}

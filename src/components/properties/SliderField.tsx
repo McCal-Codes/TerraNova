@@ -131,6 +131,7 @@ export function SliderField({
             if (Number.isNaN(raw)) return;
             onChange(allowInputOverflow ? Math.max(min, raw) : Math.max(min, Math.min(max, raw)));
           }}
+          onFocus={(e) => e.currentTarget.select()}
           onBlur={onBlur}
           onWheel={handleWheel}
           className="w-16 shrink-0 px-1.5 py-1 text-xs bg-tn-bg border border-tn-border rounded text-right focus:outline-none focus:border-tn-accent/60 transition-colors"

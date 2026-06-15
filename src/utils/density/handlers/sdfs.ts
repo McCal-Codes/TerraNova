@@ -70,6 +70,23 @@ const handlePlane: NodeHandler = (_ctx, fields, _inputs, x, y, z) => {
   return nx * x + ny * y + nz * z - d;
 };
 
+const handleAxis: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  const axisField = fields.Axis as { x?: number; y?: number; z?: number } | undefined;
+  let ax = Number(axisField?.x ?? 0);
+  let ay = Number(axisField?.y ?? 1);
+  let az = Number(axisField?.z ?? 0);
+  const len = Math.sqrt(ax * ax + ay * ay + az * az);
+  if (len < 1e-10) return Math.sqrt(x * x + y * y + z * z);
+  ax /= len; ay /= len; az /= len;
+  // Perpendicular distance from infinite line through origin in direction (ax,ay,az)
+  // = |cross(p, axis)| = magnitude of cross product
+  const cx = y * az - z * ay;
+  const cy = z * ax - x * az;
+  const cz = x * ay - y * ax;
+  const dist = Math.sqrt(cx * cx + cy * cy + cz * cz);
+  return ctx.applyCurve("Curve", dist, inputs);
+};
+
 const handleShell: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   // SDF branch: when no curves connected and InnerRadius/OuterRadius present
   if (!inputs.has("DistanceCurve") && !inputs.has("AngleCurve") &&
@@ -112,6 +129,7 @@ export function buildSdfHandlers(): Map<string, NodeHandler> {
     ["Ellipsoid", handleEllipsoid],
     ["Cuboid", handleCuboid],
     ["Cube", handleCube],
+    ["Axis", handleAxis],
     ["Cylinder", handleCylinder],
     ["Plane", handlePlane],
     ["Shell", handleShell],

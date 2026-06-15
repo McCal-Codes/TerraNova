@@ -15,7 +15,8 @@ import {
 } from "@/schema/densitySubcategories";
 import type { DensityType } from "@/schema/density";
 import { isBridgeNode } from "@/data/bridgeRegistry";
-import { isPaletteTypeKeyVisible } from "@/nodes/shared/legacyTypes";
+import { isPaletteTypeKeyVisible, isPrereleaseTypeKey } from "@/nodes/shared/legacyTypes";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 import { safeStoredJson } from "@/utils/safeLocalStorage";
 
@@ -210,12 +211,17 @@ export function NodePalette() {
   const reactFlow = useReactFlow();
   const { isTypeVisible, getTypeDisplayName, matchesSearch } = useLanguage();
 
+  const channel = useSettingsStore((s) => s.hytaleAssetSourceChannel);
   const didDragRef = useRef(false);
   const clickStaggerRef = useRef(0);
 
-  const visibleDefaults = ALL_DEFAULTS.filter((e) =>
-    isTypeVisible(e.type) && isPaletteTypeKeyVisible(resolveNodeTypeKey(e))
-  );
+  const visibleDefaults = ALL_DEFAULTS.filter((e) => {
+    const key = resolveNodeTypeKey(e);
+    if (!isTypeVisible(e.type) || !isPaletteTypeKeyVisible(key)) return false;
+    // Prerelease nodes are hidden on the release channel
+    if (isPrereleaseTypeKey(key) && channel !== "pre-release") return false;
+    return true;
+  });
   const grouped = groupByCategory(visibleDefaults);
   const hasSearch = search.trim().length > 0;
 
@@ -473,6 +479,7 @@ export function NodePalette() {
                                 const tipText = tips?.[0]?.message;
                                 const rfDisplay = getTypeDisplayName(nodeKey);
                                 const entryDisplayName = (rfDisplay !== nodeKey) ? rfDisplay : getTypeDisplayName(entry.type);
+                                const isPrerelease = isPrereleaseTypeKey(nodeKey);
                                 return (
                                   <button
                                     key={`${cat}:${entry.type}`}
@@ -485,7 +492,10 @@ export function NodePalette() {
                                       className="w-1.5 h-1.5 rounded-full shrink-0"
                                       style={{ backgroundColor: subColor }}
                                     />
-                                    <span className="truncate">{entryDisplayName}</span>
+                                    <span className="truncate flex-1">{entryDisplayName}</span>
+                                    {isPrerelease && (
+                                      <span className="text-[8px] font-bold px-1 py-px rounded leading-none shrink-0" style={{ backgroundColor: "#0e7490", color: "#fff" }}>PRE</span>
+                                    )}
                                     {isBridgeNode(entry.type) && (
                                       <span className="text-[9px] text-tn-text-muted opacity-60 shrink-0">⇄</span>
                                     )}
@@ -508,6 +518,7 @@ export function NodePalette() {
                     const tipText = tips?.[0]?.message;
                     const rfDisplay = getTypeDisplayName(nodeKey);
                     const entryDisplayName = (rfDisplay !== nodeKey) ? rfDisplay : getTypeDisplayName(entry.type);
+                    const isPrerelease = isPrereleaseTypeKey(nodeKey);
                     return (
                       <button
                         key={`${cat}:${entry.type}`}
@@ -520,7 +531,10 @@ export function NodePalette() {
                           className="w-1.5 h-1.5 rounded-full shrink-0"
                           style={{ backgroundColor: color }}
                         />
-                        <span className="truncate">{entryDisplayName}</span>
+                        <span className="truncate flex-1">{entryDisplayName}</span>
+                        {isPrerelease && (
+                          <span className="text-[8px] font-bold px-1 py-px rounded leading-none shrink-0" style={{ backgroundColor: "#0e7490", color: "#fff" }}>PRE</span>
+                        )}
                         {isBridgeNode(entry.type) && (
                           <span className="text-[9px] text-tn-text-muted opacity-60 shrink-0">⇄</span>
                         )}

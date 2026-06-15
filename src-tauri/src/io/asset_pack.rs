@@ -91,6 +91,17 @@ impl AssetPack {
                 .extension()
                 .is_some_and(|ext| ext == "json" || ext == "bson")
             {
+                const MAX_FILE_BYTES: u64 = 64 * 1024 * 1024;
+                if let Ok(meta) = fs::metadata(&path) {
+                    if meta.len() > MAX_FILE_BYTES {
+                        eprintln!(
+                            "[asset_pack] skipping oversized file ({}B): {}",
+                            meta.len(),
+                            path.display()
+                        );
+                        continue;
+                    }
+                }
                 let content = fs::read_to_string(&path)?;
                 let value: Value = serde_json::from_str(&content)?;
                 let relative = path

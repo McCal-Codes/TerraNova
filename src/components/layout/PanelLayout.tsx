@@ -361,11 +361,14 @@ export function PanelLayout() {
             {useAccordion ? <AccordionSidebar /> : <TabSidebar />}
           </div>
 
-          {/* Left drag handle */}
+          {/* Left drag handle — 5px hit area, 1px visual indicator */}
           <div
-            className="w-1 cursor-col-resize hover:bg-tn-accent/30 active:bg-tn-accent/50 shrink-0"
+            className="relative w-[5px] shrink-0 cursor-col-resize group"
+            aria-hidden="true"
             onMouseDown={handleDrag("left")}
-          />
+          >
+            <div className="absolute inset-y-0 left-[2px] w-px bg-tn-border/40 group-hover:bg-tn-accent/60 group-active:bg-tn-accent transition-colors" />
+          </div>
         </>
       )}
 
@@ -392,11 +395,14 @@ export function PanelLayout() {
       {/* Right panel */}
       {rightPanelVisible && (
         <>
-          {/* Right drag handle */}
+          {/* Right drag handle — 5px hit area, 1px visual indicator */}
           <div
-            className="w-1 cursor-col-resize hover:bg-tn-accent/30 active:bg-tn-accent/50 shrink-0"
+            className="relative w-[5px] shrink-0 cursor-col-resize group"
+            aria-hidden="true"
             onMouseDown={handleDrag("right")}
-          />
+          >
+            <div className="absolute inset-y-0 left-[2px] w-px bg-tn-border/40 group-hover:bg-tn-accent/60 group-active:bg-tn-accent transition-colors" />
+          </div>
 
           <div className="flex w-8 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface/90">
             <ChromeIconButton

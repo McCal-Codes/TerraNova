@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { computeProjectHealth } from "@/utils/projectHealth";
+import { computeProjectHealth, type ProjectHealthReport, type ProjectHealthDetail } from "@/utils/projectHealth";
 import { useProjectStore } from "@/stores/projectStore";
 import { ChromeIconButton } from "@/components/ui/editorChrome";
 import { X } from "lucide-react";
@@ -8,7 +8,7 @@ import { useTauriIO } from "@/hooks/useTauriIO";
 
 export function ProjectHealthPanel({ onClose }: { onClose: () => void }) {
   const projectPath = useProjectStore((s) => s.projectPath);
-  const [report, setReport] = useState<any>(null);
+  const [report, setReport] = useState<ProjectHealthReport | null>(null);
   const [loading, setLoading] = useState(false);
   const { openFile } = useTauriIO();
 
@@ -45,7 +45,7 @@ export function ProjectHealthPanel({ onClose }: { onClose: () => void }) {
               <div className="text-sm font-medium">Details</div>
               <div className="mt-2 space-y-2">
                 {report.details && report.details.length > 0 ? (
-                  report.details.map((d: any, i: number) => (
+                  report.details.map((d: ProjectHealthDetail, i: number) => (
                     <div key={i} className="p-2 border border-tn-border rounded">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium">{d.file}</div>

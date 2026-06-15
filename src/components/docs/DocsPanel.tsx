@@ -1960,13 +1960,8 @@ export function DocsPanel() {
       // }
       if (lang === "bounds") {
         try {
-          const parsed = safeJsonParse<{
-            min: number;
-            max: number;
-            label?: string;
-            context?: [number, number];
-            danger?: [number, number][];
-          }>(value, null as any);
+          type BoundsSpec = { min: number; max: number; label?: string; context?: [number, number]; danger?: [number, number][] };
+          const parsed = safeJsonParse<BoundsSpec | null>(value, null);
           if (!parsed) throw new Error("Invalid bounds JSON");
           const { min, max, label } = parsed;
           const ctxMin = parsed.context ? parsed.context[0] : min;

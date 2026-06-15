@@ -32,7 +32,7 @@ describe("StatusBar", () => {
         projectPath: "/test",
         lastError: null,
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useProjectStore>[0]>[0]);
     });
 
     vi.mocked(useBridgeStore).mockImplementation((selector) => {
@@ -40,14 +40,14 @@ describe("StatusBar", () => {
         connected: true,
         connecting: false,
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useBridgeStore>[0]>[0]);
     });
 
     vi.mocked(usePreviewStore).mockImplementation((selector) => {
       const state = {
         viewMode: "graph",
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof usePreviewStore>[0]>[0]);
     });
 
     vi.mocked(useUIStore).mockImplementation((selector) => {
@@ -55,14 +55,14 @@ describe("StatusBar", () => {
         showGrid: true,
         snapToGrid: false,
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useUIStore>[0]>[0]);
     });
 
     vi.mocked(useSettingsStore).mockImplementation((selector) => {
       const state = {
         instantSaveEnabled: true,
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useSettingsStore>[0]>[0]);
     });
   });
 
@@ -79,7 +79,7 @@ describe("StatusBar", () => {
         projectPath: "/test",
         lastError: "Test error message",
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useProjectStore>[0]>[0]);
     });
     render(<StatusBar />);
     expect(screen.getByText("Test error message")).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe("StatusBar", () => {
       const state = {
         viewMode: "preview",
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof usePreviewStore>[0]>[0]);
     });
     render(<StatusBar />);
     expect(screen.queryByRole("button", { name: /grid on/i })).not.toBeInTheDocument();
@@ -127,7 +127,7 @@ describe("StatusBar", () => {
         projectPath: "/test",
         lastError: null,
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useProjectStore>[0]>[0]);
     });
     render(<StatusBar />);
     expect(screen.getByText("Unsaved")).toBeInTheDocument();

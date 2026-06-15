@@ -65,7 +65,7 @@ describe("ValidationPanel", () => {
         },
         assetPathIndexByKind: {},
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useDiagnosticsStore>[0]>[0]);
     });
 
     vi.mocked(useEditorStore).mockImplementation((selector) => {
@@ -83,7 +83,7 @@ describe("ValidationPanel", () => {
         removeNodes: vi.fn(),
         commitState: vi.fn(),
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useEditorStore>[0]>[0]);
     });
   });
 
@@ -130,7 +130,7 @@ describe("ValidationPanel", () => {
         },
         assetPathIndexByKind: {},
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useDiagnosticsStore>[0]>[0]);
     });
 
     render(<ValidationPanel />);
@@ -162,7 +162,7 @@ describe("ValidationPanel", () => {
         },
         assetPathIndexByKind: {},
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useDiagnosticsStore>[0]>[0]);
     });
 
     render(<ValidationPanel />);
@@ -187,7 +187,7 @@ describe("ValidationPanel", () => {
         },
         assetPathIndexByKind: {},
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useDiagnosticsStore>[0]>[0]);
     });
 
     render(<ValidationPanel />);
@@ -218,7 +218,7 @@ describe("ValidationPanel", () => {
         },
         assetPathIndexByKind: {},
       };
-      return selector(state as any);
+      return selector(state as unknown as Parameters<Parameters<typeof useDiagnosticsStore>[0]>[0]);
     });
 
     render(<ValidationPanel />);

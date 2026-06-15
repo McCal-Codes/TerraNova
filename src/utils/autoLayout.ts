@@ -20,7 +20,7 @@ if (!_globalThis["require"]) {
  * Tidy up node positions by snapping to grid and resolving overlaps.
  * Preserves relative arrangement — nodes stay roughly where they were.
  */
-export function tidyUp(nodes: Node[], gridSize: number = 20): Node[] {
+export function tidyUp(nodes: Node[], gridSize: number = 40): Node[] {
   if (nodes.length === 0) return nodes;
 
   const gap = gridSize;
@@ -79,8 +79,8 @@ export type LayoutSpacing = "default" | "comfortable";
 
 /** Dagre spacing presets — comfortable leaves more room for labels and handoff. */
 export const LAYOUT_SPACING: Record<LayoutSpacing, { nodesep: number; ranksep: number; edgesep: number }> = {
-  default: { nodesep: 50, ranksep: 80, edgesep: 20 },
-  comfortable: { nodesep: 88, ranksep: 140, edgesep: 28 },
+  default: { nodesep: 80, ranksep: 140, edgesep: 30 },
+  comfortable: { nodesep: 140, ranksep: 220, edgesep: 40 },
 };
 
 function dagreGraphOptions(direction: "LR" | "RL" | "TB", spacing: LayoutSpacing = "default") {

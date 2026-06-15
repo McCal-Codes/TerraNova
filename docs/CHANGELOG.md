@@ -33,6 +33,17 @@ Third **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github
 - Click number input to select-all for fast overwrite
 - Empty state shown in `CurvePointList` when no points exist
 
+### Auto layout
+
+- Default node spacing increased: `nodesep` 50 → 80, `ranksep` 80 → 140 for the default preset; comfortable preset raised proportionally
+- `tidyUp` grid snaps at 40px steps (was 20px) so manually placed nodes breathe more after a tidy
+
+### Community mods foundation
+
+- Rust command module (`community.rs`) with `CommunityMod` and `ModIndex` types and two stub commands: `fetch_community_mod_index` and `list_installed_community_mods`
+- TypeScript IPC wrappers in `src/utils/communityMods.ts` — ready to wire into a future UI panel
+- No UI yet; groundwork only
+
 ### QoL & accessibility
 
 - Drag handle hit area widened to 5px with a 1px visual indicator on hover/active
@@ -41,6 +52,11 @@ Third **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github
 - `ToggleField` uses `role="switch"` + `aria-checked`; decorative thumb is `aria-hidden`
 - `SyncProgressModal` progress bar has `role="progressbar"` with `aria-valuenow/min/max`
 - Toasts use `role="alert"` for errors/warnings and `role="status"` for success/info
+
+### TypeScript hygiene
+
+- Replaced `any` types across `voxelMeshBuilder.ts`, `splashProgress.ts`, `CameraPresets.tsx`, `projectHealth.ts`, `stores/slices/types.ts`, and several test files with proper narrowed types
+- Remaining unavoidable `any` annotations suppressed with targeted `eslint-disable-next-line` comments
 
 
 

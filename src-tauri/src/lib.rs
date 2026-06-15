@@ -6,7 +6,7 @@ mod schema;
 
 use bridge::client::BridgeState;
 use commands::{
-    bridge as bridge_commands, hardware, io as io_commands, preview, process, validate,
+    bridge as bridge_commands, community, hardware, io as io_commands, preview, process, validate,
 };
 
 // Hint Windows to prefer the discrete GPU when available (NVIDIA / AMD)
@@ -72,6 +72,8 @@ pub fn run() {
             process::relaunch_app,
             hardware::get_hardware_info,
             hardware::get_gpu_info,
+            community::fetch_community_mod_index,
+            community::list_installed_community_mods,
         ])
         .run(tauri::generate_context!())
         .expect("error while running TerraNova");

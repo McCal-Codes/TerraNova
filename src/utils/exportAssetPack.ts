@@ -460,7 +460,7 @@ function stripInternalFields(obj: Record<string, unknown>): Record<string, unkno
  */
 async function convertFileForExport(sourcePath: string): Promise<Record<string, unknown> | null> {
   const rawContent = await readAssetFile(sourcePath);
-  if (!rawContent || typeof rawContent !== "object") return rawContent as Record<string, unknown> | null;
+  if (!rawContent || typeof rawContent !== "object") return null;
 
   const content = rawContent as Record<string, unknown>;
 

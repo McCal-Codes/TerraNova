@@ -62,10 +62,10 @@ export const createFileCacheSlice: SliceCreator<FileCacheSliceState> = (set, get
       historyIndex,
       isDirty,
     });
-    // LRU-style eviction
+    // LRU-style eviction: only one item is added per call so removing one is sufficient
     if (newCache.size > MAX_FILE_CACHE_SIZE) {
       const oldest = newCache.keys().next().value;
-      if (oldest) newCache.delete(oldest);
+      if (oldest !== undefined) newCache.delete(oldest);
     }
     set({ fileCache: newCache });
   },

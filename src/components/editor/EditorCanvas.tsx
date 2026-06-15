@@ -625,13 +625,13 @@ export function EditorCanvas({
     setQuickAddOpen(true);
   }, []);
 
-  const handleAnnotationDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
+  const handleAnnotationDragStart = useCallback((_event: MouseEvent | TouchEvent, node: Node) => {
     if (node.type === "frame" || node.type === "comment") {
       suppressPointerClickRef.current = true;
     }
   }, []);
 
-  const handleAnnotationDragStop = useCallback((_event: React.MouseEvent, node: Node) => {
+  const handleAnnotationDragStop = useCallback((_event: MouseEvent | TouchEvent, node: Node) => {
     if (node.type === "frame" || node.type === "comment") {
       setTimeout(() => {
         suppressPointerClickRef.current = false;
@@ -640,7 +640,7 @@ export function EditorCanvas({
   }, []);
 
   const handleNodeDragStop = useCallback(
-    (event: React.MouseEvent, node: Node) => {
+    (event: MouseEvent | TouchEvent, node: Node) => {
       interjectOnNodeDragStop(event, node);
       handleAnnotationDragStop(event, node);
     },

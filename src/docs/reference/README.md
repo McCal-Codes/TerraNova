@@ -4,7 +4,7 @@ This section contains technical reference material for TerraNova / Hytale WorldG
 
 > **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Experimental/Arches.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Pillars_Marble_Large.json`, `Generative/Generative_Veins.json`
 >
-> **Audit note:** Terrain reference examples on this branch should come from Hytale's `Examples/`, `Experimental/`, and `Generative/` biome folders. The source biome assets actively use `AmplitudeConstant`, and they use `BaseHeight` as a named terrain anchor that is often remapped through `CurveMapper`. If a compact summary table below conflicts with that source-backed wording, prefer this note and the dedicated pages.
+> These examples are pulled from Hytale's shipped biomes (`Examples/`, `Experimental/`, `Generative/`). The source assets use `AmplitudeConstant` heavily and almost always anchor terrain with `BaseHeight` → `CurveMapper`. If anything in the tables below contradicts the dedicated pages, go with the dedicated pages.
 
 If you are still learning, start with these focused pages before diving into the full listings below:
 
@@ -27,7 +27,7 @@ The density system is the mathematical backbone of terrain generation. Every ter
 |------|---------|
 | `Constant` | Outputs a fixed value regardless of position |
 | `AmplitudeConstant` | Common source-asset scale stage; multiplies a density by a fixed amount. In TerraNova you can also model the same idea with `Multiplier` + `Constant` |
-| `OffsetConstant` | Legacy stub — no configurable fields. Use `Sum` + `Constant` instead |
+| `OffsetConstant` | Adds a fixed value to the input — same as `Sum` + `Constant` but in one node. Has a `Value` field. |
 
 ### Noise
 | Node | Purpose |
@@ -77,12 +77,15 @@ The density system is the mathematical backbone of terrain generation. Every ter
 ### Shapes
 | Node | Purpose |
 |------|---------|
-| `Cube` | Signed-distance field for a cube |
 | `Cuboid` | Signed-distance field for a rectangular box |
 | `Cylinder` | Signed-distance field for a cylinder |
 | `Ellipsoid` | Signed-distance field for an ellipsoid |
 | `Plane` | Signed-distance field for an infinite plane |
-| `Shell` | Hollow shell around a shape |
+| `Shell` | Hollow shell SDF — driven by distance and angle curves |
+| `Cube` ⚠️ | SDF for an axis-aligned cube — **pre-release channel only** |
+| `Axis` ⚠️ | SDF for an infinite line along a direction vector — **pre-release channel only** |
+
+> ⚠️ Pre-release nodes only appear in the palette when you set the asset channel to **pre-release** in Settings. They export correctly to Hytale JSON but require a pre-release build to run in-game.
 
 ### Sampling and Caching
 | Node | Purpose |
@@ -108,7 +111,7 @@ The density system is the mathematical backbone of terrain generation. Every ter
 | `DistanceToBiomeEdge` | Value based on proximity to the nearest biome boundary |
 | `CellWallDistance` | Distance to the nearest Voronoi cell boundary |
 
-### Axis
+### Coordinates
 | Node | Purpose |
 |------|---------|
 | `XValue` | Outputs the X coordinate |
@@ -117,6 +120,11 @@ The density system is the mathematical backbone of terrain generation. Every ter
 | `XOverride` | Forces the X coordinate to a constant |
 | `YOverride` | Forces the Y coordinate to a constant |
 | `ZOverride` | Forces the Z coordinate to a constant |
+| `Angle` ⚠️ | Angle (degrees) between the sample position and a reference vector — **pre-release channel only** |
+| `Distance` | Euclidean distance between two density inputs |
+| `Offset` | Translates the sample position by a connected density |
+| `Scale` | Scales the coordinate space |
+| `Rotator` | Rotates the coordinate space around an axis |
 
 ---
 

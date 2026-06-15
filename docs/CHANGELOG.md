@@ -6,7 +6,43 @@ All notable changes to [TerraNova](https://github.com/McCal-Codes/TerraNova) are
 
 _Next alpha cycle — add bullets here as features land._
 
-## [0.1.8-alpha.2] — 2026-06-11 — Closed alpha
+## [0.1.8-alpha.3] — 2026-06-15 — Closed alpha
+
+Third **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.3`.  
+**Updates:** Users on `v0.1.8-alpha.2` receive this build via the in-app updater (~3s after launch when auto-check is on).
+
+### Highlights
+
+- **Pre-release node layer** — Cube, Axis, and Angle density nodes are now available when the pre-release Hytale asset channel is selected in Settings → Hytale Assets. They show a teal **PRE** badge in the palette and on the canvas, export correct Hytale JSON, and generate proper density previews
+- **Smarter property sliders** — Drag the field label to scrub values; rate scales with the field range so fast and fine moves feel natural. Shift+drag for 10× finer control. Scroll wheel on the number input. Click a number to select-all for quick replacement
+- **Validation fixes** — Pre-release nodes used on the wrong channel now show a **Remove node** quick-fix in the Validation panel. OffsetConstant `Input` connections now round-trip correctly through Hytale JSON export/import
+
+### Pre-release nodes
+
+- `Cube`, `Axis`, and `Angle` hidden from palette on release channel; visible with **PRE** badge on pre-release channel
+- `isPrereleaseTypeKey` check wired into palette filter, `BaseNode` badge renderer, and `analyzeGraph` diagnostics
+- `Axis` SDF evaluator: perpendicular distance to infinite line via cross product
+- `OffsetConstant` added to `DENSITY_NAMED_TO_ARRAY` and `HYTALE_ARRAY_TO_NAMED` — `Input` connection no longer dropped on export
+- `Axis` vector field converted to Hytale `Point3D` format on export (was exporting lowercase `{x,y,z}`)
+- Verification test suite (`prereleaseNodeExport.test.ts`) prints full Hytale JSON for manual schema comparison
+
+### Property panel
+
+- Slider label drag-to-scrub: 200px spans the full `[min, max]` range; Shift = 10× finer; `setPointerCapture` keeps tracking outside the element
+- Scroll wheel on number inputs (Shift for fine step)
+- Click number input to select-all for fast overwrite
+- Empty state shown in `CurvePointList` when no points exist
+
+### QoL & accessibility
+
+- Drag handle hit area widened to 5px with a 1px visual indicator on hover/active
+- Toast durations per type: errors linger 8s, warnings 6s, success/info 4s; max 6 toasts before oldest is evicted
+- `DropdownField` label now properly associated with its `<select>` via `useId`
+- `ToggleField` uses `role="switch"` + `aria-checked`; decorative thumb is `aria-hidden`
+- `SyncProgressModal` progress bar has `role="progressbar"` with `aria-valuenow/min/max`
+- Toasts use `role="alert"` for errors/warnings and `role="status"` for success/info
+
+
 
 Second **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.2`.  
 **Updates:** Users on `v0.1.8-alpha.1` receive this build via the in-app updater (~3s after launch when auto-check is on).

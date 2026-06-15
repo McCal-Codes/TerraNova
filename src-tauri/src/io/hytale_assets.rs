@@ -14,6 +14,11 @@ static CANCEL_SYNC: AtomicBool = AtomicBool::new(false);
 
 const SYNC_MANIFEST_NAME: &str = "sync-manifest.json";
 
+/// Maximum number of entries we will iterate in a single ZIP archive.
+/// Malformed or crafted ZIPs can report millions of entries — this cap
+/// prevents runaway iteration from freezing the UI or exhausting memory.
+const MAX_ZIP_ENTRIES: usize = 100_000;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncManifest {
@@ -530,7 +535,7 @@ fn count_changed_files_in_common_zip(
     let mut archive = ZipArchive::new(file)?;
     let mut changed: u64 = 0;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         let entry = archive.by_index(index)?;
         if entry.is_dir() {
             continue;
@@ -561,7 +566,7 @@ fn extract_common_zip_overlay(
     let mut archive = ZipArchive::new(file)?;
     let mut files_written = 0;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         if CANCEL_SYNC.load(Ordering::SeqCst) {
             return Err("sync cancelled by user".into());
         }
@@ -601,7 +606,7 @@ fn extract_common_zip_overlay_with_progress(
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         if CANCEL_SYNC.load(Ordering::SeqCst) {
             let _ = window.emit(
                 "hytale-sync-cancelled",
@@ -664,7 +669,7 @@ fn extract_assets_zip(
     let mut archive = ZipArchive::new(file)?;
     let mut files_written = 0;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         // Check for cancellation request
         if CANCEL_SYNC.load(Ordering::SeqCst) {
             return Err("sync cancelled by user".into());
@@ -765,7 +770,7 @@ fn count_changed_files_in_zip(
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
     let mut changed: u64 = 0;
-    for i in 0..archive.len() {
+    for i in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         let entry = archive.by_index(i)?;
         let entry_path = sanitize_archive_entry_path(entry.name())?;
         if let Some(Component::Normal(first)) = entry_path.components().next() {
@@ -960,7 +965,7 @@ fn extract_assets_zip_with_progress(
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
 
-    for index in 0..archive.len() {
+    for index in 0..archive.len().min(MAX_ZIP_ENTRIES) {
         // Check for cancellation request
         if CANCEL_SYNC.load(Ordering::SeqCst) {
             let _ = window.emit(
@@ -1062,7 +1067,7 @@ pub fn sync_hytale_assets_from_source_with_progress(
         let file = File::open(zip_path)?;
         let mut archive = ZipArchive::new(file)?;
         let mut changed: u64 = 0;
-        for i in 0..archive.len() {
+        for i in 0..archive.len().min(MAX_ZIP_ENTRIES) {
             let entry = archive.by_index(i)?;
             let entry_path = sanitize_archive_entry_path(entry.name())?;
             if let Some(Component::Normal(first)) = entry_path.components().next() {

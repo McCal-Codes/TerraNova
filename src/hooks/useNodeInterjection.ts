@@ -134,7 +134,7 @@ export function useNodeInterjection() {
    * Called during ReactFlow's onNodeDrag to detect interjection targets.
    */
   const onNodeDrag = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (_event: MouseEvent | TouchEvent, node: Node) => {
       if (rafRef.current !== null) return; // throttle to rAF
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
@@ -153,7 +153,7 @@ export function useNodeInterjection() {
    * Called on ReactFlow's onNodeDragStop — performs the interjection if applicable.
    */
   const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (_event: MouseEvent | TouchEvent, node: Node) => {
       // Cancel any pending rAF
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);

@@ -47,11 +47,13 @@ export function SliderField({
     (e: React.PointerEvent<HTMLSpanElement>) => {
       if (!scrubRef.current) return;
       const dx = e.clientX - scrubRef.current.startX;
-      // 1px = step normally, 0.1*step when Shift held (fine mode)
-      const sensitivity = e.shiftKey ? step * 0.1 : step;
-      const next = scrubRef.current.startValue + dx * sensitivity;
+      // Fixed rate: 200px spans the full [min, max] range. Shift = 10x finer.
+      const range = max - min || 1;
+      const rate = e.shiftKey ? range / 2000 : range / 200;
+      const snapStep = e.shiftKey ? step * 0.1 : step;
+      const next = scrubRef.current.startValue + dx * rate;
       const clamped = allowInputOverflow ? Math.max(min, next) : Math.max(min, Math.min(max, next));
-      onChange(round(clamped, e.shiftKey ? step * 0.1 : step));
+      onChange(round(clamped, snapStep));
     },
     [allowInputOverflow, max, min, onChange, step],
   );
@@ -59,8 +61,8 @@ export function SliderField({
   const handleLabelPointerUp = useCallback(
     (e: React.PointerEvent<HTMLSpanElement>) => {
       if (!scrubRef.current) return;
-      scrubRef.current = null;
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      scrubRef.current = null;
       onBlur?.();
     },
     [onBlur],

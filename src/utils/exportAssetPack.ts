@@ -527,11 +527,11 @@ export async function exportAssetPack(): Promise<void> {
     const exportPath = useSettingsStore.getState().exportPath;
     const defaultExportDir =
       exportPath ?? (await resolveDefaultExportModsRoot().catch(() => undefined));
-    const targetDir = await open({
+    const targetDir = (await open({
       directory: true,
       defaultPath: defaultExportDir,
       title: "Export asset pack (creates TerraNova.ProjectName folder here)",
-    });
+    })) as string | null;
     if (!targetDir) return;
 
     // Remember the chosen path

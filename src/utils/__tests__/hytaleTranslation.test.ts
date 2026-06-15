@@ -1,3 +1,4 @@
+import type { Node } from "@xyflow/react";
 import { describe, it, expect } from "vitest";
 import { internalToHytale, internalToHytaleBiome } from "../internalToHytale";
 import { hytaleToInternal, hytaleToInternalBiome, isHytaleNativeFormat } from "../hytaleToInternal";
@@ -89,19 +90,19 @@ describe("biome annotation metadata", () => {
             id: "terrain-root",
             position: { x: 12, y: 34 },
             data: { type: "Constant", fields: { Value: 0 } },
-          } as any,
+          } as Node,
           {
             id: "comment-1",
             type: "comment",
             position: { x: 56, y: 78 },
             data: { text: "Shape the ridge here", width: 240, height: 96 },
-          } as any,
+          } as Node,
           {
             id: "frame-1",
             type: "frame",
             position: { x: 90, y: 120 },
             data: { name: "Terrain Notes", width: 420, height: 260 },
-          } as any,
+          } as Node,
         ],
       },
     );
@@ -2340,7 +2341,7 @@ describe("N-ary Sum nesting and flattening", () => {
     };
     const { asset: imported } = hytaleToInternal(hytale);
     // Re-export
-    const exported = internalToHytale(imported as any);
+    const exported = internalToHytale(imported as unknown as Parameters<typeof internalToHytale>[0]);
     expect(exported.Type).toBe("Sum");
     const inputs = exported.Inputs as Record<string, unknown>[];
     expect(inputs).toHaveLength(4);
@@ -2362,7 +2363,7 @@ describe("N-ary Sum nesting and flattening", () => {
       Skip: false,
     };
     const { asset: imported } = hytaleToInternal(hytale);
-    const exported = internalToHytale(imported as any);
+    const exported = internalToHytale(imported as unknown as Parameters<typeof internalToHytale>[0]);
     expect(exported.Type).toBe("Sum");
     const inputs = exported.Inputs as Record<string, unknown>[];
     expect(inputs).toHaveLength(3);
@@ -2523,7 +2524,7 @@ describe("Point3D / Vector:Constant round-trip", () => {
     expect(range.Value).toEqual({ x: 3, y: 5, z: 3 });
 
     // Re-export: Constant with vector Value → Point3D
-    const exported = internalToHytale(imported as any);
+    const exported = internalToHytale(imported as unknown as Parameters<typeof internalToHytale>[0]);
     const exportedRange = exported.Range as Record<string, unknown>;
     expect(exportedRange.Type).toBeUndefined();
     expect(exportedRange.X).toBe(3);

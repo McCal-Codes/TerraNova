@@ -191,7 +191,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
       return;
     }
     const selected = await openDialog({ directory: true, defaultPath: exportPath ?? undefined });
-    if (selected) setExportPath(selected);
+    if (typeof selected === "string") setExportPath(selected);
   }
 
   async function handleBrowsePackBackupParent() {

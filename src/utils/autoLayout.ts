@@ -7,9 +7,10 @@ import * as _graphlibModule from "@dagrejs/graphlib";
 // The shim fires during module evaluation, so we must polyfill require()
 // before dagre is ever imported. Static import of graphlib above guarantees
 // it's available here at module scope.
-const _graphlib = (_graphlibModule as any).default ?? _graphlibModule;
-if (!(globalThis as any).require) {
-  (globalThis as any).require = (id: string) => {
+const _graphlib = (_graphlibModule as unknown as { default?: unknown }).default ?? _graphlibModule;
+const _globalThis = globalThis as Record<string, unknown>;
+if (!_globalThis["require"]) {
+  _globalThis["require"] = (id: string) => {
     if (id === "@dagrejs/graphlib") return _graphlib;
     throw new Error(`Dynamic require of "${id}" is not supported`);
   };
@@ -89,7 +90,8 @@ function dagreGraphOptions(direction: "LR" | "RL" | "TB", spacing: LayoutSpacing
   };
 }
 
-let dagreLib: typeof import("@dagrejs/dagre") | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let dagreLib: any = null;
 
 /**
  * Lazily import dagre. The require polyfill is already set up at module
@@ -99,8 +101,9 @@ async function ensureDagre() {
   if (dagreLib) return dagreLib;
 
   const dagreMod = await import("@dagrejs/dagre");
-  const dagre = (dagreMod as any).default ?? dagreMod;
-  dagre.graphlib = _graphlib;
+  // ESM/CJS interop: dagre may be the module default or the module itself
+  const dagre = (dagreMod as Record<string, unknown>)["default"] ?? dagreMod;
+  (dagre as Record<string, unknown>)["graphlib"] = _graphlib;
   dagreLib = dagre;
   return dagreLib;
 }

@@ -24,11 +24,12 @@ export interface VoxelMeshData {
 // Each face: normal direction, 4 vertex offsets, 2 AO edge axes + corner for each vertex
 // Vertices wound counter-clockwise when viewed from outside
 
+type Vec3 = [number, number, number];
 type Face = {
-  dir: [number, number, number]; // neighbor direction to check
-  vertices: [number, number, number][]; // 4 vertex positions (offsets from block origin)
-  // For each vertex: [edge1, edge2, corner] indices into neighbor offsets for AO
-  ao: [number, number, number][];
+  dir: Vec3;
+  vertices: Vec3[];
+  // For each vertex: [edge1, edge2, corner] neighbor offsets for AO
+  ao: Vec3[][];
 };
 
 // Neighbor offsets for AO computation (relative to block position)
@@ -43,7 +44,7 @@ const FACES: Face[] = [
       [[-1, 1, 0], [0, 1, 1], [-1, 1, 1]],
       [[1, 1, 0], [0, 1, 1], [1, 1, 1]],
       [[1, 1, 0], [0, 1, -1], [1, 1, -1]],
-    ] as any,
+    ],
   },
   // -Y (bottom) — brightness 0.5
   {
@@ -54,7 +55,7 @@ const FACES: Face[] = [
       [[-1, -1, 0], [0, -1, -1], [-1, -1, -1]],
       [[1, -1, 0], [0, -1, -1], [1, -1, -1]],
       [[1, -1, 0], [0, -1, 1], [1, -1, 1]],
-    ] as any,
+    ],
   },
   // +X — brightness 0.80
   {
@@ -65,7 +66,7 @@ const FACES: Face[] = [
       [[1, 1, 0], [1, 0, -1], [1, 1, -1]],
       [[1, 1, 0], [1, 0, 1], [1, 1, 1]],
       [[1, -1, 0], [1, 0, 1], [1, -1, 1]],
-    ] as any,
+    ],
   },
   // -X — brightness 0.70
   {
@@ -76,7 +77,7 @@ const FACES: Face[] = [
       [[-1, 1, 0], [-1, 0, 1], [-1, 1, 1]],
       [[-1, 1, 0], [-1, 0, -1], [-1, 1, -1]],
       [[-1, -1, 0], [-1, 0, -1], [-1, -1, -1]],
-    ] as any,
+    ],
   },
   // +Z — brightness 0.85
   {
@@ -87,7 +88,7 @@ const FACES: Face[] = [
       [[1, 0, 1], [0, 1, 1], [1, 1, 1]],
       [[-1, 0, 1], [0, 1, 1], [-1, 1, 1]],
       [[-1, 0, 1], [0, -1, 1], [-1, -1, 1]],
-    ] as any,
+    ],
   },
   // -Z — brightness 0.65
   {
@@ -98,7 +99,7 @@ const FACES: Face[] = [
       [[-1, 0, -1], [0, 1, -1], [-1, 1, -1]],
       [[1, 0, -1], [0, 1, -1], [1, 1, -1]],
       [[1, 0, -1], [0, -1, -1], [1, -1, -1]],
-    ] as any,
+    ],
   },
 ];
 

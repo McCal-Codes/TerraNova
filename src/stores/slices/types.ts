@@ -238,5 +238,5 @@ export type EditorState = GraphSliceState &
 export type SliceCreator<T> = (
   set: (partial: Partial<EditorState> | ((state: EditorState) => Partial<EditorState>)) => void,
   get: () => EditorState,
-  store: any,
+  store: unknown,
 ) => T;

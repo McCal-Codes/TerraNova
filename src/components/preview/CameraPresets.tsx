@@ -33,9 +33,8 @@ export function CameraPresets() {
         camera.position.lerpVectors(start, end, ease);
         camera.lookAt(0, 0, 0);
 
-        if ((controls as any)?.update) {
-          (controls as any).update();
-        }
+        const ctrl = controls as { update?: () => void } | null;
+        ctrl?.update?.();
 
         if (t < 1) {
           animRef.current = requestAnimationFrame(animate);

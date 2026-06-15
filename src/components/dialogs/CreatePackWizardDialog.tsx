@@ -104,7 +104,7 @@ export function CreatePackWizardDialog({ open: isOpen, onClose }: CreatePackWiza
       return;
     }
     try {
-      const selected = await open({ directory: true, title: "Choose pack location" });
+      const selected = (await open({ directory: true, title: "Choose pack location" })) as string | null;
       if (selected) {
         const targetDir = typeof selected === "string" ? selected : selected;
         patch({ targetDir });

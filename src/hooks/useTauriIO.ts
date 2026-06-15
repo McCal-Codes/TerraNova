@@ -392,10 +392,10 @@ export function useTauriIO() {
   const handleOpenAssetPack = useCallback(async () => {
     setLastError(null);
     try {
-      const selected = await open({ directory: true });
+      const selected = (await open({ directory: true })) as string | null;
       if (!selected) return;
 
-      const path = typeof selected === "string" ? selected : selected;
+      const path = selected;
       const ok = await confirmOpenPackWithAlphaBackup(path);
       if (!ok) return;
 
@@ -1264,9 +1264,9 @@ export function useTauriIO() {
       try {
         let path = targetPath;
         if (!path) {
-          const selected = await open({ directory: true });
+          const selected = (await open({ directory: true })) as string | null;
           if (!selected) return;
-          path = typeof selected === "string" ? selected : selected;
+          path = selected;
         }
 
         if (templateName) {

@@ -106,6 +106,7 @@ const SHADOW_DEFAULT = "0 2px 8px rgba(0,0,0,0.4)";
 
 export interface BaseNodeData extends Record<string, unknown> {
   type: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fields: Record<string, any>;
 }
 

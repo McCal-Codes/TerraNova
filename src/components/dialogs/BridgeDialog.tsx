@@ -311,13 +311,13 @@ export function BridgeDialog() {
 
   async function handleBrowseModPath() {
     const defaultPath = await resolveDefaultSaveModsBrowseRoot();
-    const selected = await open({
+    const selected = (await open({
       directory: true,
       title: "Select mod pack root (folder containing Server/)",
       defaultPath,
-    });
+    })) as string | null;
     if (selected) {
-      const path = typeof selected === "string" ? selected : selected;
+      const path = selected;
       setServerModPath(path);
       useBridgeStore.getState().setServerModPath(path);
     }

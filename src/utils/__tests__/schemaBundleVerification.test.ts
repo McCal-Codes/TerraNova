@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import bundle from '../../data/terranova-bundle.json';
 
 describe('Schema Bundle Verification', () => {
-  const nodes = bundle.nodes as Record<string, any>;
+  type BundleField = { default?: unknown; type?: string; min?: number; max?: number };
+  type BundleNode = { category?: string; fields: Record<string, BundleField>; [k: string]: unknown };
+  const nodes = bundle.nodes as Record<string, BundleNode>;
 
   it('has version and metadata', () => {
     expect(bundle.version).toBeDefined();
@@ -145,7 +147,7 @@ describe('Schema Bundle Verification', () => {
     });
 
     it('PropDistribution category is registered', () => {
-      const categories = (bundle as any).categories;
+      const categories = (bundle as Record<string, unknown>).categories as Record<string, { schemaDir?: string }>;
       expect(categories['PropDistribution']).toBeDefined();
       expect(categories['PropDistribution'].schemaDir).toBe('propdistributions');
     });

@@ -52,14 +52,15 @@ export async function computeProjectHealth(projectPath: string | null): Promise<
       const entries = await listDirectory(projectPath);
       // Count JSON files as a non-fatal heuristic
       let jsonCount = 0;
-      function walk(entriesList: any[]) {
+      type DirEntry = { is_dir?: boolean; name?: string; children?: DirEntry[] };
+      function walk(entriesList: DirEntry[]) {
         for (const e of entriesList) {
           if (!e) continue;
           if (e.is_dir && e.children) walk(e.children);
           else if (typeof e.name === "string" && e.name.toLowerCase().endsWith(".json")) jsonCount++;
         }
       }
-      walk(entries as any[]);
+      walk(entries as DirEntry[]);
       return {
         projectPath,
         totalErrors: 0,

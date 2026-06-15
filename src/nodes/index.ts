@@ -141,6 +141,7 @@ import { GenericNode } from "./GenericNode";
  * Other categories use "Category:Type" prefixed names to avoid collisions
  * (e.g., "Curve:Constant" vs density "Constant").
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const nodeTypes: Record<string, ComponentType<any>> = {
   // ── Density (V2 names only) ──────────────────────────────────────────
   SimplexNoise2D: SimplexNoise2DNode,

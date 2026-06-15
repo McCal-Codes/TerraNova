@@ -139,14 +139,21 @@ mod tests {
         // File doesn't exist yet — should be allowed via parent canonicalization
         let new_file = root.join("new-file-that-does-not-exist.json");
         let result = validate_path(new_file.to_str().unwrap());
-        assert!(result.is_ok(), "expected Ok for new file in root, got: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "expected Ok for new file in root, got: {:?}",
+            result
+        );
     }
 
     #[test]
     fn rejects_path_outside_registered_root() {
         let root = setup_root();
         // A sibling directory at the same level as the root
-        let sibling = root.parent().unwrap().join("tn-pathscope-sibling-not-registered");
+        let sibling = root
+            .parent()
+            .unwrap()
+            .join("tn-pathscope-sibling-not-registered");
         std::fs::create_dir_all(&sibling).ok();
         let file = sibling.join("secret.json");
         std::fs::write(&file, "{}").ok();
@@ -196,6 +203,9 @@ mod tests {
             let roots = ALLOWED_ROOTS.read().unwrap();
             roots.len()
         };
-        assert_eq!(initial_count, new_count, "duplicate registration should be a no-op");
+        assert_eq!(
+            initial_count, new_count,
+            "duplicate registration should be a no-op"
+        );
     }
 }

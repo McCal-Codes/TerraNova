@@ -38,7 +38,7 @@ export function NewProjectDialog({ open: isOpen, onClose, defaultTemplate }: New
     }
 
     try {
-      const selected = await open({ directory: true, title: "Choose project location" });
+      const selected = (await open({ directory: true, title: "Choose project location" })) as string | null;
       if (selected) {
         setTargetDir(typeof selected === "string" ? selected : selected);
         setError(null);

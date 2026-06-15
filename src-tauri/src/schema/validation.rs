@@ -258,12 +258,15 @@ fn validate_asset_inner(file_path: &str, value: &Value, depth: usize) -> Vec<Val
             validate_required_field(file_path, obj, "Z", &mut errors);
         }
         "Slider" => {
-            let has_axis = ["X", "Y", "Z", "Scale"].iter().any(|f| obj.contains_key(*f));
+            let has_axis = ["X", "Y", "Z", "Scale"]
+                .iter()
+                .any(|f| obj.contains_key(*f));
             if !has_axis {
                 errors.push(ValidationError {
                     file: file_path.to_string(),
                     field: "Slider".to_string(),
-                    message: "Slider requires at least one axis field (X, Y, Z, or Scale)".to_string(),
+                    message: "Slider requires at least one axis field (X, Y, Z, or Scale)"
+                        .to_string(),
                     severity: Severity::Warning,
                 });
             }
@@ -631,7 +634,10 @@ mod validation_tests {
         let errors = validate_asset("Settings/Settings.json", &json);
         let cc_warn = errors.iter().find(|e| e.field == "CustomConcurrency");
         assert!(cc_warn.is_some(), "expected warning for concurrency > 256");
-        assert_eq!(cc_warn.unwrap().severity, crate::schema::validation::Severity::Warning);
+        assert_eq!(
+            cc_warn.unwrap().severity,
+            crate::schema::validation::Severity::Warning
+        );
     }
 
     #[test]
@@ -640,7 +646,10 @@ mod validation_tests {
             serde_json::from_str(r#"{"CustomConcurrency": 256, "BufferCapacityFactor": 0.3, "TargetViewDistance": 512.0}"#)
                 .unwrap();
         let errors = validate_asset("Settings/Settings.json", &json);
-        assert!(!errors.iter().any(|e| e.field == "CustomConcurrency"), "256 should be valid");
+        assert!(
+            !errors.iter().any(|e| e.field == "CustomConcurrency"),
+            "256 should be valid"
+        );
     }
 
     // ── New type validation rules ────────────────────────────────────────────
@@ -655,26 +664,38 @@ mod validation_tests {
     fn slider_with_no_axes_warns() {
         let json = density_asset("Slider", serde_json::json!({}));
         let errors = validate_asset("density/test.json", &json);
-        assert!(errors.iter().any(|e| e.field == "Slider"), "expected Slider axis warning");
+        assert!(
+            errors.iter().any(|e| e.field == "Slider"),
+            "expected Slider axis warning"
+        );
     }
 
     #[test]
     fn slider_with_x_axis_is_valid() {
         let json = density_asset("Slider", serde_json::json!({ "X": 1.0 }));
         let errors = validate_asset("density/test.json", &json);
-        assert!(!errors.iter().any(|e| e.field == "Slider"), "X axis should satisfy Slider");
+        assert!(
+            !errors.iter().any(|e| e.field == "Slider"),
+            "X axis should satisfy Slider"
+        );
     }
 
     #[test]
     fn exported_with_no_input_warns() {
         let json = density_asset("Exported", serde_json::json!({}));
         let errors = validate_asset("density/test.json", &json);
-        assert!(errors.iter().any(|e| e.field == "Exported"), "expected Exported input warning");
+        assert!(
+            errors.iter().any(|e| e.field == "Exported"),
+            "expected Exported input warning"
+        );
     }
 
     #[test]
     fn exported_with_input_is_valid() {
-        let json = density_asset("Exported", serde_json::json!({ "Input": { "Type": "Constant", "Value": 1.0 } }));
+        let json = density_asset(
+            "Exported",
+            serde_json::json!({ "Input": { "Type": "Constant", "Value": 1.0 } }),
+        );
         let errors = validate_asset("density/test.json", &json);
         assert!(!errors.iter().any(|e| e.field == "Exported"));
     }

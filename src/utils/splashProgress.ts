@@ -11,12 +11,9 @@ export function removeSplash() {
   removed = true;
 
   // Stop the message rotation and progress tick started in index.html
-  if ((window as any).__splashMsgInterval) {
-    clearInterval((window as any).__splashMsgInterval);
-  }
-  if ((window as any).__splashTickInterval) {
-    clearInterval((window as any).__splashTickInterval);
-  }
+  const w = window as Window & { __splashMsgInterval?: ReturnType<typeof setInterval>; __splashTickInterval?: ReturnType<typeof setInterval> };
+  if (w.__splashMsgInterval) clearInterval(w.__splashMsgInterval);
+  if (w.__splashTickInterval) clearInterval(w.__splashTickInterval);
 
   const progressEl = document.getElementById("splash-progress");
   const statusEl = document.getElementById("splash-status");

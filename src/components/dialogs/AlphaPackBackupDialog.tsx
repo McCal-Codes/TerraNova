@@ -81,13 +81,13 @@ export function AlphaPackBackupDialog() {
   }
 
   async function handleChooseFolder() {
-    const selected = await open({
+    const selected = (await open({
       directory: true,
       title: "Choose where to store the backup",
       defaultPath: packPath.replace(/[/\\][^/\\]+$/, ""),
-    });
+    })) as string | null;
     if (!selected) return;
-    const path = typeof selected === "string" ? selected : selected;
+    const path = selected;
     setCustomDestination(suggestPackBackupPath(packPath, undefined, path));
   }
 

@@ -53,6 +53,18 @@ Third **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github
 - `SyncProgressModal` progress bar has `role="progressbar"` with `aria-valuenow/min/max`
 - Toasts use `role="alert"` for errors/warnings and `role="status"` for success/info
 
+### Performance
+
+- **Voxel mesh rebuild** — `hexToRGB` is now cached per unique color string inside `buildWorldMeshes`; previously called once per exposed face vertex, re-parsing the same ~40 hex values tens of thousands of times per rebuild
+- **EditorCanvas re-renders** — Reduced from 11 independent Zustand subscriptions to 2 grouped `useShallow` selectors; store updates no longer trigger up to 11 separate re-render checks on the component that owns the entire flow canvas
+- **PreviewPanel re-renders** — Collapsed 18 individual `usePreviewStore` subscriptions into 2 `useShallow` groups; parent re-renders no longer cascade into Three.js and canvas children unnecessarily
+- **ThresholdedHeatmap** — Consolidated 16 individual store subscriptions into one `useShallow` call and wrapped with `React.memo`; heavy canvas redraws now only happen when relevant state actually changes
+- **Preview3D** — Wrapped with `React.memo`; loading-state changes in PreviewPanel no longer reconcile the entire Three.js `<Canvas>` tree
+- **NodePalette** — `visibleDefaults`, `grouped`, `sortedCategoryOrder`, and `groupedSnippets` are now memoized with `useMemo`; previously recomputed on every node selection
+- **Heatmap2D / ThresholdedHeatmap** — Converted from eager imports to `React.lazy()`; their code (plus `contourLines.ts`, `topoMapStyle.ts`, colormaps, and shape overlay utils) no longer loads at startup — only when the 2D preview tab is first opened
+- **CurveCanvas drag** — Canvas `.width` / `.height` assignments (which clear the canvas and force GPU texture reallocation) are now guarded behind a size-change check; previously triggered on every mouse-move event during curve drags
+- **Build output** — Added explicit `minify: "esbuild"` + `cssMinify: true`; React, React DOM, and Zustand extracted into a stable `vendor` chunk so the WebView cache survives app updates that don't touch core dependencies
+
 ### TypeScript hygiene
 
 - Replaced `any` types across `voxelMeshBuilder.ts`, `splashProgress.ts`, `CameraPresets.tsx`, `projectHealth.ts`, `stores/slices/types.ts`, and several test files with proper narrowed types

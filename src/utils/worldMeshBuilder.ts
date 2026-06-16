@@ -113,6 +113,8 @@ export function buildWorldMeshes(
   const sceneSize = 50;
   const scale = sceneSize / maxExtent;
 
+  const rgbCache = new Map<string, [number, number, number]>();
+
   // Collect quads per material color
   const materialQuads = new Map<string, {
     info: BlockRenderInfo;
@@ -179,7 +181,11 @@ export function buildWorldMeshes(
             }
 
             const baseVert = entry.positions.length / 3;
-            const baseRGB = hexToRGB(info.color);
+            let baseRGB = rgbCache.get(info.color);
+            if (!baseRGB) {
+              baseRGB = hexToRGB(info.color);
+              rgbCache.set(info.color, baseRGB);
+            }
             const faceBrightness = FACE_BRIGHTNESS[fi];
             const jitter = blockJitter(wx, wy, wz);
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
 import { ALL_DEFAULTS, type CategoryDefaultsEntry } from "@/schema/defaults";
@@ -215,14 +215,14 @@ export function NodePalette() {
   const didDragRef = useRef(false);
   const clickStaggerRef = useRef(0);
 
-  const visibleDefaults = ALL_DEFAULTS.filter((e) => {
+  const visibleDefaults = useMemo(() => ALL_DEFAULTS.filter((e) => {
     const key = resolveNodeTypeKey(e);
     if (!isTypeVisible(e.type) || !isPaletteTypeKeyVisible(key)) return false;
     // Prerelease nodes are hidden on the release channel
     if (isPrereleaseTypeKey(key) && channel !== "pre-release") return false;
     return true;
-  });
-  const grouped = groupByCategory(visibleDefaults);
+  }), [isTypeVisible, channel]);
+  const grouped = useMemo(() => groupByCategory(visibleDefaults), [visibleDefaults]);
   const hasSearch = search.trim().length > 0;
 
   // Filter snippets by search (name or description)
@@ -234,22 +234,24 @@ export function NodePalette() {
     : SNIPPET_CATALOG;
 
   // Group snippets by category
-  const groupedSnippets = filteredSnippets.reduce((acc, snippet) => {
+  const groupedSnippets = useMemo(() => filteredSnippets.reduce((acc, snippet) => {
     acc[snippet.category] = acc[snippet.category] || [];
     acc[snippet.category].push(snippet);
     return acc;
-  }, {} as Record<string, SnippetDefinition[]>);
+  }, {} as Record<string, SnippetDefinition[]>), [filteredSnippets]);
 
   // Context-aware category ordering: pinned category first
   const contextCategory = editingContext ? CONTEXT_TO_CATEGORY[editingContext] : null;
-  const categoriesWithEntries = Array.from(grouped.keys());
-  const baseCategoryOrder = [
-    ...CATEGORY_ORDER,
-    ...categoriesWithEntries.filter((cat) => !CATEGORY_ORDER.includes(cat)),
-  ];
-  const sortedCategoryOrder = contextCategory
-    ? [contextCategory, ...baseCategoryOrder.filter((c) => c !== contextCategory)]
-    : baseCategoryOrder;
+  const sortedCategoryOrder = useMemo(() => {
+    const categoriesWithEntries = Array.from(grouped.keys());
+    const baseCategoryOrder = [
+      ...CATEGORY_ORDER,
+      ...categoriesWithEntries.filter((cat) => !CATEGORY_ORDER.includes(cat)),
+    ];
+    return contextCategory
+      ? [contextCategory, ...baseCategoryOrder.filter((c) => c !== contextCategory)]
+      : baseCategoryOrder;
+  }, [grouped, contextCategory]);
 
   useEffect(() => {
     if (!contextCategory || hasSearch) return;

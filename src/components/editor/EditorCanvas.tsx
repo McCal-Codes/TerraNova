@@ -15,6 +15,7 @@ import {
   type Connection,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { useShallow } from "zustand/react/shallow";
 import { useEditorStore } from "@/stores/editorStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useProjectStore } from "@/stores/projectStore";
@@ -177,21 +178,25 @@ export function EditorCanvas({
 
   const resolvedNodes = useResolvedNodes();
   useOutputNodeFallback();
-  const edges = useEditorStore((s) => s.edges);
-  const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
-  const onNodesChange = useEditorStore((s) => s.onNodesChange);
-  const onEdgesChange = useEditorStore((s) => s.onEdgesChange);
-  const onConnect = useEditorStore((s) => s.onConnect);
-  const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
+  const { edges, selectedNodeId, onNodesChange, onEdgesChange, onConnect, setSelectedNodeId, activeBiomeSection } =
+    useEditorStore(
+      useShallow((s) => ({
+        edges: s.edges,
+        selectedNodeId: s.selectedNodeId,
+        onNodesChange: s.onNodesChange,
+        onEdgesChange: s.onEdgesChange,
+        onConnect: s.onConnect,
+        setSelectedNodeId: s.setSelectedNodeId,
+        activeBiomeSection: s.activeBiomeSection,
+      })),
+    );
   const reactFlowInstance = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
-  const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
 
   // UI Store
-  const showGrid = useUIStore((s) => s.showGrid);
-  const snapToGrid = useUIStore((s) => s.snapToGrid);
-  const gridSize = useUIStore((s) => s.gridSize);
-  const showMinimap = useUIStore((s) => s.showMinimap);
+  const { showGrid, snapToGrid, gridSize, showMinimap } = useUIStore(
+    useShallow((s) => ({ showGrid: s.showGrid, snapToGrid: s.snapToGrid, gridSize: s.gridSize, showMinimap: s.showMinimap })),
+  );
 
   // Track mouse position for keyboard-invoked quick-add
   const mousePosRef = useRef({ x: 0, y: 0 });

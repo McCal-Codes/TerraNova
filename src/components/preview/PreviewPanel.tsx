@@ -1,11 +1,12 @@
 import { lazy, Suspense, useCallback, useRef, useState, useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useVoxelEvaluation } from "@/hooks/useVoxelEvaluation";
 import { useWorldPreview } from "@/hooks/useWorldPreview";
 import { usePositionOverlay } from "@/hooks/usePositionOverlay";
 import { useShapePreviewEvaluation } from "@/hooks/useShapePreviewEvaluation";
-import { Heatmap2D } from "./Heatmap2D";
-import { ThresholdedHeatmap } from "./ThresholdedHeatmap";
+const Heatmap2D = lazy(() => import("./Heatmap2D").then((m) => ({ default: m.Heatmap2D })));
+const ThresholdedHeatmap = lazy(() => import("./ThresholdedHeatmap").then((m) => ({ default: m.ThresholdedHeatmap })));
 import { PreviewControls } from "./PreviewControls";
 import { StatisticsPanel } from "./StatisticsPanel";
 import { CrossSectionPlot } from "./CrossSectionPlot";
@@ -48,6 +49,10 @@ export function PreviewPanel() {
     setIsCanvasReady(Boolean(el));
   }, []);
 
+  const handleHeatmapExportRootRef = useCallback((el: HTMLDivElement | null) => {
+    heatmapExportRootRef.current = el;
+  }, []);
+
   const handleExportPreview = useCallback(async () => {
     const modeNow = usePreviewStore.getState().mode;
     if (modeNow === "2d" && heatmapExportRootRef.current) {
@@ -88,24 +93,32 @@ export function PreviewPanel() {
   const { isPropContext } = usePropEditingContext();
   const propEvaluating = usePropPlacementStore((s) => s.isEvaluating);
   const propError = usePropPlacementStore((s) => s.evaluationError);
-  const mode = usePreviewStore((s) => s.mode);
-  const values = usePreviewStore((s) => s.values);
-  const isLoading = usePreviewStore((s) => s.isLoading);
-  const previewError = usePreviewStore((s) => s.previewError);
-  const showCrossSection = usePreviewStore((s) => s.showCrossSection);
-  const crossSectionLine = usePreviewStore((s) => s.crossSectionLine);
-  const crossSectionProfileMode = usePreviewStore((s) => s.crossSectionProfileMode);
-  const show3DVolumeView = usePreviewStore((s) => s.show3DVolumeView);
-  const showThresholdView = usePreviewStore((s) => s.showThresholdView);
-  const usgsTopoStyle = usePreviewStore((s) => s.usgsTopoStyle);
+  const {
+    mode, values, isLoading, previewError, showCrossSection, crossSectionLine, crossSectionProfileMode,
+    show3DVolumeView, showThresholdView, usgsTopoStyle, isVoxelLoading, voxelError, voxelDensities,
+    isWorldLoading, worldError, voxelMeshData, viewMode,
+  } = usePreviewStore(
+    useShallow((s) => ({
+      mode: s.mode,
+      values: s.values,
+      isLoading: s.isLoading,
+      previewError: s.previewError,
+      showCrossSection: s.showCrossSection,
+      crossSectionLine: s.crossSectionLine,
+      crossSectionProfileMode: s.crossSectionProfileMode,
+      show3DVolumeView: s.show3DVolumeView,
+      showThresholdView: s.showThresholdView,
+      usgsTopoStyle: s.usgsTopoStyle,
+      isVoxelLoading: s.isVoxelLoading,
+      voxelError: s.voxelError,
+      voxelDensities: s.voxelDensities,
+      isWorldLoading: s.isWorldLoading,
+      worldError: s.worldError,
+      voxelMeshData: s.voxelMeshData,
+      viewMode: s.viewMode,
+    })),
+  );
   const useThresholdedHeatmap = showThresholdView && !usgsTopoStyle;
-  const isVoxelLoading = usePreviewStore((s) => s.isVoxelLoading);
-  const voxelError = usePreviewStore((s) => s.voxelError);
-  const voxelDensities = usePreviewStore((s) => s.voxelDensities);
-  const isWorldLoading = usePreviewStore((s) => s.isWorldLoading);
-  const worldError = usePreviewStore((s) => s.worldError);
-  const voxelMeshData = usePreviewStore((s) => s.voxelMeshData);
-  const viewMode = usePreviewStore((s) => s.viewMode);
 
   const isSplitMode = viewMode === "split";
   const [controlsCollapsed, setControlsCollapsed] = useState(isSplitMode);
@@ -119,10 +132,9 @@ export function PreviewPanel() {
     setControlsCollapsed(!open);
   }, []);
 
-  const fidelityScore = usePreviewStore((s) => s.fidelityScore);
-  const minValue = usePreviewStore((s) => s.minValue);
-  const maxValue = usePreviewStore((s) => s.maxValue);
-  const yLevel = usePreviewStore((s) => s.yLevel);
+  const { fidelityScore, minValue, maxValue, yLevel } = usePreviewStore(
+    useShallow((s) => ({ fidelityScore: s.fidelityScore, minValue: s.minValue, maxValue: s.maxValue, yLevel: s.yLevel })),
+  );
   const { previewTargetType, graphSelectionDiffers, previewTargetLabel } = usePreviewTarget();
 
   const previewHint = mode === "2d" && values
@@ -230,20 +242,22 @@ export function PreviewPanel() {
 
             {/* 2D mode */}
             {!isPropContext && mode === "2d" && values && (
-              useThresholdedHeatmap
-                ? (
-                  <ThresholdedHeatmap
-                    ref={handleCanvasRef}
-                    exportRootRef={(el) => { heatmapExportRootRef.current = el; }}
-                  />
-                )
-                : (
-                  <Heatmap2D
-                    ref={handleCanvasRef}
-                    exportRootRef={(el) => { heatmapExportRootRef.current = el; }}
-                    sliceHint={topoSliceHint}
-                  />
-                )
+              <Suspense fallback={<Preview3DFallback />}>
+                {useThresholdedHeatmap
+                  ? (
+                    <ThresholdedHeatmap
+                      ref={handleCanvasRef}
+                      exportRootRef={handleHeatmapExportRootRef}
+                    />
+                  )
+                  : (
+                    <Heatmap2D
+                      ref={handleCanvasRef}
+                      exportRootRef={handleHeatmapExportRootRef}
+                      sliceHint={topoSliceHint}
+                    />
+                  )}
+              </Suspense>
             )}
 
             {/* 3D heightfield mode */}

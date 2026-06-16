@@ -1,4 +1,5 @@
-import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { forwardRef, memo, useCallback, useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useNonPassiveWheel } from "@/hooks/useNonPassiveWheel";
 import { usePreviewStore } from "@/stores/previewStore";
 import { screenToWorld } from "@/utils/canvasTransform";
@@ -15,7 +16,7 @@ import {
 const SOLID_COLOR = { r: 120, g: 180, b: 100 };
 const AIR_COLOR = { r: 20, g: 20, b: 30 };
 
-export const ThresholdedHeatmap = forwardRef<
+const ThresholdedHeatmapInner = forwardRef<
   HTMLCanvasElement,
   { exportRootRef?: (el: HTMLDivElement | null) => void }
 >(function ThresholdedHeatmap({ exportRootRef }, ref) {
@@ -23,10 +24,31 @@ export const ThresholdedHeatmap = forwardRef<
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const interactionRef = useRef<HTMLDivElement>(null);
-  const values = usePreviewStore((s) => s.values);
-  const rangeMin = usePreviewStore((s) => s.rangeMin);
-  const rangeMax = usePreviewStore((s) => s.rangeMax);
-  const canvasTransform = usePreviewStore((s) => s.canvasTransform);
+  const {
+    values, rangeMin, rangeMax, canvasTransform,
+    showPositionOverlay, positionOverlayPoints, positionOverlayColor, positionOverlaySize,
+    showShapePreview, showCellBoundaries, showWallDistance, showMeshSamples, showSdfSurface,
+    cellShapeGrid, sdfZeroSegments, shapePreviewMeshPoints,
+  } = usePreviewStore(
+    useShallow((s) => ({
+      values: s.values,
+      rangeMin: s.rangeMin,
+      rangeMax: s.rangeMax,
+      canvasTransform: s.canvasTransform,
+      showPositionOverlay: s.showPositionOverlay,
+      positionOverlayPoints: s.positionOverlayPoints,
+      positionOverlayColor: s.positionOverlayColor,
+      positionOverlaySize: s.positionOverlaySize,
+      showShapePreview: s.showShapePreview,
+      showCellBoundaries: s.showCellBoundaries,
+      showWallDistance: s.showWallDistance,
+      showMeshSamples: s.showMeshSamples,
+      showSdfSurface: s.showSdfSurface,
+      cellShapeGrid: s.cellShapeGrid,
+      sdfZeroSegments: s.sdfZeroSegments,
+      shapePreviewMeshPoints: s.shapePreviewMeshPoints,
+    })),
+  );
   const setCanvasTransform = usePreviewStore((s) => s.setCanvasTransform);
   const {
     layerRef: transformLayerRef,
@@ -34,18 +56,6 @@ export const ThresholdedHeatmap = forwardRef<
     flushTransform,
     getTransform,
   } = useSmoothCanvasTransform(canvasTransform, setCanvasTransform);
-  const showPositionOverlay = usePreviewStore((s) => s.showPositionOverlay);
-  const positionOverlayPoints = usePreviewStore((s) => s.positionOverlayPoints);
-  const positionOverlayColor = usePreviewStore((s) => s.positionOverlayColor);
-  const positionOverlaySize = usePreviewStore((s) => s.positionOverlaySize);
-  const showShapePreview = usePreviewStore((s) => s.showShapePreview);
-  const showCellBoundaries = usePreviewStore((s) => s.showCellBoundaries);
-  const showWallDistance = usePreviewStore((s) => s.showWallDistance);
-  const showMeshSamples = usePreviewStore((s) => s.showMeshSamples);
-  const showSdfSurface = usePreviewStore((s) => s.showSdfSurface);
-  const cellShapeGrid = usePreviewStore((s) => s.cellShapeGrid);
-  const sdfZeroSegments = usePreviewStore((s) => s.sdfZeroSegments);
-  const shapePreviewMeshPoints = usePreviewStore((s) => s.shapePreviewMeshPoints);
 
   const [hoverInfo, setHoverInfo] = useState<{ x: number; z: number; value: number; solid: boolean } | null>(null);
   const dragRef = useRef<{ startX: number; startY: number; startOX: number; startOY: number } | null>(null);
@@ -355,3 +365,5 @@ export const ThresholdedHeatmap = forwardRef<
     </div>
   );
 });
+
+export const ThresholdedHeatmap = memo(ThresholdedHeatmapInner);

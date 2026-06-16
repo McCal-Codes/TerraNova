@@ -174,6 +174,7 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
   const shiftHeldRef = useRef(false);
   const boundsRef = useRef<Bounds>({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 });
   const boundsInitializedRef = useRef(false);
+  const lastCanvasSizeRef = useRef({ w: 0, h: 0, dpr: 0 });
   const [bounds, setBounds] = useState<Bounds>({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 });
   // Local string state for bounds inputs — committed on blur/Enter only.
   const [localBounds, setLocalBounds] = useState<Partial<Record<keyof Bounds, string>>>({});
@@ -247,10 +248,14 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
     const w = sizeRef.current.w;
     const h = canvasHeight;
 
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+    const last = lastCanvasSizeRef.current;
+    if (Math.round(w * dpr) !== canvas.width || Math.round(h * dpr) !== canvas.height || dpr !== last.dpr) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      lastCanvasSizeRef.current = { w, h, dpr };
+    }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     // Background

@@ -26,6 +26,8 @@ export default defineConfig({
     format: "es",
   },
   build: {
+    minify: "esbuild",
+    cssMinify: true,
     target:
       process.env.TAURI_ENV_PLATFORM === "windows"
         ? "chrome105"
@@ -36,6 +38,7 @@ export default defineConfig({
       output: {
         onlyExplicitManualChunks: true,
         manualChunks: {
+          vendor: ["react", "react-dom", "zustand"],
           three: ["three", "@react-three/fiber", "@react-three/drei", "@react-three/postprocessing", "postprocessing"],
           xyflow: ["@xyflow/react"],
           mermaid: ["mermaid"],

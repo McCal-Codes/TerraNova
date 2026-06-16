@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, OrbitControls } from "@react-three/drei";
 import { EffectComposer, SSAO } from "@react-three/postprocessing";
@@ -216,7 +216,7 @@ function VolumeScene({ wireframe }: { wireframe: boolean }) {
   );
 }
 
-export function Preview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElement | null) => void }) {
+function Preview3DInner({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElement | null) => void }) {
   const [wireframe, setWireframe] = useState(false);
   const [glRecoveryKey, setGlRecoveryKey] = useState(0);
   const {
@@ -344,3 +344,5 @@ export function Preview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElemen
     </div>
   );
 }
+
+export const Preview3D = memo(Preview3DInner);

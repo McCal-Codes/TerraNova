@@ -1,14 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Rewrites unknown / agent commit identities to McCal; preserves listed human contributors.
+  Rewrites unlisted commit identities to McCal; preserves listed human contributors.
 
 .DESCRIPTION
   Keeps commits authored by:
     McCal, nmang004, ZenithDevHQ, LeoWherle, derrickmehaffy
   (matched by email allowlist in scripts/filter-repo-commit-callback.py)
 
-  Any other author/committer (including AI tooling identities) is re-attributed to
+  Any other author/committer not on the allowlist is re-attributed to
   McCal <business@mcc-cal.com>.
 
   YOU must force-push afterward — this script does not push.
@@ -43,7 +43,7 @@ if (-not (Test-Path $callbackPath)) {
   Write-Error "Missing callback: $callbackPath"
 }
 
-git filter-repo --force --commit-callback "$(Get-Content -Raw $callbackPath)"
+git filter-repo --force --commit-callback $callbackPath
 
 Write-Host ""
 Write-Host "Rewrite complete. Expected authors (GitHub contributors):"

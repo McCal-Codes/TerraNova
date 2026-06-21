@@ -1,14 +1,31 @@
 #!/bin/sh
-# Reject commits unless author and committer are McCal <business@mcc-cal.com>.
-# Blocks common agent/copilot identities.
+# Reject commits unless author/committer match McCal-Codes GitHub identity.
 
-ALLOWED_NAME="McCal"
-ALLOWED_EMAIL="business@mcc-cal.com"
+ALLOWED_NAMES="McCal-Codes McCal"
+ALLOWED_EMAILS="business@mcc-cal.com 175259256+McCal-Codes@users.noreply.github.com McCal-Codes@users.noreply.github.com"
 
 author=$(git var GIT_AUTHOR_IDENT 2>/dev/null || true)
 committer=$(git var GIT_COMMITTER_IDENT 2>/dev/null || true)
 
-blocked_pattern='cursor|cursoragent|copilot|openai|anthropic|agent|noreply\.github\.com|dependabot|github-actions'
+name_ok() {
+  n=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+  for allowed in $ALLOWED_NAMES; do
+    if [ "$n" = "$(echo "$allowed" | tr '[:upper:]' '[:lower:]')" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+email_ok() {
+  e=$1
+  for allowed in $ALLOWED_EMAILS; do
+    if [ "$e" = "$allowed" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
 
 check_ident() {
   role=$1
@@ -17,18 +34,14 @@ check_ident() {
     echo "commit-msg hook: missing $role identity" >&2
     exit 1
   fi
-  echo "$ident" | grep -Eiq "$blocked_pattern" && {
-    echo "commit-msg hook: $role looks like an automated identity: $ident" >&2
-    exit 1
-  }
   name=$(echo "$ident" | sed 's/ <.*//')
   email=$(echo "$ident" | sed -n 's/.*<\([^>]*\)>.*/\1/p')
-  if [ "$email" != "$ALLOWED_EMAIL" ]; then
-    echo "commit-msg hook: $role email must be $ALLOWED_EMAIL (got: $email)" >&2
+  if ! email_ok "$email"; then
+    echo "commit-msg hook: $role email must be a McCal-Codes GitHub email (got: $email)" >&2
     exit 1
   fi
-  if [ "$(echo "$name" | tr '[:upper:]' '[:lower:]')" != "$(echo "$ALLOWED_NAME" | tr '[:upper:]' '[:lower:]')" ]; then
-    echo "commit-msg hook: $role name must be $ALLOWED_NAME (got: $name)" >&2
+  if ! name_ok "$name"; then
+    echo "commit-msg hook: $role name must be McCal-Codes (got: $name)" >&2
     exit 1
   fi
 }
@@ -36,9 +49,8 @@ check_ident() {
 check_ident "author" "$author"
 check_ident "committer" "$committer"
 
-# Reject agent co-author trailers (prepare-commit-msg strips these; block if any remain).
-if grep -Eiq "^[Cc]o-[Aa]uthored-[Bb]y:.*($blocked_pattern)" "$1" 2>/dev/null; then
-  echo "commit-msg hook: remove agent Co-authored-by lines from the commit message" >&2
+if grep -Eiq "^[Cc]o-[Aa]uthored-[Bb]y:" "$1" 2>/dev/null; then
+  echo "commit-msg hook: remove Co-authored-by lines (McCal-Codes-only commits)" >&2
   exit 1
 fi
 

@@ -1,4 +1,4 @@
-/** Collapsed-by-default tips — one help surface per wizard dialog (AGENTS.md pattern). */
+/** Collapsed-by-default tips — one help surface per wizard dialog. */
 export function PackWizardHelpCard() {
   return (
     <details className="rounded-lg border border-sky-500/25 bg-sky-500/5 px-3 py-2 text-xs">

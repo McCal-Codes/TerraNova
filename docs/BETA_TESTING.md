@@ -83,7 +83,7 @@ If the AppImage fails to mount, install FUSE (`libfuse2` on Ubuntu/Debian) or ex
 
 ### Maintainer: history rewrite
 
-To strip **unknown / AI agent** identities from git while **keeping** the five human GitHub contributors:
+To strip **unknown** author identities from git while **keeping** the five human GitHub contributors:
 
 ```powershell
 # Requires: pip install git-filter-repo

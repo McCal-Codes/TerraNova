@@ -38,7 +38,7 @@ hytale-assets/
 templates/hytale-pre-release/
 templates/hytale-release/
 
-# AI agent workspace
+# Local tooling workspaces
 .serena/
 .claw/
 .playwright-mcp/
@@ -53,7 +53,7 @@ docs/audit/
 # Instructions
 instructions.md
 
-# Local-only agent / planning artifacts (keep on disk, not in public repo)
+# Local-only planning artifacts (keep on disk, not in public repo)
 AGENTS.md
 docs/AI_TRANSPARENCY.md
 docs/planning/

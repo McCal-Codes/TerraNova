@@ -57,13 +57,13 @@ CI (`.github/workflows/ci.yml`) runs `pnpm validate` plus a bridge-plugin jar bu
 
 ## Commits
 
-- **Only McCal** creates new commits on this repo: `McCal <business@mcc-cal.com>`
-- **AI/agents must never run `git commit` or `git push`** — they prepare diffs; you review and commit locally
-- One-time hook setup: `pnpm setup:hooks` (`.githooks/prepare-commit-msg` strips agent `Co-authored-by` lines; `commit-msg` enforces McCal-only author/committer)
+- **Only [McCal-Codes](https://github.com/McCal-Codes)** creates new commits on this repo: `McCal-Codes <business@mcc-cal.com>` (GitHub noreply `175259256+McCal-Codes@users.noreply.github.com` also accepted by hooks)
+- Review all changes locally before committing; do not add `Co-authored-by` trailers
+- One-time hook setup: `pnpm setup:hooks` (sets repo-local git identity, `.githooks/prepare-commit-msg` strips co-author trailers; `commit-msg` enforces McCal-Codes author/committer)
 
 ### History hygiene (optional)
 
-`scripts/rewrite-history-mccal.ps1` rewrites **unknown or agent** author/committer lines to McCal while **preserving** these human contributors (by email):
+`scripts/rewrite-history-mccal.ps1` rewrites **unlisted** author/committer lines to McCal while **preserving** these human contributors (by email):
 
 | GitHub | Email |
 |--------|-------|
@@ -73,7 +73,7 @@ CI (`.github/workflows/ci.yml`) runs `pnpm validate` plus a bridge-plugin jar bu
 | LeoWherle | `leo.v.rentmeister@gmail.com` |
 | derrickmehaffy | `derrickmehaffy@gmail.com` |
 
-You run the script and force-push; agents must not force-push.
+You run the script and force-push; only maintainers force-push this repo.
 
 ## Changelog
 
@@ -119,8 +119,8 @@ Manual closed-alpha builds: **Actions → Alpha → Run workflow**
 
 ## Planning docs (local-only)
 
-- Do not commit `tsconfig.tsbuildinfo` or local Cursor hook state unless intentional.
-- `AGENTS.md`, `docs/planning/`, `docs/AI_TRANSPARENCY.md`, and `.planning/` are **local-only** (gitignored). Keep them on your machine for agent workflows; do not add them to public PRs unless a maintainer explicitly asks.
+- Do not commit `tsconfig.tsbuildinfo` or local editor hook state unless intentional.
+- Paths under **Local-only planning artifacts** in `.gitignore` stay on your machine; do not add them to public PRs unless a maintainer explicitly asks.
 
 ## Documentation
 

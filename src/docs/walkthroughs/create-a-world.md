@@ -27,7 +27,7 @@ The simplest possible terrain: a flat ground plane at Y=64.
 1. Right-click the canvas → **Add Node** → **Terrain** → **BaseHeight**.
 2. In the properties panel, set `BaseHeightName` to the name of your configured base height (e.g. `"surface"`) and leave `Distance` unchecked.
 3. Drag the output pin of `BaseHeight` to the input of `Terrain Out`.
-4. Click **Generate** (toolbar or Ctrl+G) to preview. You should see a flat plane.
+4. Click **Evaluate now** to preview. You should see a flat plane.
 
 Now add surface variation:
 
@@ -35,7 +35,7 @@ Now add surface variation:
 6. Set `Scale` to `0.01` and `Octaves` to `3`.
 7. Right-click → **Add Node** → **Math** → **Sum**.
 8. Connect `BaseHeight` → `Sum`, connect `SimplexNoise2D` → `Sum`, then connect `Sum` → `Terrain Out`.
-9. Click **Generate** again. The terrain now has rolling hills.
+9. Click **Evaluate now** again. The terrain now has rolling hills.
 
 If you want a cleaner beginner-friendly shape, add one more node before you keep tuning:
 
@@ -47,7 +47,7 @@ First terrain curve - soft slope with a slightly firmer surface
 [[0,-1],[0.22,-0.95],[0.4,-0.62],[0.52,-0.08],[0.62,0.5],[0.76,0.9],[1,1]]
 ```
 
-12. Generate once with the curve unchanged, then move only one point if you want steeper or flatter terrain.
+12. Evaluate once with the curve unchanged, then move only one point if you want steeper or flatter terrain.
 
 ```nodegraph
 {
@@ -73,7 +73,7 @@ Terrain is solid, but every block is the same material until you add a **Materia
 1. Right-click → **Add Node** → **Material** → **SpaceAndDepth** (or another type from the Material category).
 2. In the properties panel, add `ConstantThickness` layers — set the top layer to **Grass** and a lower layer to **Stone**.
 3. Connect `SpaceAndDepth` to the **Material** input on `Terrain Out`.
-4. Generate to see block types applied.
+4. Evaluate to see block types applied.
 
 > If you only see density shape in the preview and not block colors, make sure your preview mode is set to **Blocks** not **Density** (toggle in the toolbar).
 

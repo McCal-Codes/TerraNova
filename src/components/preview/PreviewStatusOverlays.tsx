@@ -35,7 +35,7 @@ export function PreviewStatusOverlays({
         )}
         {showFidelityBadge && (
           <div
-            className="rounded-md border border-black/35 bg-black/45 px-2 py-0.5 text-[10px] font-medium shadow-md backdrop-blur-sm"
+            className={`px-2 py-0.5 text-[10px] font-medium ${previewHudPanelClass}`}
             style={{
               backgroundColor: fidelityScore >= 90 ? "#4ade8033" : fidelityScore >= 70 ? "#facc1533" : "#f8717133",
               borderColor: fidelityScore >= 90 ? "#4ade8044" : fidelityScore >= 70 ? "#facc1544" : "#f8717144",

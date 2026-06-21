@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { applyBiomeTintBand } from "../biomeTintUtils";
+import {
+  applyBiomeTintBand,
+  isSimplexNoise2DTint,
+  readTintDensity,
+  updateTintDensity,
+  updateTintDelimiters,
+} from "../biomeTintUtils";
 
 function getDelimiterColor(delimiters: Array<Record<string, unknown>>, index: number): string | undefined {
   const tint = delimiters[index]?.Tint as Record<string, unknown> | undefined;
@@ -81,10 +87,8 @@ describe("applyBiomeTintBand", () => {
     const next = applyBiomeTintBand(existing, 2, "#3E661D");
     const delimiters = next.Delimiters as Array<Record<string, unknown>>;
 
-    // Existing ranges preserved
     expect((delimiters[0].Range as Record<string, unknown>).MinInclusive).toBe(-1);
     expect((delimiters[1].Range as Record<string, unknown>).MinInclusive).toBe(-0.33);
-    // Band 2 was missing, gets default range
     expect((delimiters[2].Range as Record<string, unknown>).MinInclusive).toBe(0.33);
     expect((delimiters[2].Range as Record<string, unknown>).MaxExclusive).toBe(1);
   });
@@ -101,5 +105,38 @@ describe("applyBiomeTintBand", () => {
     expect(next.ExportAs).toBe("FlatTint");
     expect("Delimiters" in next).toBe(false);
     expect("Density" in next).toBe(false);
+  });
+});
+
+describe("tint density helpers", () => {
+  it("detects SimplexNoise2D tint density", () => {
+    expect(isSimplexNoise2DTint({ Density: { Type: "SimplexNoise2D" } })).toBe(true);
+    expect(isSimplexNoise2DTint({ Density: { Type: "TerrainDensity" } })).toBe(false);
+  });
+
+  it("updates density fields while preserving delimiters", () => {
+    const provider = {
+      Type: "DensityDelimited",
+      Delimiters: [{ Tint: { Color: "#fff" } }],
+      Density: { Type: "SimplexNoise2D", Scale: 50 },
+    };
+    const next = updateTintDensity(provider, { Scale: 120, Seed: "custom" });
+    expect((next.Density as Record<string, unknown>).Scale).toBe(120);
+    expect((next.Density as Record<string, unknown>).Seed).toBe("custom");
+    expect(Array.isArray(next.Delimiters)).toBe(true);
+  });
+
+  it("readTintDensity returns defaults when missing", () => {
+    const density = readTintDensity(undefined);
+    expect(density.Type).toBe("SimplexNoise2D");
+    expect(density.Scale).toBe(100);
+  });
+
+  it("updateTintDelimiters replaces delimiter array", () => {
+    const next = updateTintDelimiters(undefined, [
+      { Range: { MinInclusive: -1, MaxExclusive: 0 }, Tint: { Type: "Constant", Color: "#abc" } },
+    ]);
+    expect((next.Delimiters as unknown[]).length).toBe(1);
+    expect(next.Type).toBe("DensityDelimited");
   });
 });

@@ -60,28 +60,37 @@ export interface PropPrefabPreviewSource {
   path: string;
 }
 
-/** Selected Prop:Prefab node, or the first prefab node in the graph with a Path set. */
+/** Selected Prop:Prefab node, or the first prefab path found anywhere in the graph. */
 export function resolvePropPrefabPreviewSource(
   nodes: Node[],
   selectedNodeId: string | null,
 ): PropPrefabPreviewSource | null {
   const tryNode = (node: Node): PropPrefabPreviewSource | null => {
-    const isPrefab =
-      node.type === "Prop:Prefab"
-      || (node.data as { type?: string } | undefined)?.type === "Prefab";
-    if (!isPrefab) return null;
     const fields = ((node.data as { fields?: Record<string, unknown> })?.fields) ?? {};
     const path = extractPrefabPathFromFields(fields);
     if (!path) return null;
     return { nodeId: node.id, fields, path };
   };
 
+  const tryPrefabTyped = (node: Node): PropPrefabPreviewSource | null => {
+    const isPrefab =
+      node.type === "Prop:Prefab"
+      || (node.data as { type?: string } | undefined)?.type === "Prefab";
+    if (!isPrefab) return null;
+    return tryNode(node);
+  };
+
   if (selectedNodeId) {
     const selected = nodes.find((n) => n.id === selectedNodeId);
     if (selected) {
-      const match = tryNode(selected);
+      const match = tryPrefabTyped(selected) ?? tryNode(selected);
       if (match) return match;
     }
+  }
+
+  for (const node of nodes) {
+    const match = tryPrefabTyped(node);
+    if (match) return match;
   }
 
   for (const node of nodes) {

@@ -1,18 +1,27 @@
-import { useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useEditorStore } from "@/stores/editorStore";
-import { getNodeType } from "@/utils/density/evalTypes";
+import { DENSITY_TYPES, getNodeType } from "@/utils/density/evalTypes";
 import { supportsShapePreviewCard } from "@/utils/shapePreview/shapePreviewProfile";
+import { useResolvePreviewRoot } from "@/hooks/useResolvePreviewRoot";
 
 export function usePreviewTarget() {
   const selectedPreviewNodeId = usePreviewStore((s) => s.selectedPreviewNodeId);
-  const outputNodeId = useEditorStore((s) => s.outputNodeId);
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const nodes = useEditorStore((s) => s.nodes);
   const setSelectedPreviewNodeId = usePreviewStore((s) => s.setSelectedPreviewNodeId);
   const setShowShapePreview = usePreviewStore((s) => s.setShowShapePreview);
+  const rootResolution = useResolvePreviewRoot();
 
-  const previewTargetId = selectedPreviewNodeId ?? outputNodeId;
+  useEffect(() => {
+    if (!selectedPreviewNodeId) return;
+    const node = nodes.find((n) => n.id === selectedPreviewNodeId);
+    if (!node || !DENSITY_TYPES.has(getNodeType(node))) {
+      setSelectedPreviewNodeId(null);
+    }
+  }, [nodes, selectedPreviewNodeId, setSelectedPreviewNodeId]);
+
+  const previewTargetId = rootResolution.nodeId;
 
   const previewTargetNode = useMemo(
     () => (previewTargetId ? nodes.find((n) => n.id === previewTargetId) : null),
@@ -22,18 +31,23 @@ export function usePreviewTarget() {
   const previewTargetType = previewTargetNode ? getNodeType(previewTargetNode) : null;
 
   const previewTargetLabel = useMemo(() => {
-    if (!previewTargetId) return "Auto (terminal / output)";
-    return previewTargetType ?? previewTargetId;
-  }, [previewTargetId, previewTargetType]);
+    if (selectedPreviewNodeId) {
+      return previewTargetType ?? selectedPreviewNodeId;
+    }
+    if (rootResolution.source === "output-node") return "Auto (designated output)";
+    if (rootResolution.source === "inferred-root") return "Auto (terminal node)";
+    return "Auto";
+  }, [selectedPreviewNodeId, previewTargetType, rootResolution.source]);
 
   const graphSelectionDiffers =
     !!selectedNodeId && selectedNodeId !== selectedPreviewNodeId;
 
   const syncFromGraphSelection = useCallback(() => {
     if (!selectedNodeId) return;
-    setSelectedPreviewNodeId(selectedNodeId);
     const node = nodes.find((n) => n.id === selectedNodeId);
-    if (node && supportsShapePreviewCard(getNodeType(node))) {
+    if (!node || !DENSITY_TYPES.has(getNodeType(node))) return;
+    setSelectedPreviewNodeId(selectedNodeId);
+    if (supportsShapePreviewCard(getNodeType(node))) {
       setShowShapePreview(true);
     }
   }, [selectedNodeId, nodes, setSelectedPreviewNodeId, setShowShapePreview]);
@@ -43,6 +57,7 @@ export function usePreviewTarget() {
     previewTargetNode,
     previewTargetType,
     previewTargetLabel,
+    rootResolution,
     graphSelectionDiffers,
     syncFromGraphSelection,
   };

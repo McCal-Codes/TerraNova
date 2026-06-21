@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   GALLERY_CASES,
   getGalleryCaseSetup,
+  isHytaleGalleryCase,
   parseGalleryCase,
 } from "../shapePreviewGalleryCases";
 import { evaluateCellShapeGrid } from "@/utils/shapePreview/cellShapeGrid";
@@ -14,13 +15,17 @@ import { getNodeType } from "@/utils/density/evalTypes";
  * Browser UAT: open `/?shape-preview-gallery=1&case=…` with dev server on port 1420.
  */
 describe("shape preview gallery smoke", () => {
-  it.each(GALLERY_CASES)("%s: loads reference biome with preview target", (caseId) => {
+  const bundledCases = GALLERY_CASES.filter((id) => !isHytaleGalleryCase(id));
+
+  it.each(bundledCases)("%s: loads reference biome with preview target", (caseId) => {
     const setup = getGalleryCaseSetup(caseId);
-    const minNodes = caseId === "mudcracks-cube" ? 2 : 5;
+    const minNodes = caseId === "mudcracks-cube" ? 2 : caseId.startsWith("density-") ? 1 : 5;
     expect(setup.nodes.length).toBeGreaterThanOrEqual(minNodes);
     expect(setup.previewNodeId).toBeTruthy();
     if (caseId === "sdf-showcase") {
       expect(setup.referencePath).toBe("dev/shape-preview-sdf-showcase");
+    } else if (caseId.startsWith("density-")) {
+      expect(setup.referencePath).toBe("dev/density-basics-showcase");
     } else {
       expect(setup.referencePath).toMatch(/^templates\/references\//);
     }

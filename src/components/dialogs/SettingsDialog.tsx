@@ -1,4 +1,15 @@
 import { useEffect, useState } from "react";
+import {
+  Settings as SettingsIcon,
+  Cpu,
+  Image,
+  Keyboard,
+  Code2,
+  Info,
+  type LucideIcon,
+} from "lucide-react";
+import { ModalShell } from "@/components/ui/ModalShell";
+import { SettingsNestedCard } from "@/components/ui/settingsPrimitives";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
   resolveDefaultPreReleaseAssetsPath,
@@ -16,8 +27,16 @@ import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder"
 import { useBugReportStore } from "@/stores/bugReportStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
-import { WhatsNewDialog, WHATS_NEW_SUPPRESS_KEY } from "./WhatsNewDialog";
+import { WhatsNewDialog } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
+import { LegalTextDialog } from "./LegalTextDialog";
+import licenseText from "../../../LICENSE?raw";
+import noticeText from "../../../NOTICE?raw";
+import {
+  getWhatsNewSuppressed,
+  markWhatsNewSeen,
+  setWhatsNewSuppressed,
+} from "@/utils/whatsNewPrefs";
 import { SystemSettingsPanel, type SystemTab } from "./ConfigurationDialog";
 import { KeyboardShortcutsPanel } from "./KeyboardShortcutsDialog";
 import { clearHardwareDetectionCache, detectHardware, type HardwareInfo } from "@/utils/hardwareDetect";
@@ -28,6 +47,7 @@ import { buildBugReportBundle, formatBugReportClipboard } from "@/utils/bugRepor
 import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { useDevMetricsStore } from "@/stores/devMetricsStore";
 import { DevSettingRow } from "@/components/dev/devUi";
+import { AlertTriangle } from "lucide-react";
 import { useProjectStore } from "@/stores/projectStore";
 import {
   CLOSED_ALPHA_PACK_BACKUP_ENABLED,
@@ -37,16 +57,6 @@ import {
   suggestPackBackupPath,
 } from "@/utils/alphaPackBackup";
 
-function getWhatsNewSuppressed(): boolean {
-  try { return localStorage.getItem(WHATS_NEW_SUPPRESS_KEY) === "true"; } catch { return false; }
-}
-function setWhatsNewSuppressed(value: boolean) {
-  try {
-    if (value) localStorage.setItem(WHATS_NEW_SUPPRESS_KEY, "true");
-    else localStorage.removeItem(WHATS_NEW_SUPPRESS_KEY);
-  } catch { /* ignore */ }
-}
-
 const FLOW_DIRECTIONS: { id: FlowDirection; label: string; description: string }[] = [
   { id: "LR", label: "Left to Right", description: "Inputs on left, output on right (TerraNova default)" },
   { id: "RL", label: "Right to Left", description: "Output on left, inputs on right (Hytale native)" },
@@ -54,13 +64,13 @@ const FLOW_DIRECTIONS: { id: FlowDirection; label: string; description: string }
 
 export type SettingsTab = "general" | "system" | "assets" | "shortcuts" | "developer" | "about";
 
-const TABS: { id: SettingsTab; label: string }[] = [
-  { id: "general", label: "General" },
-  { id: "system", label: "System" },
-  { id: "assets", label: "Assets" },
-  { id: "shortcuts", label: "Shortcuts" },
-  { id: "developer", label: "Developer" },
-  { id: "about", label: "About" },
+const TABS: { id: SettingsTab; label: string; icon: LucideIcon }[] = [
+  { id: "general", label: "General", icon: SettingsIcon },
+  { id: "system", label: "System", icon: Cpu },
+  { id: "assets", label: "Assets", icon: Image },
+  { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
+  { id: "developer", label: "Developer", icon: Code2 },
+  { id: "about", label: "About", icon: Info },
 ];
 
 interface SettingsDialogProps {
@@ -68,6 +78,7 @@ interface SettingsDialogProps {
   onClose: () => void;
   initialTab?: SettingsTab;
   initialSystemTab?: SystemTab;
+  onOpenAlphaChecklist?: () => void;
 }
 
 function formatSyncedAt(syncedAt: string): string {
@@ -82,7 +93,7 @@ function formatSyncedAt(syncedAt: string): string {
   return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
-export function SettingsDialog({ open, onClose, initialTab = "general", initialSystemTab = "cpu" }: SettingsDialogProps) {
+export function SettingsDialog({ open, onClose, initialTab = "general", initialSystemTab = "cpu", onOpenAlphaChecklist }: SettingsDialogProps) {
   const flowDirection = useSettingsStore((s) => s.flowDirection);
   const setFlowDirection = useSettingsStore((s) => s.setFlowDirection);
   const autoLayoutOnOpen = useSettingsStore((s) => s.autoLayoutOnOpen);
@@ -140,6 +151,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const [whatsNewSuppressed, setWhatsNewSuppressedState] = useState(getWhatsNewSuppressed);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [legalDialog, setLegalDialog] = useState<"license" | "notice" | null>(null);
   const [hytaleAssetCacheRoot, setHytaleAssetCacheRoot] = useState("");
   const [syncingHytaleAssets, setSyncingHytaleAssets] = useState(false);
   const [stalenessInfo, setStalenessInfo] = useState<AssetStalenessInfo | null>(null);
@@ -365,46 +377,70 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
 
   if (!open) return null;
 
+  const sidebarNav = (
+    <div role="tablist" aria-label="Settings sections" className="flex flex-col gap-0.5 px-2">
+      {TABS.map(({ id, label, icon: Icon }) => {
+        const selected = tab === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            id={`settings-tab-${id}`}
+            aria-controls={`settings-panel-${id}`}
+            onClick={() => setTab(id)}
+            onKeyDown={(e) => {
+              const idx = TABS.findIndex((t) => t.id === id);
+              if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+                e.preventDefault();
+                const next = TABS[(idx + 1) % TABS.length]!;
+                setTab(next.id);
+                document.getElementById(`settings-tab-${next.id}`)?.focus();
+              } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+                e.preventDefault();
+                const prev = TABS[(idx - 1 + TABS.length) % TABS.length]!;
+                setTab(prev.id);
+                document.getElementById(`settings-tab-${prev.id}`)?.focus();
+              }
+            }}
+            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent ${
+              selected
+                ? "bg-tn-accent/12 text-tn-accent"
+                : "text-tn-text-muted hover:bg-tn-surface hover:text-tn-text"
+            }`}
+          >
+            <Icon className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+      <ModalShell
+        open={open}
+        onClose={onClose}
+        title="Settings"
+        layout="sidebar"
+        sidebar={sidebarNav}
+        footer={
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-1.5 text-xs rounded border border-tn-border bg-tn-bg hover:bg-tn-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent"
+          >
+            Close
+          </button>
+        }
+      >
         <div
-          className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[920px] max-h-[85vh] flex flex-col"
-          onClick={(e) => e.stopPropagation()}
+          role="tabpanel"
+          id={`settings-panel-${tab}`}
+          aria-labelledby={`settings-tab-${tab}`}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-tn-border shrink-0">
-            <h2 className="text-sm font-semibold">Settings</h2>
-            <button
-              onClick={onClose}
-              className="text-tn-text-muted hover:text-tn-text transition-colors text-lg leading-none px-1"
-              aria-label="Close"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Tab bar */}
-          <div className="flex shrink-0 border-b border-tn-border px-5 overflow-x-auto">
-            {TABS.map(({ id, label }) => (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
-                className={`px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                  tab === id
-                    ? "border-tn-accent text-tn-accent"
-                    : "border-transparent text-tn-text-muted hover:text-tn-text"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab content */}
-          <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
-
-            {/* ── General ── */}
             {tab === "general" && (
               <>
                 <div className="flex flex-col gap-1">
@@ -797,8 +833,8 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 rounded border border-amber-500/30 bg-amber-500/8 px-3 py-2.5 text-[11px] text-amber-200/80">
-                    <span className="shrink-0 mt-px">⚠️</span>
+                  <div className="flex items-start gap-2 rounded border border-amber-500/30 bg-amber-950 px-3 py-2.5 text-[11px] text-amber-100">
+                    <AlertTriangle className="shrink-0 mt-px h-4 w-4 text-amber-300" aria-hidden />
                     <p>
                       The Hytale asset cache can reach <span className="font-medium text-amber-200">2–4 GB</span> depending on which release channel you sync and whether Common assets are included.
                       Make sure the drive hosting your TerraNova folder has enough free space before syncing.
@@ -823,7 +859,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                   </div>
                 </div>
 
-                <div className="rounded border border-tn-border/60 bg-tn-bg/40 px-3 divide-y divide-tn-border/40">
+                <SettingsNestedCard className="px-3 divide-y divide-tn-border/40">
                   <p className="text-xs font-medium text-tn-text-muted uppercase tracking-wider py-2">Mode</p>
                   <DevSettingRow
                     label="Developer mode"
@@ -839,7 +875,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                       onChange={setAutoEnableDeveloperModeInDev}
                     />
                   )}
-                </div>
+                </SettingsNestedCard>
 
                 {devActive && (
                   <p className="text-xs text-emerald-400/90 px-1">
@@ -853,7 +889,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                   </div>
                 ) : (
                   <>
-                    <div className="rounded border border-tn-border/60 bg-tn-bg/40 px-3 divide-y divide-tn-border/40">
+                    <SettingsNestedCard className="px-3 divide-y divide-tn-border/40">
                       <p className="text-xs font-medium text-tn-text-muted uppercase tracking-wider py-2">Tools</p>
                       <DevSettingRow
                         label="Verbose worker logging"
@@ -879,9 +915,9 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                         checked={showNodeIdsOnCanvas}
                         onChange={setShowNodeIdsOnCanvas}
                       />
-                    </div>
+                    </SettingsNestedCard>
 
-                    <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-3 flex flex-col gap-2">
+                    <div className="rounded border border-tn-border bg-tn-bg p-3 flex flex-col gap-2">
                       <div>
                         <p className="text-xs font-medium uppercase tracking-wider text-tn-text-muted">Session snapshot</p>
                         <p className="mt-1 text-xs text-tn-text-muted">
@@ -1003,20 +1039,20 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                   </div>
                   <div className="flex gap-2">
                     <button
-                      disabled
-                      title="License viewer coming soon"
-                      className="flex-1 px-3 py-2 rounded border border-tn-border bg-tn-bg text-sm text-tn-text-muted opacity-50 cursor-not-allowed text-left"
+                      type="button"
+                      onClick={() => setLegalDialog("license")}
+                      className="flex-1 px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm text-left"
                     >
-                      <span className="font-medium">License</span>
-                      <p className="text-xs mt-0.5">GNU Lesser General Public License v2.1</p>
+                      <span className="font-medium text-tn-text">License</span>
+                      <p className="text-xs mt-0.5 text-tn-text-muted">GNU Lesser General Public License v2.1</p>
                     </button>
                     <button
-                      disabled
-                      title="Copyright notices coming soon"
-                      className="flex-1 px-3 py-2 rounded border border-tn-border bg-tn-bg text-sm text-tn-text-muted opacity-50 cursor-not-allowed text-left"
+                      type="button"
+                      onClick={() => setLegalDialog("notice")}
+                      className="flex-1 px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm text-left"
                     >
-                      <span className="font-medium">Copyright Notices</span>
-                      <p className="text-xs mt-0.5">Third-party acknowledgements</p>
+                      <span className="font-medium text-tn-text">Copyright Notices</span>
+                      <p className="text-xs mt-0.5 text-tn-text-muted">Third-party acknowledgements</p>
                     </button>
                   </div>
                 </div>
@@ -1095,22 +1131,46 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                       All Changelogs
                     </button>
                   </div>
+                  {onOpenAlphaChecklist && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenAlphaChecklist();
+                      }}
+                      className="text-left px-3 py-2 rounded border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-sm w-full"
+                    >
+                      <span className="font-medium text-tn-text">View What to test checklist</span>
+                      <p className="text-xs text-tn-text-muted mt-0.5">Closed-alpha tester focus areas for this build</p>
+                    </button>
+                  )}
                 </div>
               </>
             )}
 
-          </div>
-
-          {/* Footer */}
-          <div className="flex justify-end px-5 py-3 border-t border-tn-border shrink-0">
-            <button onClick={onClose} className="px-4 py-1.5 text-xs rounded border border-tn-border hover:bg-tn-surface">
-              Close
-            </button>
-          </div>
         </div>
-      </div>
-      <WhatsNewDialog open={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
+      </ModalShell>
+      <WhatsNewDialog
+        open={showWhatsNew}
+        onClose={(suppress) => {
+          void markWhatsNewSeen(suppress);
+          if (suppress) handleToggleWhatsNew(true);
+          setShowWhatsNew(false);
+        }}
+      />
       <ChangelogDialog open={showChangelog} onClose={() => setShowChangelog(false)} />
+      <LegalTextDialog
+        open={legalDialog === "license"}
+        onClose={() => setLegalDialog(null)}
+        title="License"
+        body={licenseText}
+      />
+      <LegalTextDialog
+        open={legalDialog === "notice"}
+        onClose={() => setLegalDialog(null)}
+        title="Copyright Notices"
+        body={noticeText}
+      />
     </>
   );
 }

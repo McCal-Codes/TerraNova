@@ -578,7 +578,48 @@ Very large jitter values can push positions into adjacent chunks before the scan
 
 ---
 
+## In TerraNova
+
+TerraNova edits each `Props[i]` entry as its own biome section tab. The prop overview panel summarizes **PropDistribution** (when present), **Positions**, and **Assignments**, plus **Runtime** and **Skip** metadata.
+
+### Adding a prop layer
+
+Use **+** on the biome tab bar to open the **New prop layer** dialog:
+
+| Mode | Use when |
+|---|---|
+| **Hytale prefab** | You want a quick `Prop:Prefab` starter from synced release prefabs |
+| **Import from biome** | Copy a prop layer from a reference biome or from another biome in the open project |
+| **Bridge world biome** | Import a layer from the biome JSON used by your connected Bridge world structure |
+| **Custom path** | You already know the in-game prefab path string |
+| **Blank graph** | Build positions and assignments manually |
+
+**Replace from Hytale…** on the prop overview swaps the current tab's graph while keeping the same `Props[i]` index.
+
+### Preview and overview
+
+- **2D Placement** previews scatter grids for position providers in the active prop tab.
+- **3D Prefab** previews assignment prefab meshes (sync Hytale assets in Settings for block textures).
+- **Biome overview** (Hytale layout imports) shows section **anchor** nodes — click an anchor to jump to that tab; double-click other overview nodes to open a specific node.
+
+Atmosphere and tint sections (**EnvironmentProvider**, **TintProvider**) have their own tabs alongside terrain, materials, and props.
+
+For live-world prop import, see [Bridge](../../reference/bridge.md).
+
+---
+
+## Inline prop graphs (community pattern)
+
+Some community packs — notably **Dragon's Fantasy Scenes** — place heavy **`PropDistribution` `Union`** trees directly in the biome JSON: nested `FieldFunction` gates, `WeightedPrefabPaths`, and `Mesh2D` on the same exported density used for path materials and tint. There is no separate `Assignments/` folder; the biome graph is the single source of truth.
+
+**Skyreach Ravines** uses a complementary pattern: fewer inline gates, more **`WeightedPrefabPaths`** toward sky-structure prefabs (`skylandsstrucutrespath/*`) for floating landmark pacing.
+
+For file-level examples and study order, see [Community Pack Study References](../../reference/community-pack-references.md).
+
+---
+
 ## See Also
 
+- [Community Pack Study References](../../reference/community-pack-references.md) — DFS inline `Union` + Skyreach prefab pacing
 - [`../../reference/README.md`](../../reference/README.md) — schema reference for all prop types, position providers, and scanners
 - [`../world/biome-system.md`](../world/biome-system.md) — how props fit into the wider biome asset structure

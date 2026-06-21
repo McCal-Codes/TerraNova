@@ -35,7 +35,7 @@ const DOCS: DocEntry[] = [
   {
     id: "getting-started",
     title: "Getting Started Guide",
-    path: "docs/getting-started.md",
+    path: "src/docs/getting-started.md",
     description: "Installation, first project, and core workflows",
     category: "guide",
   },

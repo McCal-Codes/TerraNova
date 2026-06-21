@@ -1,5 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import { getDefaults } from "./defaults";
+import { densityBasicsSnippetDefinitions } from "@/utils/densityBasics/showcase";
 
 // ---------------------------------------------------------------------------
 // Snippet data structures
@@ -26,6 +27,12 @@ export interface SnippetDefinition {
   name: string;
   description: string;
   category: string;
+  /** Source grouping shown in pickers (core snippets vs external worldgen references). */
+  library?: "core" | "worldgen-reference";
+  /** Human-readable provenance references shown in UI/tooling. */
+  sourceRefs?: string[];
+  /** Optional tags for filtering/highlighting (e.g. desert, ravines, sky-islands). */
+  tags?: string[];
   nodes: SnippetNodeDef[];
   edges: SnippetEdgeDef[];
 }
@@ -382,6 +389,9 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     ],
   },
 
+  // ── Density basics (teaching graphs — see density-basics-preview.md) ───────
+  ...densityBasicsSnippetDefinitions(),
+
 ];
 
 // ---------------------------------------------------------------------------
@@ -409,6 +419,15 @@ export function placeSnippet(
       type: nodeDef.displayType,
       fields: { ...nodeDef.fields },
       ...(nodeDef.label ? { label: nodeDef.label } : {}),
+      _snippetMeta: {
+        snippetId: snippet.id,
+        snippetName: snippet.name,
+        snippetCategory: snippet.category,
+        snippetLibrary: snippet.library ?? "core",
+        sourceRefs: snippet.sourceRefs ?? [],
+        tags: snippet.tags ?? [],
+        localId: nodeDef.localId,
+      },
     },
     selected: true,
   }));

@@ -79,8 +79,8 @@ export type LayoutSpacing = "default" | "comfortable";
 
 /** Dagre spacing presets — comfortable leaves more room for labels and handoff. */
 export const LAYOUT_SPACING: Record<LayoutSpacing, { nodesep: number; ranksep: number; edgesep: number }> = {
-  default: { nodesep: 80, ranksep: 140, edgesep: 30 },
-  comfortable: { nodesep: 140, ranksep: 220, edgesep: 40 },
+  default: { nodesep: 64, ranksep: 110, edgesep: 24 },
+  comfortable: { nodesep: 120, ranksep: 190, edgesep: 36 },
 };
 
 function dagreGraphOptions(direction: "LR" | "RL" | "TB", spacing: LayoutSpacing = "default") {

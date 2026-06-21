@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPrefabPreviewMesh } from "../hytaleBlockAssets/buildPrefabPreviewMesh";
+import { buildPrefabPreviewMesh, computePrefabPreviewCameraDistance, computePrefabPreviewFitRadius } from "../hytaleBlockAssets/buildPrefabPreviewMesh";
 import {
   extractPrefabPathFromFields,
   normalizePrefabRelativePath,
@@ -21,6 +21,14 @@ describe("extractPrefabPathFromFields", () => {
 
   it("returns null when no path is set", () => {
     expect(extractPrefabPathFromFields({})).toBeNull();
+  });
+
+  it("reads nested Prop.Path on assignment fields", () => {
+    expect(
+      extractPrefabPathFromFields({
+        Prop: { Type: "Prefab", Path: "Trees/Oak_Small" },
+      }),
+    ).toBe("Trees/Oak_Small");
   });
 });
 
@@ -67,5 +75,20 @@ describe("buildPrefabPreviewMesh", () => {
     const mesh = buildPrefabPreviewMesh(huge, {}, { renderCap: 5 });
     expect(mesh.truncated).toBe(true);
     expect(mesh.renderedBlocks).toBe(5);
+  });
+
+  it("frames tall wide prefabs with a generous camera distance", () => {
+    const mesh = buildPrefabPreviewMesh(
+      {
+        blocks: [
+          { x: 0, y: 0, z: 0, name: "Rock_Stone" },
+          { x: 20, y: 30, z: 15, name: "Rock_Stone" },
+        ],
+      },
+      {},
+    );
+    const fitRadius = computePrefabPreviewFitRadius(mesh);
+    const distance = computePrefabPreviewCameraDistance(fitRadius, 45, 1.4);
+    expect(distance).toBeGreaterThan(fitRadius * 2);
   });
 });

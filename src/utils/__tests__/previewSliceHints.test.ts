@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   getUniformSlicePreviewHint,
+  getMaterialPreviewContextHint,
   isUniformDensitySlice,
 } from "../previewSliceHints";
 
@@ -40,6 +41,17 @@ describe("previewSliceHints", () => {
       const hint = getUniformSlicePreviewHint("Sum", 0, 0, 64);
       expect(hint).toMatch(/Preview target/i);
       expect(hint).toMatch(/Sum/);
+    });
+  });
+
+  describe("getMaterialPreviewContextHint", () => {
+    it("warns when passthrough stub nodes are present", () => {
+      expect(getMaterialPreviewContextHint(true)).toMatch(/passthrough/i);
+      expect(getMaterialPreviewContextHint(true)).toMatch(/Voxel preview/i);
+    });
+
+    it("gives default verify guidance otherwise", () => {
+      expect(getMaterialPreviewContextHint(false)).toMatch(/solid voxels/i);
     });
   });
 });

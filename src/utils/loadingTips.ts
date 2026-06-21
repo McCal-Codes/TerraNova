@@ -8,5 +8,5 @@ export const loadingTips = [
   "Hint: Keyboard shortcuts speed up your workflow!",
   "Fact: TerraNova is built with React, Tauri, and Vite.",
   "Tip: Use the drag-and-drop feature to rearrange nodes.",
-  "Did you know? The roadmap is available in the docs/planning folder.",
+  "Did you know? Shape and Hytale preview smoke tests run with `pnpm test:gallery` after syncing assets.",
 ];

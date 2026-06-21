@@ -24,10 +24,12 @@ src/docs/
     multi-biome-world.md
     periodic-density-stripes.md
 
-  guides/                   -- concept deep-dives, longer-form explanations
+    guides/                   -- concept deep-dives, longer-form explanations
     README.md               -- index of all guides
     setup-data-flow-first-steps.md
     understanding-basic-terrain-generation.md
+    preview/
+      cave-preview.md
 
     world/                  -- world-structure and system guides
       biome-system.md
@@ -60,6 +62,11 @@ src/docs/
 
   reference/                -- complete technical listings; split into subfolders as it grows
     README.md               -- current single-page reference (nodes, schema, commands)
+    bridge.md
+    community-pack-references.md
+    custom-worldgen-block-promotion.md
+    worldgen-references-live-preview.md
+    hytale-curvemapper-conventions.md
     curves.md               -- visual curve type reference with previews
     node-effects.md         -- what each node category does to terrain
     reading-the-graph.md    -- how to read and debug any node graph
@@ -246,6 +253,20 @@ Use relative paths for all internal links:
 ```
 
 External links open in a new tab automatically.
+
+---
+
+## Developer preview smoke tests
+
+After syncing Hytale release assets (`pnpm sync:hytale` or **Settings → Assets**):
+
+| Command | Purpose |
+|---------|---------|
+| `pnpm test:gallery` | Shape gallery cases + Hytale voxel smoke (skips without cache) |
+| `node scripts/audit-hytale-cell-materials.mjs` | Rank release biomes by PCN / cell / `FieldFunction` delimiter patterns (run after `pnpm sync:hytale`) |
+| `pnpm preview:smoke:capture` | Playwright screenshots for gallery cases (optional; install Playwright separately) |
+
+Bundled shape gallery UAT: `/?shape-preview-gallery=1&case=underworld-cell` with dev server on port **1420**. Density basics cases (`density-noise-3d`, `density-min-carve`, …) need no Hytale sync. Synced Hytale PCN cases (`hytale-generative-arches`, `hytale-example-cellnoise2d`, …) require `pnpm sync:hytale` first.
 
 ---
 

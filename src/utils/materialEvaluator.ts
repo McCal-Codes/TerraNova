@@ -15,6 +15,7 @@ import { SOLID_THRESHOLD } from "./voxelExtractor";
 import {
   matchMaterialName,
   getMaterialProperties,
+  resolveVoxelMaterialColor,
 } from "./materialResolver";
 import { HASH_PRIME_A, HASH_PRIME_B, HASH_PRIME_C } from "@/constants";
 import type {
@@ -180,6 +181,16 @@ function computeColumnContexts(
 
 /* ── Root finding ────────────────────────────────────────────────── */
 
+export function materialGraphUsesPassthroughNodes(nodes: Node[]): boolean {
+  const passthrough = new Set([
+    "Material:Surface",
+    "Material:Cave",
+    "Material:Cluster",
+    "Material:Exported",
+  ]);
+  return nodes.some((n) => passthrough.has(n.type ?? ""));
+}
+
 const MATERIAL_TYPES = new Set([
   "Material:Constant", "Material:Solid", "Material:Empty", "Material:Imported",
   "Material:Queue", "Material:FieldFunction", "Material:Striped",
@@ -197,6 +208,12 @@ const MATERIAL_TYPES = new Set([
 function findMaterialRoot(nodes: Node[], edges: Edge[]): Node | null {
   const materialNodes = nodes.filter(n => MATERIAL_TYPES.has(n.type ?? ""));
   if (materialNodes.length === 0) return null;
+
+  const outputTagged = nodes.find(
+    (n) => (n.data as Record<string, unknown>)._outputNode === true
+      && MATERIAL_TYPES.has(n.type ?? ""),
+  );
+  if (outputTagged) return outputTagged;
 
   // Terminal material node: no outgoing edges to other material nodes
   const sourcesWithMaterialTarget = new Set<string>();
@@ -367,7 +384,7 @@ export function evaluateMaterialGraph(
     const pbr = getMaterialProperties(name);
     palette.push({
       name,
-      color: matchMaterialName(name),
+      color: resolveVoxelMaterialColor(name),
       roughness: pbr.roughness,
       metalness: pbr.metalness,
       emissive: pbr.emissive,
@@ -436,7 +453,12 @@ export function evaluateMaterialGraph(
         break;
       }
 
-      case "Material:Solidity":
+      case "Material:Solidity": {
+        const solidId = getMaterialInputId(inputs, "Solid", "Solidity");
+        result = solidId ? evaluateNode(solidId, ctx) : null;
+        break;
+      }
+
       case "Material:TerrainDensity": {
         result = null; // context nodes, not material sources
         break;
@@ -506,13 +528,54 @@ export function evaluateMaterialGraph(
       }
 
       case "Material:FieldFunction": {
-        // Evaluate density input; if >= 0.5 → Materials[1], else Materials[0]
         let densityVal = 0;
         const densityInputId = inputs.get("FieldFunction");
         if (densityInputId && densityCtx) {
           densityCtx.clearMemo();
           densityVal = densityCtx.evaluate(densityInputId, ctx.x, ctx.y, ctx.z);
         }
+
+        const delimiterRanges = fields.DelimiterRanges as
+          | Array<{ From?: number; To?: number }>
+          | undefined;
+        if (delimiterRanges && delimiterRanges.length > 0) {
+          let matIdx = delimiterRanges.length - 1;
+          for (let i = 0; i < delimiterRanges.length; i++) {
+            const from = Number(delimiterRanges[i]?.From ?? 0);
+            const to = Number(delimiterRanges[i]?.To ?? Number.POSITIVE_INFINITY);
+            if (densityVal >= from && densityVal < to) {
+              matIdx = i;
+              break;
+            }
+          }
+          const matId = getMaterialInputId(inputs, `Materials[${matIdx}]`);
+          result = matId ? evaluateNode(matId, ctx) : null;
+          break;
+        }
+
+        const rawDelimiters = fields.Delimiters as
+          | Array<{ From?: number; To?: number; Material?: unknown }>
+          | undefined;
+        if (rawDelimiters && rawDelimiters.length > 0) {
+          let picked: unknown = null;
+          for (const band of rawDelimiters) {
+            const from = Number(band.From ?? 0);
+            const to = Number(band.To ?? Number.POSITIVE_INFINITY);
+            if (densityVal >= from && densityVal < to) {
+              picked = band.Material;
+              break;
+            }
+          }
+          if (picked === null) {
+            picked = rawDelimiters[rawDelimiters.length - 1]?.Material;
+          }
+          const matName = parseMaterialName(picked) ?? matchMaterialName(String(picked ?? ""));
+          if (matName) {
+            result = matName;
+            break;
+          }
+        }
+
         const matIdx = densityVal >= 0.5 ? 1 : 0;
         const matId = getMaterialInputId(inputs, `Materials[${matIdx}]`);
         result = matId ? evaluateNode(matId, ctx) : null;
@@ -748,10 +811,10 @@ export function evaluateMaterialGraph(
           xi: x, yi: y, zi: z,
           isSolid: true,
           density,
-          downwardDepth: Math.max(0, col.surfaceYi - y),
-          upwardDepth: Math.max(0, y - col.bottomYi),
-          spaceAbove: col.spaceAbove,
-          spaceBelow: col.spaceBelow,
+          downwardDepth: Math.max(0, (col.surfaceYi - y) * stepY),
+          upwardDepth: Math.max(0, (y - col.bottomYi) * stepY),
+          spaceAbove: col.spaceAbove * stepY,
+          spaceBelow: col.spaceBelow * stepY,
           surfaceY: yMin + col.surfaceYi * stepY,
         };
 

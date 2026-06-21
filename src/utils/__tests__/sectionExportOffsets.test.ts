@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Node } from "@xyflow/react";
-import { stackBiomeSectionNodesForExport } from "../sectionExportOffsets";
+import {
+  mergeBiomeSectionNodesForHytaleExport,
+  prepareBiomeSectionNodesForExport,
+  stackBiomeSectionNodesForExport,
+} from "../sectionExportOffsets";
 
 describe("stackBiomeSectionNodesForExport", () => {
   it("preserves absolute coordinates for the first section", () => {
@@ -49,5 +53,49 @@ describe("stackBiomeSectionNodesForExport", () => {
 
     const stackedTerrain = stacked.find((n) => n.id === "n1")!;
     expect(stackedTerrain.position).toEqual({ x: 40, y: 40 });
+  });
+
+  it("restores global Hytale coordinates without vertical stacking", () => {
+    const terrainNode: Node = {
+      id: "n1",
+      type: "Constant",
+      position: { x: 180, y: 280 },
+      data: { type: "Constant", fields: {} },
+    };
+    const materialNode: Node = {
+      id: "n2",
+      type: "Constant",
+      position: { x: 220, y: 340 },
+      data: { type: "Constant", fields: {} },
+    };
+
+    const merged = mergeBiomeSectionNodesForHytaleExport(
+      { Terrain: [terrainNode], MaterialProvider: [materialNode] },
+      {
+        Terrain: { x: 80, y: 80 },
+        MaterialProvider: { x: 120, y: 140 },
+      },
+    );
+
+    expect(merged).toHaveLength(2);
+    expect(merged[0].position).toEqual({ x: 100, y: 200 });
+    expect(merged[1].position).toEqual({ x: 100, y: 200 });
+  });
+
+  it("uses hytale merge path when import layout mode is hytale", () => {
+    const terrainNode: Node = {
+      id: "n1",
+      type: "Constant",
+      position: { x: 180, y: 280 },
+      data: {},
+    };
+
+    const prepared = prepareBiomeSectionNodesForExport(
+      { Terrain: [terrainNode] },
+      "hytale",
+      { Terrain: { x: 80, y: 80 } },
+    );
+
+    expect(prepared[0].position).toEqual({ x: 100, y: 200 });
   });
 });

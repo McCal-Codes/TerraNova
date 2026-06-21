@@ -159,7 +159,7 @@ body,
 
 /* Sidebar docs navigation */
 .docs-sidebar {
-  background: rgba(33, 30, 26, 0.92);
+  background: #262320;
 }
 
 .docs-sidebar button {
@@ -521,6 +521,31 @@ body,
   to {
     stroke-dashoffset: -12;
   }
+}
+
+/* Biome overview canvas */
+.biome-overview-canvas .react-flow__pane {
+  background: radial-gradient(ellipse at 30% 20%, rgba(91, 141, 191, 0.04) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 70%, rgba(200, 125, 58, 0.03) 0%, transparent 50%),
+    #161412;
+}
+
+.biome-overview-flow .react-flow__edge-path {
+  stroke-linecap: round;
+}
+
+.biome-overview-minimap {
+  border: 1px solid #3a3428 !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.biome-overview-controls {
+  border: 1px solid #3a3428 !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 /* DocNodeGraph: dark-theme controls override */

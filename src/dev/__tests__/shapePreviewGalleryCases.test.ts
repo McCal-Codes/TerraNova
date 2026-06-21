@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  getGalleryCaseSetup,
+  BUNDLED_GALLERY_CASES,
+  DENSITY_BASICS_GALLERY_CASES,
   GALLERY_CASES,
+  HYTALE_GALLERY_CASES,
+  getGalleryCaseSetup,
   parseGalleryCase,
 } from "../shapePreviewGalleryCases";
 import { evaluateDensityGrid } from "@/utils/density/evaluateGrid";
@@ -33,14 +36,27 @@ function evalAtTarget(setup: ReturnType<typeof getGalleryCaseSetup>) {
 }
 
 describe("shape preview gallery cases (reference biomes)", () => {
-  it("defines reference-backed UAT cases only", () => {
-    expect(GALLERY_CASES).toEqual([
+  it("defines bundled reference-backed UAT cases", () => {
+    expect(BUNDLED_GALLERY_CASES).toEqual([
       "underworld-cell",
       "underworld-max",
       "tropical-pcn",
       "sdf-showcase",
       "mudcracks-cube",
+      ...DENSITY_BASICS_GALLERY_CASES,
     ]);
+  });
+
+  it("appends Hytale cache-backed gallery cases", () => {
+    expect(HYTALE_GALLERY_CASES).toEqual([
+      "hytale-example-cellnoise2d",
+      "hytale-generative-arches",
+      "hytale-generative-veins",
+      "hytale-plains1-river",
+      "hytale-plains1-deeproot",
+      "hytale-test-features",
+    ]);
+    expect(GALLERY_CASES).toEqual([...BUNDLED_GALLERY_CASES, ...HYTALE_GALLERY_CASES]);
   });
 
   it("maps legacy gallery URLs", () => {

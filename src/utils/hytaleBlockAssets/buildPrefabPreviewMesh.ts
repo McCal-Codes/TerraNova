@@ -26,6 +26,8 @@ function colorToRgb(hex: number): [number, number, number] {
   ];
 }
 
+const FACE_BRIGHTNESS = [1.0, 0.6, 0.8, 0.72, 0.85, 0.68];
+
 function pushAxisAlignedBox(
   positions: number[],
   colors: number[],
@@ -38,7 +40,6 @@ function pushAxisAlignedBox(
   sz: number,
   rgb: [number, number, number],
 ): void {
-  const base = positions.length / 3;
   const verts: [number, number, number][] = [
     [ox, oy, oz],
     [ox + sx, oy, oz],
@@ -50,11 +51,6 @@ function pushAxisAlignedBox(
     [ox, oy + sy, oz + sz],
   ];
 
-  for (const [x, y, z] of verts) {
-    positions.push(x, y, z);
-    colors.push(rgb[0], rgb[1], rgb[2]);
-  }
-
   const faces = [
     [0, 1, 2, 0, 2, 3],
     [4, 6, 5, 4, 7, 6],
@@ -63,9 +59,21 @@ function pushAxisAlignedBox(
     [2, 6, 7, 2, 7, 3],
     [3, 7, 4, 3, 4, 0],
   ];
-  for (const face of faces) {
-    for (const idx of face) {
-      indices.push(base + idx);
+
+  for (let fi = 0; fi < faces.length; fi++) {
+    const bright = FACE_BRIGHTNESS[fi] ?? 1;
+    const fr = rgb[0] * bright;
+    const fg = rgb[1] * bright;
+    const fb = rgb[2] * bright;
+    const faceCornerToIndex = new Map<number, number>();
+    for (const cornerIdx of faces[fi]!) {
+      if (!faceCornerToIndex.has(cornerIdx)) {
+        const [x, y, z] = verts[cornerIdx]!;
+        faceCornerToIndex.set(cornerIdx, positions.length / 3);
+        positions.push(x, y, z);
+        colors.push(fr, fg, fb);
+      }
+      indices.push(faceCornerToIndex.get(cornerIdx)!);
     }
   }
 }
@@ -171,4 +179,23 @@ export function buildPrefabPreviewMesh(
     center,
     radius,
   };
+}
+
+/** Bounding-sphere radius that frames the full prefab AABB (not just max axis). */
+export function computePrefabPreviewFitRadius(mesh: PrefabPreviewMeshData): number {
+  const { min, max } = mesh.bounds;
+  const dx = max[0] - min[0];
+  const dy = max[1] - min[1];
+  const dz = max[2] - min[2];
+  return Math.max(Math.hypot(dx, dy, dz) / 2, mesh.radius, 1);
+}
+
+/** Camera distance so the full prefab fits in a perspective view with padding. */
+export function computePrefabPreviewCameraDistance(
+  fitRadius: number,
+  fovDeg: number,
+  padding = 1.35,
+): number {
+  const fovRad = (fovDeg * Math.PI) / 180;
+  return Math.max((fitRadius / Math.sin(fovRad / 2)) * padding, 4);
 }

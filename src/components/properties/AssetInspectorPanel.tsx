@@ -1,5 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { CheckCircle2, Package, AlertTriangle } from "lucide-react";
+import {
+  getReferencedAssetKindIcon,
+  getReferencedAssetKindIconClassName,
+} from "@/utils/fileTreeIcons";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore, type DirectoryEntry } from "@/stores/projectStore";
 import { useUIStore } from "@/stores/uiStore";
@@ -839,6 +843,12 @@ export function AssetInspectorPanel() {
                       {entry.status === "in-pack" && <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />}
                       {entry.status === "built-in" && <Package className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-400" />}
                       {entry.status === "missing" && <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />}
+                      {(() => {
+                        const KindIcon = getReferencedAssetKindIcon(entry);
+                        return KindIcon ? (
+                          <KindIcon className={`mt-0.5 ${getReferencedAssetKindIconClassName()}`} />
+                        ) : null;
+                      })()}
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">

@@ -73,7 +73,7 @@ describe("Deprecation alignment", () => {
   });
 
   it("registered node types (except chrome) resolve fields and handles", () => {
-    const skip = new Set(["default", "comment", "frame", "group"]);
+    const skip = new Set(["default", "comment", "frame", "group", "overviewSection", "sectionAnchor"]);
     for (const typeKey of Object.keys(nodeTypes)) {
       if (skip.has(typeKey)) continue;
       if (LEGACY_TYPE_KEYS.has(typeKey) && !nodeTypes[typeKey]) continue;

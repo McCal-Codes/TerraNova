@@ -17,7 +17,7 @@ const DEFAULT_TINT_RANGES: Array<{ MinInclusive: number; MaxExclusive: number }>
 
 // Every real Hytale DensityDelimited TintProvider uses a SimplexNoise2D density
 // node with these parameters (consistent across all observed biomes).
-const DEFAULT_TINT_DENSITY: Record<string, unknown> = {
+export const DEFAULT_TINT_DENSITY: Record<string, unknown> = {
   Type: "SimplexNoise2D",
   Seed: "tints",
   Scale: 100,
@@ -25,6 +25,63 @@ const DEFAULT_TINT_DENSITY: Record<string, unknown> = {
   Persistence: 0.2,
   Lacunarity: 5,
 };
+
+export function isSimplexNoise2DTint(tintProvider: Record<string, unknown> | undefined): boolean {
+  if (!tintProvider) return true;
+  const density = tintProvider.Density;
+  if (!density || typeof density !== "object") return true;
+  const type = (density as Record<string, unknown>).Type;
+  return type === "SimplexNoise2D" || type === undefined;
+}
+
+export function readTintDensity(
+  tintProvider: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const density = tintProvider?.Density;
+  if (density && typeof density === "object" && isSimplexNoise2DTint(tintProvider)) {
+    return { ...DEFAULT_TINT_DENSITY, ...(density as Record<string, unknown>) };
+  }
+  return { ...DEFAULT_TINT_DENSITY };
+}
+
+export function updateTintDensity(
+  tintProvider: Record<string, unknown> | undefined,
+  patch: Partial<Record<string, unknown>>,
+): Record<string, unknown> {
+  const source = tintProvider ?? { Type: "DensityDelimited" };
+  const nextDensity = {
+    ...readTintDensity(source),
+    ...patch,
+    Type: "SimplexNoise2D",
+  };
+  return {
+    ...source,
+    Type: source.Type ?? "DensityDelimited",
+    Density: nextDensity,
+    Delimiters: Array.isArray(source.Delimiters) ? source.Delimiters : [],
+  };
+}
+
+export function readTintDelimiters(
+  tintProvider: Record<string, unknown> | undefined,
+): Array<Record<string, unknown>> {
+  if (!tintProvider || !Array.isArray(tintProvider.Delimiters)) return [];
+  return (tintProvider.Delimiters as Array<Record<string, unknown>>).map((d) => ({ ...d }));
+}
+
+export function updateTintDelimiters(
+  tintProvider: Record<string, unknown> | undefined,
+  delimiters: Array<Record<string, unknown>>,
+): Record<string, unknown> {
+  const source = tintProvider ?? { Type: "DensityDelimited" };
+  const density = source.Density ?? DEFAULT_TINT_DENSITY;
+  return {
+    ...source,
+    Type: source.Type ?? "DensityDelimited",
+    Density: density,
+    Delimiters: delimiters,
+  };
+}
 
 export function applyBiomeTintBand(
   tintProvider: Record<string, unknown> | undefined,

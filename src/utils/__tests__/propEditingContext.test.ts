@@ -104,6 +104,23 @@ describe("resolvePropPrefabPreviewSource", () => {
     ];
     expect(resolvePropPrefabPreviewSource(nodes, null)?.path).toBe("Bone_Ring_001");
   });
+
+  it("finds Path on non-Prefab nodes (e.g. nested assignment fields)", () => {
+    const nodes: Node[] = [
+      {
+        id: "asgn",
+        type: "Assignment:Constant",
+        position: { x: 0, y: 0 },
+        data: {
+          type: "Constant",
+          fields: {
+            Prop: { Type: "Prefab", Path: "Trees/Oak_Small" },
+          },
+        },
+      },
+    ];
+    expect(resolvePropPrefabPreviewSource(nodes, null)?.path).toBe("Trees/Oak_Small");
+  });
 });
 
 describe("resolveEffectivePrefabPreviewSource", () => {

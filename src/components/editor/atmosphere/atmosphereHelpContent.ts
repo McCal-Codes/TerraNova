@@ -87,6 +87,7 @@ export function getAtmosphereHelpContent(
           "Sky/Fog/Lighting sliders here affect the terrain preview directly (separate from weather JSON files).",
           "Forecast strip reads the environment from EnvironmentProvider — empty {} means the server default, not “no environment”.",
           "Use Refresh preview from assets after changing EnvironmentProvider or adding weather files. Open environment/weather files from the rows below.",
+          "Tint: edit band colors and SimplexNoise2D noise here; expand Advanced for delimiter ranges or open the Tint graph for complex density proxies.",
         ],
       };
     case "sync-3d":

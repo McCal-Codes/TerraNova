@@ -1,4 +1,4 @@
-﻿/**
+/**
  * End-to-end export pipeline tests.
  *
  * Validates the full Hytale-native â†’ import â†’ internal â†’ export â†’ Hytale-native
@@ -596,6 +596,7 @@ describe("validateExport", () => {
       Type: "NoiseRange",
       DefaultBiome: "Plains",
       Density: { Type: "Constant", Value: 1 },
+      Biomes: [{ Biome: "Plains", Min: -1, Max: 1 }],
     };
     const warnings = validateExport(valid);
     expect(warnings).toHaveLength(0);

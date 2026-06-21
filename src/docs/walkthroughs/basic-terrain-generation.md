@@ -60,7 +60,7 @@ Starter terrain profile - gentle slope into a firmer surface
   "steps": [
     { "nodeId": "bh",  "text": "BaseHeight marks the terrain anchor by crossing zero at the named height reference. Connect it to CurveMapper to decide how that anchor becomes a usable terrain profile." },
     { "nodeId": "cm",  "text": "Set CurveMapper's Curve type to Manual. The x-axis is the input from BaseHeight; the y-axis is the output density. A gentle S-curve gives natural slopes; a steep step gives cliffs." },
-    { "nodeId": "out", "text": "Terrain Out receives the final density. Click Generate — you should see a flat plane at Y=64. The CurveMapper is not doing much yet; its effect becomes visible once you shape the curve." }
+    { "nodeId": "out", "text": "Terrain Out receives the final density. Click Evaluate now — you should see a flat plane at Y=64. The CurveMapper is not doing much yet; its effect becomes visible once you shape the curve." }
   ]
 }
 ```
@@ -102,8 +102,8 @@ To make varied terrain with a proper surface, combine the `CurveMapper` height s
 If you are new to curves, do this in order:
 
 1. Load the starter curve above into `CurveMapper`.
-2. Generate once before touching noise.
-3. Move only one curve point at a time, then generate again.
+2. Evaluate once before touching noise.
+3. Move only one curve point at a time, then evaluate again.
 4. After the silhouette feels right, start adjusting the noise scale.
 
 ```nodegraph
@@ -127,7 +127,7 @@ If you are new to curves, do this in order:
     { "nodeId": "cm",  "text": "CurveMapper shapes the height falloff. A steep curve near zero makes sharp cliff edges; a gradual S-curve makes gentle slopes. This controls the silhouette of your terrain." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds horizontal variation. Scale 0.01 gives ~100-block hills. Lower Scale (0.003) gives huge continent-scale features; higher (0.03) gives small rocky bumps." },
     { "nodeId": "sum", "text": "Sum adds both signals together. The CurveMapper dominates the vertical shape; noise nudges the surface up and down within that shape. Sum output can exceed ±1 — any positive value is solid." },
-    { "nodeId": "out", "text": "This is a complete basic terrain graph. Click Generate to see hills at Y=64. Adjust SimplexNoise2D Scale to change hill size, or redraw the CurveMapper curve to change terrain character." }
+    { "nodeId": "out", "text": "This is a complete basic terrain graph. Click Evaluate now to see hills at Y=64. Adjust SimplexNoise2D Scale to change hill size, or redraw the CurveMapper curve to change terrain character." }
   ]
 }
 ```

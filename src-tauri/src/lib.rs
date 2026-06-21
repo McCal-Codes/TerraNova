@@ -2,6 +2,7 @@ mod bridge;
 mod commands;
 mod io;
 mod noise;
+mod preview_probe;
 mod schema;
 
 use bridge::client::BridgeState;
@@ -48,6 +49,7 @@ pub fn run() {
             io_commands::resolve_hytale_prefab_path,
             io_commands::create_from_template,
             io_commands::list_template_biomes,
+            io_commands::list_hytale_release_biomes,
             io_commands::create_blank_project,
             io_commands::create_pack_wizard,
             io_commands::list_pack_wizard_bundle_templates,
@@ -57,8 +59,11 @@ pub fn run() {
             io_commands::path_exists,
             validate::validate_asset_pack,
             preview::evaluate_density,
+            preview::scan_volume_solids_bounds,
+            preview::discover_biome_content_fields,
             bridge_commands::bridge_debug_snapshot,
             bridge_commands::bridge_discover,
+            bridge_commands::bridge_start_sidecar,
             bridge_commands::bridge_connect,
             bridge_commands::bridge_disconnect,
             bridge_commands::bridge_status,
@@ -68,6 +73,8 @@ pub fn run() {
             bridge_commands::bridge_player_info,
             bridge_commands::bridge_fetch_palette,
             bridge_commands::bridge_fetch_chunk,
+            bridge_commands::bridge_plugin_status,
+            bridge_commands::bridge_deploy_plugin,
             bridge_commands::bridge_sync_file,
             process::relaunch_app,
             hardware::get_hardware_info,

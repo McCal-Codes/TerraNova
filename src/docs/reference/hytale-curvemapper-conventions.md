@@ -2,7 +2,7 @@
 
 **Difficulty:** Reference
 
-> **Biome source assets:** Release — `Examples/Example_Curve_Mapper.json`, `Examples/Example_Curve_Remapping.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Pillars_Marble_Large.json`, plus biomes under `Plains1/`, `Boreal1/`, `Desert1/`, `Taiga1/`, `Volcanic1/` (`pnpm sync:hytale` → `templates/hytale-release/`). Community — `templates/references/` (TwistWorld, TheUnderworld, Lycheesis, HiveWorld, …), `templates/tropical-pirate-islands/`, and save mods such as `McCal.Autmn Forest` (Worldgen V1).
+> **Biome source assets:** Release — `Examples/Example_Curve_Mapper.json`, `Examples/Example_Curve_Remapping.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Pillars_Marble_Large.json`, plus biomes under `Plains1/`, `Boreal1/`, `Desert1/`, `Taiga1/`, `Volcanic1/` (`pnpm sync:hytale` → `templates/hytale-release/`). Community — `templates/references/` (TwistWorld, TheUnderworld, Lycheesis, HiveWorld, …), `templates/tropical-pirate-islands/`, save mods such as `McCal.Autmn Forest` (Worldgen V1), and audited Desktop packs **Skyreach Ravines** v3.6 / **Dragon's Fantasy Scenes** v1.3.0 ([study notes](./community-pack-references.md)).
 
 This page documents how **release Hytale biome assets** use `CurveMapper`, and how TerraNova’s graph editor maps to that JSON.
 
@@ -106,6 +106,17 @@ Example from **McCal.Autmn Forest** (`Autmn Forest Bones.json`) — typical heig
 ```
 
 Re-run the audit locally: `node scripts/audit-curvemapper.mjs` (release, references, tropical-pirate, and configured save-mod paths).
+
+### Height-band `CurveMapper` in community packs
+
+Beyond terrain profiles, community packs use **`CurveMapper(BaseHeight, Distance: true)`** inside **`DensityDelimited`** providers:
+
+| Pack | Use |
+|------|-----|
+| **Skyreach Ravines** | `EnvironmentProvider` switches env bands around **Y ≈ 80–300** (ravine floor / rim / sky) |
+| **DFS Autumn Trails** | Ground env vs **`Env_*_Y160`** sky layer split at **~Y 60** |
+
+Same `CurveMapper` JSON shape as terrain — different parent (`EnvironmentProvider` or `TintProvider` delimiters). See [Community Pack Study References](./community-pack-references.md).
 
 ---
 

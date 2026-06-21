@@ -72,7 +72,7 @@ export function EditorCalloutSection({
               key={`${item.severity}-${item.title}-${index}`}
               className={`relative flex items-start gap-2.5 px-3 py-2 ${
                 index < items.length - 1 ? "border-b border-tn-border/30" : ""
-              } hover:bg-white/[0.02] transition-colors`}
+              } hover:bg-tn-surface transition-colors`}
             >
               {/* Left accent bar */}
               <div className={`absolute inset-y-0 left-0 w-0.5 rounded-l ${SEVERITY_BAR[item.severity]}`} />

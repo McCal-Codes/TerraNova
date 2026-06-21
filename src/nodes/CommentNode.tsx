@@ -21,7 +21,8 @@ const AUTHOR_NOTE_BG = "rgba(125, 207, 255, 0.12)";
 const AUTHOR_NOTE_BORDER = "rgba(125, 207, 255, 0.5)";
 
 export const CommentNode = memo(function CommentNode({ id, selected, data }: NodeProps) {
-  const nodeData = data as unknown as CommentNodeData;
+  const nodeData = data as unknown as CommentNodeData & { _readOnlyOverview?: boolean };
+  const readOnlyOverview = Boolean(nodeData._readOnlyOverview);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(nodeData.text ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -74,6 +75,54 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
 
   const width = nodeData.width ?? 240;
   const height = nodeData.height ?? 110;
+
+  if (readOnlyOverview) {
+    return (
+      <div
+        style={{
+          width,
+          height,
+          minWidth: MIN_WIDTH,
+          minHeight: MIN_HEIGHT,
+          background: backgroundColor,
+          border: `1px solid ${borderColor}`,
+          borderRadius: 6,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          pointerEvents: "none",
+          opacity: 0.92,
+        }}
+      >
+        <div
+          style={{
+            background: `${accentColor}18`,
+            borderBottom: `1px solid ${borderColor}`,
+            padding: "2px 6px",
+          }}
+        >
+          <span style={{ color: accentColor, fontSize: 10, fontWeight: 600, userSelect: "none" }}>
+            {isAuthorNote ? "Author Note" : "Comment"}
+          </span>
+        </div>
+        <div style={{ flex: 1, padding: "6px 8px", overflow: "hidden" }}>
+          <div
+            style={{
+              color: accentColor,
+              fontSize: 10,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              lineHeight: 1.35,
+              opacity: displayText ? 0.85 : 0.45,
+              userSelect: "none",
+            }}
+          >
+            {displayText || "…"}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

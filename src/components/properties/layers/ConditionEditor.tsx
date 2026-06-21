@@ -29,7 +29,7 @@ export function ConditionEditor({
     conditionType === "NotCondition";
 
   return (
-    <div className="flex flex-col gap-2 p-2 rounded border border-tn-border bg-white/[0.02]">
+    <div className="flex flex-col gap-2 p-2 rounded border border-tn-border bg-tn-bg">
       <div className="flex items-center gap-2">
         <label className="text-[10px] text-tn-text-muted shrink-0 w-12">Type</label>
         <select

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ImportMetadata } from "../hytaleToInternal";
 import {
+  collectBiomeSectionNodeIds,
   discoverBiomeSectionKeys,
   routeGroupToSection,
   splitImportMetadataBySection,
@@ -22,6 +23,24 @@ describe("discoverBiomeSectionKeys", () => {
       "EnvironmentProvider",
       "TintProvider",
     ]);
+  });
+});
+
+describe("collectBiomeSectionNodeIds", () => {
+  it("collects __hytaleNodeId from internalized biome subtrees", () => {
+    const wrapper = {
+      Terrain: {
+        Density: {
+          Type: "Sum",
+          __hytaleNodeId: "Min.Density-abc",
+          Inputs: [
+            { Type: "Constant", __hytaleNodeId: "Max.Density-def", Value: 1 },
+          ],
+        },
+      },
+    };
+    const ids = collectBiomeSectionNodeIds(wrapper);
+    expect(ids.Terrain).toEqual(new Set(["Min.Density-abc", "Max.Density-def"]));
   });
 });
 

@@ -7,7 +7,7 @@ body:
     id: appVersion
     attributes:
       label: App Version
-      placeholder: 0.1.8-alpha.1
+      placeholder: 0.1.8-alpha.4
     validations:
       required: true
 

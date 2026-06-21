@@ -1,4 +1,5 @@
 import type { EvalCtx, NodeHandler } from "../evalContext";
+import { resolveCellularJitter } from "../scaleFields";
 import { lastVoronoiCellCenter, lastVoronoiCellHash, lastVoronoiDistances } from "../voronoiNoise";
 import { primeCellWallDistanceSideChannel } from "./terrainSpecific";
 
@@ -16,7 +17,7 @@ const handlePositionsCellNoise: NodeHandler = (ctx, fields, inputs, x, y, z) => 
   const returnType = (fields.ReturnType as string) ?? "Distance";
   const distFn = (fields.DistanceFunction as string) ?? "Euclidean";
   // V2 CellNoiseField doubles jitter: jitter *= 2.0
-  const jitter = Number(fields.Jitter ?? 0.5) * 2.0;
+  const jitter = resolveCellularJitter(fields.Jitter, 0.5) * 2.0;
   const noise = ctx.getVoronoi2D(seed, returnType, jitter, returnType, distFn);
   const sx = scale !== 0 ? x / scale : x;
   const sz = scale !== 0 ? z / scale : z;
@@ -47,7 +48,7 @@ const handlePositions3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const returnType = (fields.ReturnType as string) ?? "Distance";
   const distFn = (fields.DistanceFunction as string) ?? "Euclidean";
-  const jitter = Number(fields.Jitter ?? 0.5) * 2.0;
+  const jitter = resolveCellularJitter(fields.Jitter, 0.5) * 2.0;
   const noise = ctx.getVoronoi3D(seed, returnType, jitter, returnType, distFn);
   const sx = scale !== 0 ? x / scale : x;
   const sy = scale !== 0 ? y / scale : y;

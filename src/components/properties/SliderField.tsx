@@ -92,7 +92,7 @@ export function SliderField({
   );
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1">
       <label className="text-[11px] text-tn-text-muted flex items-center gap-1">
         {/* Draggable label — cursor changes to indicate scrub behavior */}
         <span
@@ -106,7 +106,7 @@ export function SliderField({
         </span>
         {description && <FieldTooltip description={description} />}
       </label>
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2" data-height-slider-row>
         <input
           type="range"
           min={min}
@@ -116,7 +116,7 @@ export function SliderField({
           aria-label={label}
           onChange={handleRangeChange}
           onBlur={onBlur}
-          className="flex-1 accent-tn-accent h-1.5 cursor-pointer"
+          className="min-w-0 flex-1 accent-tn-accent h-1.5 cursor-pointer"
         />
         <input
           type="number"
@@ -134,7 +134,7 @@ export function SliderField({
           onFocus={(e) => e.currentTarget.select()}
           onBlur={onBlur}
           onWheel={handleWheel}
-          className="w-16 shrink-0 px-1.5 py-1 text-xs bg-tn-bg border border-tn-border rounded text-right focus:outline-none focus:border-tn-accent/60 transition-colors"
+          className="w-14 shrink-0 px-1.5 py-1 text-xs bg-tn-bg border border-tn-border rounded text-right focus:outline-none focus:border-tn-accent/60 transition-colors"
         />
       </div>
     </div>

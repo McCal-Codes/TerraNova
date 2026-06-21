@@ -32,7 +32,7 @@ export function SettingsEditorView() {
         {/* Cards */}
         <div className="grid grid-cols-2 gap-3">
           {/* Concurrency */}
-          <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+          <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-tn-bg">
             <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
               Concurrency
             </span>
@@ -45,7 +45,7 @@ export function SettingsEditorView() {
           </div>
 
           {/* View Distance */}
-          <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+          <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-tn-bg">
             <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
               View Distance
             </span>
@@ -59,7 +59,7 @@ export function SettingsEditorView() {
           </div>
 
           {/* Player Count */}
-          <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+          <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-tn-bg">
             <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
               Player Count
             </span>
@@ -73,7 +73,7 @@ export function SettingsEditorView() {
           </div>
 
           {/* Buffer Factor */}
-          <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+          <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-tn-bg">
             <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
               Buffer Capacity
             </span>
@@ -91,7 +91,7 @@ export function SettingsEditorView() {
         </div>
 
         {/* Stats Checkpoints */}
-        <div className="p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+        <div className="p-3 rounded-lg border border-tn-border bg-tn-bg">
           <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
             Stats Checkpoints
           </span>

@@ -12,7 +12,7 @@ If you are new, do these three things first:
 ## Launching the App
 
 - **Desktop:** Open the TerraNova application directly.
-- **From source:** From the repo root, run `pnpm tauri dev` (Vite alone via `pnpm dev` does not load the desktop shell).
+- **From source:** Run `pnpm tauri dev` with Vite on port **1420** (Tauri does not start Vite automatically). Easiest on Windows: `dev.bat` from the repo root, or run `pnpm dev` in one terminal and `pnpm tauri dev` in another.
 
 ---
 
@@ -54,6 +54,7 @@ The canvas is where you build your world generation graph. Every node takes inpu
 - Press **Tab** or **Shift+A** to open Quick Add — type a node name and press Enter
 - Right-click the canvas for the context menu
 - Drag from the left panel's node palette
+- In Quick Add / Palette, use **Worldgen References** for curated Desert/Skyreach-style starter blocks ([details](../reference/worldgen-references-live-preview.md); [community pack study notes](../reference/community-pack-references.md))
 
 **Selecting and editing:**
 - Click a node to select it — its properties appear in the right panel
@@ -71,17 +72,18 @@ The canvas is where you build your world generation graph. Every node takes inpu
 
 ## The Preview Panel
 
-Switch to preview mode (**P**) to see what your graph produces. Three preview types are available in the toolbar:
+Switch to preview mode (**P**) to see what your graph produces. Preview types in the toolbar:
 
 | Mode | What it shows |
 |------|-------------|
 | **2D heatmap** | Top-down density map; **Topo** chip for USGS-style contours and cave plan slices at **Y level** |
 | **3D terrain** | Heightfield from the Y slice; **Underground view** shows cave volume mesh |
 | **Voxel** | Full 3D volume with interior cave walls, material colors, and **Cutaway** plane |
+| **World** | Real blocks from a connected Hytale save via Bridge (saved chunks only until live server bytes ship) |
 
 Nodes with a **yellow** eval badge use a simplified preview (not identical to in-game generation). Nodes marked unsupported are not previewed. Always validate exported packs on a Hytale server.
 
-Click **Generate** (or it updates live if auto-generate is on) to see your changes.
+Use **Evaluate now** in the preview toolbar, or enable **Auto-refresh** to update as you edit. When tuning a selected node in Properties, keep **Live preview** on to reapply field edits automatically.
 
 Toggle inline node previews — small thumbnails on each node — with **T**.
 
@@ -153,9 +155,11 @@ Bookmarks save your current canvas position and zoom level into one of nine numb
 
 ## Hytale Asset Channel
 
-TerraNova supports two asset channels: **release** and **pre-release**. You set this in **Settings → Hytale Assets**.
+TerraNova supports two asset channels: **release** and **pre-release**. You set this in **Settings → Assets**.
 
 The channel controls which Hytale asset cache is synced (release and pre-release builds ship different blocks, prefabs, and textures) and which nodes show up in the palette. A few density nodes — `Cube`, `Axis`, `Angle` — are pre-release only and are hidden from the palette on the release channel. If you switch channels, TerraNova clears the old cache before syncing to avoid mixing assets from different builds.
+
+**Patchline isolation (Update 6+):** Release and pre-release also use **separate saves, mods, and settings**. Release data lives under `%APPDATA%\Hytale\UserData\`; pre-release lives under `%APPDATA%\Hytale\data\pre-release\UserData\`. Bridge **Deploy Plugin** and export paths follow the channel selected in Settings → Assets.
 
 If you see a **PRE** badge on a node in the canvas, that node needs a pre-release Hytale build to run in-game.
 
@@ -165,6 +169,8 @@ If you see a **PRE** badge on a node in the canvas, that node needs a pre-releas
 
 - **[Walkthrough: Create a World](./walkthroughs/create-a-world.md)** — build your first world step by step
 - **[Walkthrough: Terrain and Caves](./walkthroughs/terrain-and-caves.md)** — shape hills, mountains, and carve cave systems
+- **[Guide: Cave Preview](./guides/preview/cave-preview.md)** — 2D topo, section profile, voxel, and underground 3D modes
+- **[Worldgen References (live preview)](./reference/worldgen-references-live-preview.md)** — curated starter blocks in Quick Add
 - **[Guide: Understanding Basic Terrain](./guides/understanding-basic-terrain-generation.md)** — how density and noise work together
 - **[Glossary](./glossary/README.md)** — definitions for every node type and term
 - **[Exporting](./reference/exporting.md)** — deploy to Hytale, export SVG diagrams, and understand the node-to-JSON type mapping

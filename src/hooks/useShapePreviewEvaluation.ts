@@ -8,6 +8,8 @@ import { marchingSquaresZeroContour } from "@/utils/shapePreview/marchingSquares
 import { marchingSquaresZeroContourAtWorldY } from "@/utils/shapePreview/volumeSliceZeroContour";
 import { isSdfType } from "@/utils/shapePreview/shapePreviewProfile";
 import { buildCellShapeGridForTarget } from "@/utils/shapePreview/buildCellShapeGridForTarget";
+import { buildDensityEvalOptions } from "@/utils/buildDensityEvalOptions";
+import { useProjectStore } from "@/stores/projectStore";
 import { resolveShapePreviewMeshNodeId } from "@/utils/shapePreview/resolveShapePreviewMesh";
 import { evaluatePositions, type EvaluatedPosition, type WorldRange } from "@/utils/positionEvaluator";
 import { useConfigStore } from "@/stores/configStore";
@@ -161,7 +163,8 @@ export function useShapePreviewEvaluation() {
       return;
     }
 
-    const { nodes, edges } = useEditorStore.getState();
+    const { nodes, edges, biomeSections } = useEditorStore.getState();
+    const projectPath = useProjectStore.getState().projectPath;
     const target = getPreviewTargetNode(nodes, selectedPreviewNodeId, outputNodeId);
     if (!target) {
       clearCellGrid();
@@ -170,16 +173,32 @@ export function useShapePreviewEvaluation() {
 
     const sliceY = getShapePreviewSliceY(mode, yLevel, voxelYMin, voxelYMax);
     const gridRes = densityGridResolution(values, mode, resolution, voxelResolution);
-    const grid = buildCellShapeGridForTarget(
-      nodes,
-      edges,
-      target,
-      rangeMin,
-      rangeMax,
-      gridRes,
-      sliceY,
-    );
-    setCellShapeGrid(grid);
+
+    let cancelled = false;
+    void (async () => {
+      const evalOptions = await buildDensityEvalOptions({
+        nodes,
+        edges,
+        biomeSections,
+        projectPath,
+      });
+      if (cancelled) return;
+      const grid = buildCellShapeGridForTarget(
+        nodes,
+        edges,
+        target,
+        rangeMin,
+        rangeMax,
+        gridRes,
+        sliceY,
+        evalOptions.externalDensityExports,
+      );
+      setCellShapeGrid(grid);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     evalFingerprint,
     outputNodeId,

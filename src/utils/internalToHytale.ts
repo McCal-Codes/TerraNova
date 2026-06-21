@@ -28,7 +28,8 @@ import {
   attachHytaleNodeEditorMetadata,
   type PreservedNodeEditorMetadata,
 } from "@/utils/nodeEditorMetadata";
-import { stackBiomeSectionNodesForExport } from "@/utils/sectionExportOffsets";
+import type { LayoutOffset, ImportLayoutMode } from "@/utils/applyHytaleImportLayout";
+import { prepareBiomeSectionNodesForExport } from "@/utils/sectionExportOffsets";
 import { getSchemaCategory } from "@/schema/schemaLoader";
 import { stripEditorPrefix } from "@/schema/categoryPrefixes";
 import { AssetCategory } from "@/schema/types";
@@ -1951,6 +1952,10 @@ export function internalToHytaleBiome(
   wrapper: Record<string, unknown>,
   sectionNodes?: Record<string, Node[]>,
   preservedMetadata?: PreservedNodeEditorMetadata | null,
+  layoutOptions?: {
+    importLayoutMode?: ImportLayoutMode | null;
+    hytaleLayoutOffsets?: Record<string, LayoutOffset> | null;
+  },
 ): Record<string, unknown> {
   const output: Record<string, unknown> = {};
 
@@ -2066,7 +2071,11 @@ export function internalToHytaleBiome(
   if (sectionNodes) {
     attachHytaleNodeEditorMetadata(
       output,
-      stackBiomeSectionNodesForExport(sectionNodes),
+      prepareBiomeSectionNodesForExport(
+        sectionNodes,
+        layoutOptions?.importLayoutMode,
+        layoutOptions?.hytaleLayoutOffsets,
+      ),
       preservedMetadata,
     );
   }

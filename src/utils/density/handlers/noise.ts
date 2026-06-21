@@ -1,6 +1,6 @@
 import type { NodeHandler } from "../evalContext";
 import { fbm2D, fbm3D, ridgeFbm2D, ridgeFbm3D } from "../fbm";
-import { resolveAxisScale, resolveScale } from "../scaleFields";
+import { resolveAxisScale, resolveScale, resolveCellularJitter } from "../scaleFields";
 
 /** Resolve Persistence, with fallback to legacy Gain field. */
 function resolvePersistence(fields: Record<string, unknown>, fallback = 1.0): number {
@@ -56,7 +56,7 @@ const handleCellNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const scaleZ = resolveAxisScale(fields, "ScaleZ");
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const cellType = (fields.CellType as string) ?? "Euclidean";
-  const jitter = Number(fields.Jitter ?? 0.5);
+  const jitter = resolveCellularJitter(fields.Jitter, 0.5);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
   const lacunarity = Number(fields.Lacunarity ?? 2.0);
   const persistence = resolvePersistence(fields, 0.5);
@@ -82,7 +82,7 @@ const handleCellNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const scaleZ = resolveAxisScale(fields, "ScaleZ");
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const cellType = (fields.CellType as string) ?? "Euclidean";
-  const jitter = Number(fields.Jitter ?? 0.5);
+  const jitter = resolveCellularJitter(fields.Jitter, 0.5);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
   const lacunarity = Number(fields.Lacunarity ?? 2.0);
   const persistence = resolvePersistence(fields, 0.5);

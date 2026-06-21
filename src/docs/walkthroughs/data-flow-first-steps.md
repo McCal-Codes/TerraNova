@@ -54,7 +54,7 @@ The three node roles:
 
 ## The Evaluation Loop
 
-When you click **Generate**, the engine evaluates every coordinate in the world:
+When you click **Evaluate now** (or when **Auto-refresh** runs), the engine evaluates every coordinate in the world:
 
 ```
 for each (x, z):
@@ -77,7 +77,7 @@ This is why:
 |------|-------------|
 | **Node canvas** (centre) | Build and connect your density/material graph |
 | **Properties panel** (right) | Edit the selected node's parameters |
-| **Toolbar** (top) | Generate, zoom to fit, toggle preview mode |
+| **Toolbar** (top) | Evaluate now, Auto-refresh, zoom to fit, toggle preview mode |
 | **Biome list** (left panel) | Switch between biome configs |
 | **Docs** (this panel) | Reference while you work |
 
@@ -91,7 +91,7 @@ The minimum valid terrain graph is two nodes:
 1. Add **BaseHeight** (Terrain category) — it crosses zero at the named reference height and gives you the vertical terrain anchor.
 2. It connects to **Terrain Out** — already on the canvas by default.
 
-Connect `BaseHeight → Terrain Out` and click **Generate** to see a flat plane at Y=64.
+Connect `BaseHeight → Terrain Out` and click **Evaluate now** to see a flat plane at Y=64.
 
 When you are ready for your first real terrain shape, the next node to learn is `CurveMapper`. This is a good first curve to keep nearby:
 
@@ -109,4 +109,5 @@ Starter surface curve - easy to tweak without breaking the graph
 
 ## Recommended Next Steps
 
-Follow the [Understanding Basic Terrain Generation](./basic-terrain-generation.md) walkthrough to layer in noise, curves, and caves on top of what you just built.
+- Insert a **Density basics** snippet from the node palette (Quick Add → **Density basics**) and set **Preview target** to the combinator node — see [Density Basics Preview](../guides/preview/density-basics-preview.md).
+- Follow the [Understanding Basic Terrain Generation](./basic-terrain-generation.md) walkthrough to layer in noise, curves, and caves on top of what you just built.

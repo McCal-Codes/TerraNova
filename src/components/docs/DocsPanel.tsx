@@ -1900,7 +1900,7 @@ export function DocsPanel() {
           const xMin = Math.min(...xs), xMax = Math.max(...xs);
           const yMin = Math.min(...ys), yMax = Math.max(...ys);
           return (
-            <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel/45 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+            <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
               {/* Header: label + compact range summary */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-tn-border bg-tn-panel px-3 py-2">
                 <span className="text-[11px] font-medium tracking-[0.03em] text-tn-text-muted">
@@ -2057,7 +2057,7 @@ export function DocsPanel() {
         };
         const diffClass = difficulty ? (difficultyColor[difficulty] ?? "bg-tn-surface text-tn-text-muted border-tn-border") : "";
         return (
-          <div className="docs-wide-block docs-snippet-card my-5 overflow-hidden rounded-xl border border-tn-border bg-tn-panel/70 shadow-[0_12px_28px_rgba(0,0,0,0.16)]">
+          <div className="docs-wide-block docs-snippet-card my-5 overflow-hidden rounded-xl border border-tn-border bg-tn-panel shadow-[0_12px_28px_rgba(0,0,0,0.16)]">
             <div className="border-b border-tn-border bg-[linear-gradient(180deg,rgba(181,147,80,0.12),rgba(181,147,80,0.03))] px-3 py-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
@@ -2593,7 +2593,7 @@ export function DocsPanel() {
         >
         {selectedSlug ? (
           <>
-            <div className={`docs-reader-header z-20 mb-5 -mx-6 border-b border-tn-border/80 bg-[rgba(28,26,23,0.88)] px-6 py-4 backdrop-blur-md ${settings.showStickyHeader ? "sticky top-0" : ""}`}>
+            <div className={`docs-reader-header z-20 mb-5 -mx-6 border-b border-tn-border/80 bg-tn-panel px-6 py-4 ${settings.showStickyHeader ? "sticky top-0" : ""}`}>
             <div className="flex flex-wrap items-center justify-between gap-3 min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {sidebarCollapsed && (

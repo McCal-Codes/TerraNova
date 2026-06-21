@@ -19,9 +19,20 @@ pnpm install
 pnpm tauri dev
 ```
 
-`pnpm dev` starts Vite only (no desktop shell). Use `pnpm tauri dev` for the full app.
+`pnpm tauri dev` starts Vite on port **1420** automatically (`beforeDevCommand`). On Windows you can also use `dev.bat`, which opens Vite in a separate window and then launches Tauri.
+
+`pnpm dev` runs Vite only (browser dev, no desktop shell).
 
 For block icons and validation against real game data: **Settings → Assets** → point at your Hytale **release** install (`...\install\release\package\game\latest` or `Assets.zip`) and sync. See [Importing from Hytale assets](src/docs/guides/world/environments-and-weather.md#importing-from-hytale-assets).
+
+### Preview smoke tests (contributors)
+
+After `pnpm sync:hytale` (or Settings → Assets sync):
+
+- `pnpm test:gallery` — shape gallery + Hytale voxel smoke tests (Hytale cases skip without cache)
+- `pnpm preview:smoke:capture` — optional Playwright screenshots (`?shape-preview-gallery=1` cases)
+
+Bundled Bridge plugin JAR for Tauri: `pnpm bridge:plugin:build` (JDK 25). CI builds and copies it before `pnpm validate`.
 
 ## Verification (before a PR)
 

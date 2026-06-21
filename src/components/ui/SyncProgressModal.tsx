@@ -202,10 +202,10 @@ export default function SyncProgressModal() {
       <div className={modalClass} role="dialog" aria-modal="true" aria-labelledby="sync-modal-title" aria-describedby="sync-modal-status">
         <div className="flex items-center justify-between mb-3">
           <div id="sync-modal-title" className="text-lg font-semibold">Syncing Hytale assets</div>
-          <div className="text-sm text-tn-muted" aria-live="polite">{inProgress ? "In progress" : "Idle"}</div>
+          <div className="text-sm text-tn-text-muted" aria-live="polite">{inProgress ? "In progress" : "Idle"}</div>
         </div>
 
-        <div className="h-3 bg-tn-progress-bg rounded overflow-hidden mb-2">
+        <div className="h-3 bg-tn-bg border border-tn-border rounded overflow-hidden mb-2">
           <div
             id="sync-modal-progress"
             role="progressbar"
@@ -218,33 +218,33 @@ export default function SyncProgressModal() {
           />
         </div>
 
-        <div id="sync-modal-status" className="text-sm text-tn-muted mb-2" aria-live="polite" aria-atomic="true">
+        <div id="sync-modal-status" className="text-sm text-tn-text-muted mb-2" aria-live="polite" aria-atomic="true">
           {pct != null ? <span className="font-medium">{pct}%</span> : <span className="font-medium">Working…</span>}
           <span className="ml-2">{filesWritten} files{totalFiles != null ? ` of ${totalFiles}` : ""}</span>
           {etaText ? <span className="ml-2">• ETA {etaText}</span> : null}
         </div>
 
-        {truncatedFile ? <div className="text-xs text-tn-muted mb-3 truncate">{truncatedFile}</div> : null}
+        {truncatedFile ? <div className="text-xs text-tn-text-muted mb-3 truncate">{truncatedFile}</div> : null}
 
         <div className="flex justify-end gap-2">
           {!showCancelConfirm ? (
             <button
-              className="px-3 py-1 rounded border border-tn-border bg-tn-button hover:bg-tn-button-hover"
+              className="px-3 py-1 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent"
               onClick={() => setShowCancelConfirm(true)}
             >
               Cancel
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <div className="text-sm text-tn-muted">Cancel sync?</div>
+              <div className="text-sm text-tn-text-muted">Cancel sync?</div>
               <button
-                className="px-3 py-1 rounded border border-tn-border bg-tn-button hover:bg-tn-button-hover"
+                className="px-3 py-1 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent"
                 onClick={handleCancel}
               >
                 Yes
               </button>
               <button
-                className="px-3 py-1 rounded border border-tn-border bg-tn-card hover:bg-tn-card-hover"
+                className="px-3 py-1 rounded border border-tn-border bg-tn-surface hover:bg-tn-panel focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent"
                 onClick={() => setShowCancelConfirm(false)}
               >
                 No

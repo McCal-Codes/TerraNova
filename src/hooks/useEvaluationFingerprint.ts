@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { computeEvaluationFingerprint } from "@/utils/previewAutoFit";
+import { resolvePreviewRootForEvaluation } from "@/utils/previewRootResolver";
 
 /**
  * Stable key for preview evaluation effects — ignores canvas-only layout changes
@@ -15,15 +16,21 @@ export function useEvaluationFingerprint(): string {
   const materialConfig = useEditorStore((s) => s.materialConfig);
   const selectedPreviewNodeId = usePreviewStore((s) => s.selectedPreviewNodeId);
 
+  const rootResolution = useMemo(
+    () => resolvePreviewRootForEvaluation({ nodes, edges, selectedPreviewNodeId, outputNodeId }),
+    [nodes, edges, selectedPreviewNodeId, outputNodeId],
+  );
+
   return useMemo(
     () =>
       computeEvaluationFingerprint({
         nodes,
         edges,
         contentFields,
-        rootNodeId: selectedPreviewNodeId ?? outputNodeId ?? null,
+        rootNodeId: rootResolution.nodeId,
+        rootSource: rootResolution.source,
         materialConfig,
       }),
-    [nodes, edges, contentFields, outputNodeId, materialConfig, selectedPreviewNodeId],
+    [nodes, edges, contentFields, materialConfig, rootResolution.nodeId, rootResolution.source],
   );
 }

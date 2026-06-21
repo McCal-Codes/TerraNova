@@ -5,16 +5,17 @@ import { usePropPlacementStore } from "@/stores/propPlacementStore";
 import { PropPlacementCanvasView } from "@/components/properties/PropPlacementCanvasView";
 import {
   hasPropPlacementProviders,
-  resolveEffectivePrefabPreviewSource,
   resolvePropPlacementRootNodeId,
   resolvePropPrefabPreviewSource,
 } from "@/utils/propEditingContext";
+import { useResolvedPropPrefabSource } from "@/hooks/useResolvedPropPrefabSource";
 import { PropPrefab3DPreviewView } from "./PropPrefab3DPreviewView";
+import { PropPrefabThumbnail } from "./PropPrefabThumbnail";
 
 const TAB_CLASS =
   "px-3 py-1 text-[11px] font-medium rounded-t border border-b-0 transition-colors";
 const TAB_ACTIVE = "bg-tn-bg text-tn-text border-tn-border";
-const TAB_IDLE = "bg-tn-panel/60 text-tn-text-muted border-transparent hover:text-tn-text";
+const TAB_IDLE = "bg-tn-panel text-tn-text-muted border-transparent hover:text-tn-text";
 
 function PropPreviewTab({
   active,
@@ -53,7 +54,7 @@ export function PropPreviewPanel() {
 
   const rootNodeId = resolvePropPlacementRootNodeId(nodes, selectedNodeId);
   const graphPrefabSource = resolvePropPrefabPreviewSource(nodes, selectedNodeId);
-  const prefabSource = resolveEffectivePrefabPreviewSource(graphPrefabSource, propManualPrefabPath);
+  const prefabSource = useResolvedPropPrefabSource(nodes, selectedNodeId, propManualPrefabPath);
   const hasPlacementGraph = hasPropPlacementProviders(nodes);
   const showEmptyGraph = nodes.length === 0;
   const showEmptyPlacement =
@@ -61,7 +62,7 @@ export function PropPreviewPanel() {
 
   // Jump to 3D when user selects a prefab node with a path (they can switch back manually).
   useEffect(() => {
-    if (!graphPrefabSource) return;
+    if (!prefabSource) return;
     const selected = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
     if (!selected) return;
     const isSelectedPrefab =
@@ -70,7 +71,7 @@ export function PropPreviewPanel() {
     if (isSelectedPrefab && usePreviewStore.getState().propPreviewMode !== "prefab3d") {
       setPropPreviewMode("prefab3d");
     }
-  }, [selectedNodeId, graphPrefabSource, nodes, setPropPreviewMode]);
+  }, [selectedNodeId, prefabSource, nodes, setPropPreviewMode]);
 
   const setMode = (mode: PropPreviewMode) => setPropPreviewMode(mode);
 
@@ -113,13 +114,23 @@ export function PropPreviewPanel() {
                 No placement samples yet — wire a Positions provider or select a Position node.
               </p>
             )}
-            <div className="flex-1 min-h-0">
-              <PropPlacementCanvasView
-                nodes={nodes}
-                edges={edges}
-                rootNodeId={rootNodeId}
-                title=""
-              />
+            <div className="flex-1 min-h-0 flex gap-2">
+              <div className="flex-1 min-w-0 min-h-0">
+                <PropPlacementCanvasView
+                  nodes={nodes}
+                  edges={edges}
+                  rootNodeId={rootNodeId}
+                  title=""
+                />
+              </div>
+              {prefabSource && (
+                <div className="w-44 shrink-0 flex flex-col gap-1 min-h-0">
+                  <p className="text-[10px] text-tn-text-muted truncate" title={prefabSource.path}>
+                    {prefabSource.path}
+                  </p>
+                  <PropPrefabThumbnail fields={prefabSource.fields} className="flex-1 min-h-[140px]" />
+                </div>
+              )}
             </div>
           </div>
         ) : (

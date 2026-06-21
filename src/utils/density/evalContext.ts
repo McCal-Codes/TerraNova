@@ -35,6 +35,7 @@ export interface EvaluationContext {
   rootId: string;
   evaluate: (nodeId: string, x: number, y: number, z: number) => number;
   clearMemo: () => void;
+  contentFields?: Record<string, number>;
 }
 
 /** Shared evaluation state passed to every handler. */
@@ -324,6 +325,7 @@ export function createEvaluationContext(
   return {
     rootId: root.id,
     evaluate,
+    contentFields,
     clearMemo: () => {
       memoCache.clear();
       ctx.cellWallDist = Infinity;

@@ -3,10 +3,12 @@ import { useProjectStore } from "@/stores/projectStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
-import { graphToJson, graphToJsonMulti, detectGraphIssues } from "@/utils/graphToJson";
+import { graphToJson, detectGraphIssues } from "@/utils/graphToJson";
 import { normalizeExport, isBiomeFile, isSettingsFile, internalToHytaleBiome } from "@/utils/fileTypeDetection";
 import { isHytaleNativeFormat } from "@/utils/hytaleToInternal";
 import { exportAssetFile, copyFile, readAssetFile, listDirectory } from "@/utils/ipc";
+import { buildPropEntryFromSection } from "@/utils/propSectionAssets";
+import { sortPropSectionKeys } from "@/utils/propSectionKeys";
 import type { DirectoryEntryData } from "@/utils/ipc";
 import {
   deriveHytaleModIdentity,
@@ -17,29 +19,8 @@ import { useBridgeStore } from "@/stores/bridgeStore";
 import { normalizeMaterialSectionNodeTypes } from "@/utils/materialSectionNodes";
 import { sanitizeGraphNodesAndEdges } from "@/utils/sanitizeGraphNodes";
 import { blockInvalidJsonWrite, isInvalidJsonReadOnlyActive } from "@/utils/invalidJsonReadOnly";
-
-/**
- * BFS upstream from a root node to collect all nodes feeding into it.
- */
-function getReachableNodeIds(
-  rootId: string,
-  _nodes: import("@xyflow/react").Node[],
-  edges: import("@xyflow/react").Edge[],
-): Set<string> {
-  const result = new Set<string>();
-  const queue = [rootId];
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    if (result.has(current)) continue;
-    result.add(current);
-    for (const edge of edges) {
-      if (edge.target === current && !result.has(edge.source)) {
-        queue.push(edge.source);
-      }
-    }
-  }
-  return result;
-}
+import { biomeRangeExportWarnings } from "@/utils/biomeRangeDiagnostics";
+import type { BiomeRangeEntry, NoiseRangeConfig } from "@/stores/slices/types";
 
 function sanitizeBiomeSections<T extends { nodes: import("@xyflow/react").Node[]; edges: import("@xyflow/react").Edge[] }>(
   sections: Record<string, T>,
@@ -76,6 +57,8 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
     activeBiomeSection,
     outputNodeId,
     preservedNodeEditorMetadata,
+    importLayoutMode,
+    hytaleLayoutOffsets,
   } = useEditorStore.getState();
 
   // NoiseRange files
@@ -151,45 +134,14 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
       if (matJson) output.MaterialProvider = matJson;
     }
 
-    const propKeys = Object.keys(updatedSections).filter((k) => k.startsWith("Props[")).sort();
+    const propKeys = sortPropSectionKeys(
+      Object.keys(updatedSections).filter((k) => k.startsWith("Props[")),
+    );
     const props: Record<string, unknown>[] = [];
     for (let i = 0; i < propKeys.length; i++) {
       const section = updatedSections[propKeys[i]];
       const meta = biomeConfig.propMeta[i] ?? { Runtime: 0, Skip: false };
-      const propEntry: Record<string, unknown> = { Runtime: meta.Runtime, Skip: meta.Skip };
-
-      const sectionNodes = section.nodes;
-      const sectionEdges = section.edges;
-
-      const positionsRoot = sectionNodes.find(
-        (n) => (n?.data as Record<string, unknown> | undefined)?._biomeField === "Positions",
-      );
-      const assignmentsRoot = sectionNodes.find(
-        (n) => (n?.data as Record<string, unknown> | undefined)?._biomeField === "Assignments",
-      );
-
-      if (positionsRoot || assignmentsRoot) {
-        if (positionsRoot) {
-          const posNodeIds = getReachableNodeIds(positionsRoot.id, sectionNodes, sectionEdges);
-          const posNodes = sectionNodes.filter((n) => n && posNodeIds.has(n.id));
-          const posEdges = sectionEdges.filter((e) => posNodeIds.has(e.source) && posNodeIds.has(e.target));
-          const posJson = graphToJson(posNodes, posEdges);
-          if (posJson) propEntry.Positions = posJson;
-        }
-        if (assignmentsRoot) {
-          const asgnNodeIds = getReachableNodeIds(assignmentsRoot.id, sectionNodes, sectionEdges);
-          const asgnNodes = sectionNodes.filter((n) => n && asgnNodeIds.has(n.id));
-          const asgnEdges = sectionEdges.filter((e) => asgnNodeIds.has(e.source) && asgnNodeIds.has(e.target));
-          const asgnJson = graphToJson(asgnNodes, asgnEdges);
-          if (asgnJson) propEntry.Assignments = asgnJson;
-        }
-      } else {
-        const assets = graphToJsonMulti(sectionNodes, sectionEdges);
-        if (assets[0]) propEntry.Positions = assets[0];
-        if (assets[1]) propEntry.Assignments = assets[1];
-      }
-
-      props.push(propEntry);
+      props.push(buildPropEntryFromSection(section.nodes, section.edges, meta));
     }
     output.Props = props;
 
@@ -219,6 +171,7 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
         Object.entries(updatedSections).map(([key, section]) => [key, section.nodes]),
       ),
       preservedNodeEditorMetadata,
+      { importLayoutMode, hytaleLayoutOffsets },
     ) as Record<string, unknown>;
   }
 
@@ -326,9 +279,21 @@ export function validateExport(json: Record<string, unknown>, filePath?: string)
       }
     }
   } else if (json.Type === "NoiseRange") {
-    // NoiseRange file validation
     if (!json.DefaultBiome) warnings.push("NoiseRange missing DefaultBiome");
     if (!json.Density) warnings.push("NoiseRange missing Density");
+    const biomes = Array.isArray(json.Biomes)
+      ? (json.Biomes as BiomeRangeEntry[]).map((b) => ({
+        Biome: String(b.Biome ?? ""),
+        Min: Number(b.Min ?? -1),
+        Max: Number(b.Max ?? 1),
+      }))
+      : [];
+    const noiseConfig: NoiseRangeConfig = {
+      DefaultBiome: String(json.DefaultBiome ?? ""),
+      DefaultTransitionDistance: Number(json.DefaultTransitionDistance ?? 32),
+      MaxBiomeEdgeDistance: Number(json.MaxBiomeEdgeDistance ?? 48),
+    };
+    warnings.push(...biomeRangeExportWarnings(biomes, noiseConfig));
   }
 
   // Walk the tree for structural issues

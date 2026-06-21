@@ -10,6 +10,7 @@ import {
   propCommentToFrameTitle,
   resolveAutoFrameSectionTitle,
 } from "../importAnnotations";
+import { VIEWPORT_MARGIN } from "../applyHytaleImportLayout";
 import { layerCanvasNodes } from "../annotationUtils";
 import type { ImportMetadata } from "../hytaleToInternal";
 
@@ -206,34 +207,38 @@ describe("auto frame helpers", () => {
 });
 
 describe("mergeImportGraph", () => {
-  it("appends annotations after layout without passing them to layout", async () => {
+  it("translates annotations with Hytale layout instead of scaling them", async () => {
     const graphNode: Node = {
-      id: "n1",
-      type: "Constant",
+      id: "Min.Density-a",
+      type: "Min",
       position: { x: 0, y: 0 },
-      data: { type: "Constant", fields: {} },
+      data: { type: "Min", fields: {} },
     };
     const metadata: ImportMetadata = {
       comments: {},
       nodeIds: {},
-      nodePositions: {},
+      nodePositions: {
+        "Min.Density-a": { x: 1000, y: 2000 },
+      },
       nodeEditorMetadata: { $Comments: [{}], $Groups: [] },
-      hytaleComments: [{ text: "Hi", x: 5, y: 6, width: 100, height: 50 }],
+      hytaleComments: [{ text: "Hi", x: 1100, y: 2100, width: 240, height: 96 }],
       hytaleGroups: [],
     };
 
-    const layoutFn = async (nodes: Node[]) => {
-      expect(nodes).toHaveLength(1);
-      return [{ ...nodes[0], position: { x: 99, y: 99 } }];
-    };
+    const result = await mergeImportGraph([graphNode], [], metadata, {
+      nodePositions: metadata.nodePositions,
+      autoLayoutOnOpen: false,
+      flowDirection: "LR",
+    });
 
-    const merged = await mergeImportGraph([graphNode], [], metadata, layoutFn);
-    expect(merged).toHaveLength(2);
-    expect(merged[0].type).toBe("Constant");
-    expect(merged[0].position).toEqual({ x: 99, y: 99 });
-    expect(merged[1].type).toBe("comment");
-    expect(merged[1].position).toEqual({ x: 147, y: 147 });
-    expect(merged[1].zIndex).toBe(1);
+    expect(result.layoutMode).toBe("hytale");
+    expect(result.nodes).toHaveLength(2);
+    const graph = result.nodes.find((n) => n.type === "Min")!;
+    const comment = result.nodes.find((n) => n.type === "comment")!;
+    expect(graph.position.x).toBe(VIEWPORT_MARGIN);
+    expect(comment.position.x - graph.position.x).toBe(100);
+    expect(comment.position.y - graph.position.y).toBe(100);
+    expect((comment.data as { width: number }).width).toBe(240);
   });
 
   it("creates an auto frame when the file has no canvas metadata", async () => {
@@ -244,17 +249,20 @@ describe("mergeImportGraph", () => {
       data: { type: "Constant", fields: {} },
     };
 
-    const merged = await mergeImportGraph(
+    const result = await mergeImportGraph(
       [graphNode],
       [],
       null,
-      async (nodes) => nodes,
-      { sectionKey: "MaterialProvider" },
+      {
+        autoLayoutOnOpen: false,
+        flowDirection: "LR",
+        autoFrame: { sectionKey: "MaterialProvider" },
+      },
     );
 
-    expect(merged).toHaveLength(2);
-    expect(merged[0].type).toBe("frame");
-    expect(merged[0].data).toMatchObject({ name: "Materials" });
-    expect(merged[1].type).toBe("Constant");
+    expect(result.nodes).toHaveLength(2);
+    expect(result.nodes[0].type).toBe("frame");
+    expect(result.nodes[0].data).toMatchObject({ name: "Materials" });
+    expect(result.nodes[1].type).toBe("Constant");
   });
 });

@@ -1,6 +1,11 @@
 use crate::noise::evaluator::DensityEvaluator;
+use crate::preview_probe::bounds_scan::{scan_density_grid_3d_bounds, scan_density_grid_y_bounds};
+use crate::preview_probe::content_fields::{
+    discover_content_fields_for_biome, infer_biome_name_from_file,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 pub struct EvaluateRequest {
@@ -63,6 +68,136 @@ pub fn evaluate_density(request: EvaluateRequest) -> Result<EvaluateResponse, St
         resolution: request.resolution,
         min_value: min_val,
         max_value: max_val,
+    })
+}
+
+#[derive(Deserialize)]
+pub struct ScanVolumeBoundsRequest {
+    pub densities: Vec<f32>,
+    pub resolution: u32,
+    pub y_slices: u32,
+    pub range_min: i32,
+    pub range_max: i32,
+    pub y_min: i32,
+    pub y_max: i32,
+    /// When true, return Y-only surface band (faster path for 2D auto-fit helpers).
+    pub y_only: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ScanVolumeBoundsResponse {
+    pub world_x_min: i32,
+    pub world_x_max: i32,
+    pub world_y_min: i32,
+    pub world_y_max: i32,
+    pub world_z_min: i32,
+    pub world_z_max: i32,
+    pub has_solids: bool,
+}
+
+/// Surface-aware bounds scan for a coarse density volume (native, off main thread).
+#[tauri::command]
+pub fn scan_volume_solids_bounds(
+    request: ScanVolumeBoundsRequest,
+) -> Result<ScanVolumeBoundsResponse, String> {
+    if request.resolution == 0 || request.y_slices == 0 {
+        return Err("resolution and y_slices must be positive".to_string());
+    }
+    let expected = (request.resolution as usize)
+        .saturating_mul(request.resolution as usize)
+        .saturating_mul(request.y_slices as usize);
+    if request.densities.len() < expected {
+        return Err(format!(
+            "densities length {} < expected {}",
+            request.densities.len(),
+            expected
+        ));
+    }
+
+    if request.y_only == Some(true) {
+        let y = scan_density_grid_y_bounds(
+            &request.densities,
+            request.resolution,
+            request.y_slices,
+            request.y_min,
+            request.y_max,
+            12,
+            10,
+        );
+        return Ok(ScanVolumeBoundsResponse {
+            world_x_min: request.range_min,
+            world_x_max: request.range_max,
+            world_y_min: y.world_y_min,
+            world_y_max: y.world_y_max,
+            world_z_min: request.range_min,
+            world_z_max: request.range_max,
+            has_solids: y.has_solids,
+        });
+    }
+
+    let b = scan_density_grid_3d_bounds(
+        &request.densities,
+        request.resolution,
+        request.y_slices,
+        request.range_min,
+        request.range_max,
+        request.y_min,
+        request.y_max,
+    );
+    Ok(ScanVolumeBoundsResponse {
+        world_x_min: b.world_x_min,
+        world_x_max: b.world_x_max,
+        world_y_min: b.world_y_min,
+        world_y_max: b.world_y_max,
+        world_z_min: b.world_z_min,
+        world_z_max: b.world_z_max,
+        has_solids: b.has_solids,
+    })
+}
+
+#[derive(Deserialize)]
+pub struct DiscoverBiomeContentFieldsRequest {
+    pub biome_file_path: String,
+    pub biome_name: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DiscoverBiomeContentFieldsResponse {
+    pub fields: HashMap<String, i32>,
+    pub biome_name: String,
+    pub world_structures_dir: Option<String>,
+}
+
+/// Resolve ContentFields (Base, Water, Bedrock, …) from WorldStructure JSON near a biome file.
+#[tauri::command]
+pub fn discover_biome_content_fields(
+    request: DiscoverBiomeContentFieldsRequest,
+) -> Result<DiscoverBiomeContentFieldsResponse, String> {
+    let biome_path = request.biome_file_path.trim();
+    if biome_path.is_empty() {
+        return Err("biome_file_path is required".to_string());
+    }
+
+    let wrapper: Value = serde_json::from_str(
+        &std::fs::read_to_string(biome_path).map_err(|e| format!("read biome file: {e}"))?,
+    )
+    .map_err(|e| format!("parse biome JSON: {e}"))?;
+
+    let biome_name = request
+        .biome_name
+        .filter(|n| !n.trim().is_empty())
+        .unwrap_or_else(|| infer_biome_name_from_file(&wrapper, biome_path));
+
+    let ws_dir =
+        crate::preview_probe::content_fields::world_structures_dir_from_biome_path(biome_path)
+            .map(|p| p.to_string_lossy().to_string());
+
+    let fields = discover_content_fields_for_biome(biome_path, &biome_name).unwrap_or_default();
+
+    Ok(DiscoverBiomeContentFieldsResponse {
+        fields,
+        biome_name,
+        world_structures_dir: ws_dir,
     })
 }
 

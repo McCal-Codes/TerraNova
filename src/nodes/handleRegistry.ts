@@ -27,7 +27,7 @@ const connectionMatrix = connectionsData.connectionMatrix as Record<string, Reco
  * Visual-only nodes that participate in layout or annotation but can never
  * create graph connections.
  */
-export const NON_CONNECTABLE_NODE_TYPES = new Set(["group", "comment", "frame"]);
+export const NON_CONNECTABLE_NODE_TYPES = new Set(["group", "comment", "frame", "overviewSection", "sectionAnchor"]);
 
 /* ── Compatibility overrides ─────────────────────────────────────────────
  * Handle definitions keyed by editor type key.  These override the schema

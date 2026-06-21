@@ -372,41 +372,44 @@
       "Assignments": {
         "Type": "Constant",
         "Prop": {
-          "Type": "Conditional",
-          "Threshold": 0.5,
-          "Condition": {
-            "Type": "SimplexNoise2D",
-            "Frequency": 0.006,
-            "Amplitude": 1.0,
-            "Seed": "palm_type",
-            "Octaves": 1,
-            "Lacunarity": 2.0,
-            "Gain": 0.5
-          },
-          "TrueInput": {
-            "Type": "Prefab",
-            "Path": "props/trees/palm_large",
-            "Directionality": {
-              "Type": "Uniform"
+          "Type": "Weighted",
+          "Seed": "palm_type",
+          "Entries": [
+            {
+              "Weight": 1,
+              "Prop": {
+                "Type": "Prefab",
+                "Path": "props/trees/palm_large",
+                "Directionality": {
+                  "Type": "Random",
+                  "Seed": "A",
+                  "Pattern": { "Type": "Floor" }
+                },
+                "Scanner": {
+                  "Type": "ColumnLinear",
+                  "StepSize": 1,
+                  "Range": { "Min": 56, "Max": 90 }
+                }
+              }
             },
-            "Scanner": {
-              "Type": "ColumnLinear",
-              "StepSize": 1,
-              "Range": { "Min": 56, "Max": 90 }
+            {
+              "Weight": 1,
+              "Prop": {
+                "Type": "Prefab",
+                "Path": "props/trees/palm_small",
+                "Directionality": {
+                  "Type": "Random",
+                  "Seed": "A",
+                  "Pattern": { "Type": "Floor" }
+                },
+                "Scanner": {
+                  "Type": "ColumnLinear",
+                  "StepSize": 1,
+                  "Range": { "Min": 56, "Max": 90 }
+                }
+              }
             }
-          },
-          "FalseInput": {
-            "Type": "Prefab",
-            "Path": "props/trees/palm_small",
-            "Directionality": {
-              "Type": "Uniform"
-            },
-            "Scanner": {
-              "Type": "ColumnLinear",
-              "StepSize": 1,
-              "Range": { "Min": 56, "Max": 90 }
-            }
-          }
+          ]
         }
       }
     },
@@ -427,7 +430,9 @@
               "Type": "Prefab",
               "Path": "props/flora/tropical_fern",
               "Directionality": {
-                "Type": "Uniform"
+                "Type": "Random",
+                "Seed": "A",
+                "Pattern": { "Type": "Floor" }
               },
               "Scanner": {
                 "Type": "ColumnLinear",
@@ -439,7 +444,9 @@
               "Type": "Prefab",
               "Path": "props/flora/jungle_bush",
               "Directionality": {
-                "Type": "Uniform"
+                "Type": "Random",
+                "Seed": "A",
+                "Pattern": { "Type": "Floor" }
               },
               "Scanner": {
                 "Type": "ColumnLinear",
@@ -481,7 +488,9 @@
               "Type": "Prefab",
               "Path": "props/ocean/coral_brain",
               "Directionality": {
-                "Type": "Uniform"
+                "Type": "Random",
+                "Seed": "A",
+                "Pattern": { "Type": "Floor" }
               },
               "Scanner": {
                 "Type": "ColumnLinear",
@@ -493,7 +502,9 @@
               "Type": "Prefab",
               "Path": "props/ocean/coral_fan",
               "Directionality": {
-                "Type": "Uniform"
+                "Type": "Random",
+                "Seed": "A",
+                "Pattern": { "Type": "Floor" }
               },
               "Scanner": {
                 "Type": "ColumnLinear",
@@ -527,7 +538,9 @@
           "Type": "Prefab",
           "Path": "props/rocks/volcanic_boulder",
           "Directionality": {
-            "Type": "Uniform"
+            "Type": "Random",
+                "Seed": "A",
+                "Pattern": { "Type": "Floor" }
           },
           "Scanner": {
             "Type": "ColumnLinear",
@@ -557,41 +570,44 @@
       "Assignments": {
         "Type": "Constant",
         "Prop": {
-          "Type": "Conditional",
-          "Threshold": 0.5,
-          "Condition": {
-            "Type": "SimplexNoise2D",
-            "Frequency": 0.004,
-            "Amplitude": 1.0,
-            "Seed": "ruin_type",
-            "Octaves": 1,
-            "Lacunarity": 2.0,
-            "Gain": 0.5
-          },
-          "TrueInput": {
-            "Type": "Prefab",
-            "Path": "props/structures/ruin_pillar",
-            "Directionality": {
-              "Type": "Uniform"
+          "Type": "Weighted",
+          "Seed": "ruin_type",
+          "Entries": [
+            {
+              "Weight": 1,
+              "Prop": {
+                "Type": "Prefab",
+                "Path": "props/structures/ruin_pillar",
+                "Directionality": {
+                  "Type": "Random",
+                  "Seed": "A",
+                  "Pattern": { "Type": "Floor" }
+                },
+                "Scanner": {
+                  "Type": "ColumnLinear",
+                  "StepSize": 1,
+                  "Range": { "Min": 58, "Max": 95 }
+                }
+              }
             },
-            "Scanner": {
-              "Type": "ColumnLinear",
-              "StepSize": 1,
-              "Range": { "Min": 58, "Max": 95 }
+            {
+              "Weight": 1,
+              "Prop": {
+                "Type": "Prefab",
+                "Path": "props/structures/ruin_arch",
+                "Directionality": {
+                  "Type": "Random",
+                  "Seed": "A",
+                  "Pattern": { "Type": "Floor" }
+                },
+                "Scanner": {
+                  "Type": "ColumnLinear",
+                  "StepSize": 1,
+                  "Range": { "Min": 58, "Max": 95 }
+                }
+              }
             }
-          },
-          "FalseInput": {
-            "Type": "Prefab",
-            "Path": "props/structures/ruin_arch",
-            "Directionality": {
-              "Type": "Uniform"
-            },
-            "Scanner": {
-              "Type": "ColumnLinear",
-              "StepSize": 1,
-              "Range": { "Min": 58, "Max": 95 }
-            }
-          }
+          ]
         }
       }
     },
@@ -622,7 +638,9 @@
           "Type": "Prefab",
           "Path": "props/ocean/kelp_tall",
           "Directionality": {
-            "Type": "Uniform"
+            "Type": "Random",
+                "Seed": "A",
+                "Pattern": { "Type": "Floor" }
           },
           "Scanner": {
             "Type": "ColumnLinear",
@@ -649,7 +667,9 @@
               "Type": "Prefab",
               "Path": "props/beach/driftwood",
               "Directionality": {
-                "Type": "Uniform"
+                "Type": "Random",
+                "Seed": "A",
+                "Pattern": { "Type": "Floor" }
               },
               "Scanner": {
                 "Type": "ColumnLinear",
@@ -661,7 +681,9 @@
               "Type": "Prefab",
               "Path": "props/beach/shell_cluster",
               "Directionality": {
-                "Type": "Uniform"
+                "Type": "Random",
+                "Seed": "A",
+                "Pattern": { "Type": "Floor" }
               },
               "Scanner": {
                 "Type": "ColumnLinear",

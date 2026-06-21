@@ -269,12 +269,9 @@ const LEGACY_PROP: Record<string, DefaultFields> = {
     MoldingDirection: "NONE",
     MoldingChildren: false,
   },
-  Conditional: { Threshold: 0.5 },
   WeightedRandom: {},
   Weighted: {},
   Union: {},
-  Surface: {},
-  Cave: {},
   PondFiller: { Material: "Water" },
   Queue: {},
   Offset: { Offset: { x: 0, y: 0, z: 0 } },
@@ -293,7 +290,6 @@ const LEGACY_PROP: Record<string, DefaultFields> = {
     UniqueScope: "WORLD",
   },
   Imported: { Name: "" },
-  Exported: { Name: "" },
 };
 
 const LEGACY_SCANNER: Record<string, DefaultFields> = {
@@ -331,7 +327,6 @@ const LEGACY_ENVIRONMENT: Record<string, DefaultFields> = {
   Constant: {},
   DensityDelimited: {},
   Imported: { Name: "" },
-  Exported: { Name: "" },
 };
 
 const LEGACY_TINT: Record<string, DefaultFields> = {
@@ -339,7 +334,6 @@ const LEGACY_TINT: Record<string, DefaultFields> = {
   Gradient: { From: "#ffffff", To: "#000000" },
   DensityDelimited: {},
   Imported: { Name: "" },
-  Exported: { Name: "" },
 };
 
 const LEGACY_BLOCK_MASK: Record<string, DefaultFields> = {

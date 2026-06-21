@@ -25,7 +25,7 @@ use std::{
 use tracing::info;
 use types::*;
 
-const BRIDGE_VERSION: &str = "0.2.0-sidecar";
+const BRIDGE_VERSION: &str = "0.3.0-sidecar";
 
 #[derive(Parser, Debug)]
 #[command(

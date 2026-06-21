@@ -14,6 +14,8 @@ If you want follow-along build steps instead of explanations, start in [Walkthro
 - **[Node Combination Patterns](./world/node-combinations.md)** — common ways to wire nodes together, with visual flow diagrams for each pattern.
 - **[Curves Explained](./world/curves-explained.md)** — what curve assets are, every curve type (DistanceExponential, DistanceS, Manual, Clamp, Floor, Ceiling, Inverter, and their smooth variants), when to use each, and a decision guide for picking the right curve for island edges, beaches, and shape falloffs.
 - **[Environments & Weather](./world/environments-and-weather.md)** — folder layout, asset cache setup, parent chains, and how to author environment and weather assets without guessing.
+- **[Tint System](../reference/tint-system.md)** — 2D tint constraints, SliderDensity proxy pattern, dual-sample slope trick, and Atmosphere tab editing.
+- **[Environment Parent Inheritance](../reference/environment-parent-inheritance.md)** — `Parent` field semantics, zone/cave inheritance trees, and safe defaults.
 
 **Content**
 - **[Materials Guide](./content/materials-guide.md)** — how material providers work: SpaceAndDepth layer types, ConstantThickness, NoiseThickness, RangeThickness, cave ceiling/floor detection with DownwardSpace/UpwardSpace, and worked examples for plains, desert, and cave biomes.
@@ -21,6 +23,7 @@ If you want follow-along build steps instead of explanations, start in [Walkthro
 
 **Preview**
 - **[Cave Preview](./preview/cave-preview.md)** — 2D topo slices, vertical section profiles, voxel cutaway, and 3D underground volume view.
+- **[Density Basics Preview](./preview/density-basics-preview.md)** — teaching snippets for Sum/Min/Max/Mul/Pow with 2D and 3D noise; preview target and auto-voxel routing.
 - **[2D Preview & Topographic Maps](./terrain/2d-preview-topographic-context.md)** — contours, hill shade, and topo-style reading habits (includes cave plan slices).
 
 **Terrain**

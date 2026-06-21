@@ -243,6 +243,10 @@ export async function listTemplateBiomes(): Promise<TemplateBiomeEntry[]> {
   return invoke<TemplateBiomeEntry[]>("list_template_biomes");
 }
 
+export async function listHytaleReleaseBiomes(): Promise<TemplateBiomeEntry[]> {
+  return invoke<TemplateBiomeEntry[]>("list_hytale_release_biomes");
+}
+
 export async function createBlankProject(targetPath: string): Promise<void> {
   return invoke("create_blank_project", { targetPath });
 }
@@ -389,6 +393,12 @@ export interface BridgeResponse {
   message: string;
 }
 
+export interface BridgeStartSidecarResult {
+  started: boolean;
+  already_running: boolean;
+  message: string;
+}
+
 export interface PlayerInfo {
   name: string;
   uuid: string;
@@ -427,6 +437,18 @@ export interface BridgeDebugSnapshot {
 }
 
 // ── Bridge IPC wrappers ──
+
+export async function bridgeStartSidecar(options?: {
+  forceRestartIfListening?: boolean;
+  saveRoot?: string;
+  saveName?: string;
+}): Promise<BridgeStartSidecarResult> {
+  return invoke<BridgeStartSidecarResult>("bridge_start_sidecar", {
+    force_restart_if_listening: options?.forceRestartIfListening ?? true,
+    save_root: options?.saveRoot,
+    save_name: options?.saveName,
+  });
+}
 
 export async function bridgeDebugSnapshot(options?: {
   saveName?: string;
@@ -519,4 +541,24 @@ export async function bridgeFetchPalette(): Promise<BlockPaletteResponse> {
 
 export async function bridgeFetchChunk(chunkX: number, chunkZ: number, yMin: number, yMax: number, forceLoad: boolean = false): Promise<ChunkDataResponse> {
   return invoke<ChunkDataResponse>("bridge_fetch_chunk", { chunkX, chunkZ, yMin, yMax, forceLoad });
+}
+
+// ── Plugin deploy ──
+
+export interface PluginStatus {
+  installed: boolean;
+  jar_name: string | null;
+  install_path: string | null;
+  mods_dir_exists: boolean;
+  patchline: string;
+}
+
+export async function bridgePluginStatus(
+  patchline?: string,
+): Promise<PluginStatus> {
+  return invoke<PluginStatus>("bridge_plugin_status", { patchline: patchline ?? null });
+}
+
+export async function bridgeDeployPlugin(patchline?: string): Promise<string> {
+  return invoke<string>("bridge_deploy_plugin", { patchline: patchline ?? null });
 }

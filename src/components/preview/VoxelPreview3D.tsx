@@ -93,7 +93,10 @@ const VoxelScene = memo(function VoxelScene({ wireframe }: { wireframe: boolean 
   const showWaterPlane = usePreviewStore((s) => s.showWaterPlane);
   const showFog3D = usePreviewStore((s) => s.showFog3D);
   const showSky3D = usePreviewStore((s) => s.showSky3D);
+  const mode = usePreviewStore((s) => s.mode);
   const voxelMeshData = usePreviewStore((s) => s.voxelMeshData);
+  const prefabMeshData = usePreviewStore((s) => s.prefabMeshData);
+  const activeMeshData = mode === "prefab" ? prefabMeshData : voxelMeshData;
   const cutawayEnabled = usePreviewStore((s) => s.cutawayEnabled);
   const cutawayLevel = usePreviewStore((s) => s.cutawayLevel);
   const rangeMin = usePreviewStore((s) => s.rangeMin);
@@ -152,9 +155,9 @@ const VoxelScene = memo(function VoxelScene({ wireframe }: { wireframe: boolean 
       />
       <directionalLight position={[-12, 15, -8]} intensity={0.2} color={atm.ambientColor} />
 
-      {voxelMeshData && voxelMeshData.length > 0 && (
+      {activeMeshData && activeMeshData.length > 0 && (
         <VoxelMeshGroup
-          meshData={voxelMeshData}
+          meshData={activeMeshData}
           wireframe={wireframe}
           color1={tint.color1}
           color2={tint.color2}
@@ -194,8 +197,11 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
     voxelEvalProgressRes,
     voxelDisplayedRes,
     voxelMeshData,
+    prefabMeshData,
+    mode,
     voxelError,
     voxelPalette,
+    hiddenVoxelMaterialNames,
     surfaceVoxelCount,
   } = usePreviewStore(
     useShallow((s) => ({
@@ -205,18 +211,28 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
       voxelEvalProgressRes: s.voxelEvalProgressRes,
       voxelDisplayedRes: s.voxelDisplayedRes,
       voxelMeshData: s.voxelMeshData,
+      prefabMeshData: s.prefabMeshData,
+      mode: s.mode,
       voxelError: s.voxelError,
       voxelPalette: s.voxelPalette,
+      hiddenVoxelMaterialNames: s.hiddenVoxelMaterialNames,
       surfaceVoxelCount: s.surfaceVoxelCount,
     })),
   );
+  const activeMeshLength = (mode === "prefab" ? prefabMeshData : voxelMeshData)?.length ?? 0;
+  const hiddenMaterialSet = useMemo(
+    () => new Set(hiddenVoxelMaterialNames),
+    [hiddenVoxelMaterialNames],
+  );
   const legendMaterials = useMemo(
     (): VoxelMaterial[] =>
-      voxelPalette.map((entry) => ({
-        name: entry.name,
-        color: entry.color,
-      })),
-    [voxelPalette],
+      voxelPalette
+        .filter((entry) => !hiddenMaterialSet.has(entry.name))
+        .map((entry) => ({
+          name: entry.name,
+          color: entry.color,
+        })),
+    [voxelPalette, hiddenMaterialSet],
   );
   const { enableShadows, gpuPowerPreference, preferredGpuId, rendererPixelRatio } = useConfigStore(
     useShallow((s) => ({
@@ -252,7 +268,7 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
         )}
         <WebGLContextRecovery onRecover={() => setGlRecoveryKey((k) => k + 1)} />
         <color attach="background" args={["#141210"]} />
-        <PreviewSceneCameraFit target={[0, -12, 0]} radius={30} resetKey={voxelMeshData?.length ?? 0} />
+        <PreviewSceneCameraFit target={[0, -12, 0]} radius={30} resetKey={activeMeshLength} />
         <VoxelScene wireframe={showVoxelWireframe} />
         {onCanvasRef && <CanvasRefCapture onCanvas={onCanvasRef} />}
       </Canvas>
@@ -303,7 +319,7 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
               e.stopPropagation();
               resetLegendPosition();
             }}
-            className="absolute -top-1 -right-1 z-20 flex h-5 w-5 items-center justify-center rounded border border-black/35 bg-black/55 text-[10px] text-tn-text backdrop-blur-sm hover:bg-black/70"
+            className="absolute -top-1 -right-1 z-20 flex h-5 w-5 items-center justify-center rounded border border-tn-border bg-tn-panel text-[10px] text-tn-text hover:bg-tn-surface"
             title="Reset legend position"
           >
             ↺

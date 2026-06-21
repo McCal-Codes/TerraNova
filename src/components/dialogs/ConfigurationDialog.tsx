@@ -42,13 +42,6 @@ const GPU_POWER_OPTIONS: { value: GpuPowerPreference; label: string }[] = [
   { value: "low-power", label: "Power Saver" },
 ];
 
-interface ConfigurationDialogProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-// ── Format helpers ──
-
 function formatMb(mb: number): string {
   if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
   return `${mb} MB`;
@@ -570,37 +563,6 @@ export function SystemSettingsPanel({ initialTab = "cpu" }: { initialTab?: Syste
         {activeTab === "gpu" && <GpuTab hw={hw} />}
         {activeTab === "ram" && <RamTab hw={hw} />}
         {activeTab === "defaults" && <DefaultsTab />}
-      </div>
-    </div>
-  );
-}
-
-export function ConfigurationDialog({ open, onClose }: ConfigurationDialogProps) {
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div
-        className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[580px] flex flex-col max-h-[85vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 pt-5 pb-0 shrink-0">
-          <h2 className="text-base font-semibold mb-3">Configuration</h2>
-        </div>
-
-        <div className="px-5 py-5 min-h-[200px] overflow-y-auto">
-          <SystemSettingsPanel />
-        </div>
-
-        <div className="flex justify-between items-center px-5 py-3 border-t border-tn-border shrink-0">
-          <div />
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
-          >
-            Close
-          </button>
-        </div>
       </div>
     </div>
   );

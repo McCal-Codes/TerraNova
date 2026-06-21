@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { readFileSync } from "node:fs";
 import { visualizer } from "rollup-plugin-visualizer";
+import { hytaleDevCachePlugin } from "./scripts/vite-hytale-dev-cache-plugin";
 
 const host = process.env.TAURI_DEV_HOST;
 const packageJson = JSON.parse(
@@ -16,6 +17,7 @@ export default defineConfig({
   // re-exports from component modules to fix the underlying cause.
   plugins: [
     react({ fastRefresh: false }),
+    hytaleDevCachePlugin(),
     // Run `ANALYZE=1 npm run build` to generate dist/stats.html
     process.env.ANALYZE ? visualizer({ open: true, filename: "dist/stats.html", gzipSize: true }) : null,
   ].filter(Boolean),

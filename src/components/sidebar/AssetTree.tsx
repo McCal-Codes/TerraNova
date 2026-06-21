@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Leaf, Mountain, Layers, Globe, Cloud, Settings, FileText, FileJson,
-  Image, Database, File,
-} from "lucide-react";
+import { getFileIconSpec } from "@/utils/fileTreeIcons";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useProjectStore, type DirectoryEntry } from "@/stores/projectStore";
 import { useProjectLegacyStore } from "@/stores/projectLegacyStore";
@@ -70,27 +67,8 @@ function FolderIcon({ open }: { open: boolean }) {
 }
 
 function FileIcon({ name }: { name: string }) {
-  const lower = name.toLowerCase();
-  const ext = lower.includes(".") ? lower.slice(lower.lastIndexOf(".")) : "";
-
-  if (ext === ".png" || ext === ".jpg" || ext === ".jpeg" || ext === ".dds") {
-    return <Image className="h-4 w-4 shrink-0 text-purple-400" />;
-  }
-  if (ext === ".bson") {
-    return <Database className="h-4 w-4 shrink-0 text-slate-400" />;
-  }
-  if (ext === ".json") {
-    if (lower.includes("biome") || lower.includes("assignment")) return <Leaf className="h-4 w-4 shrink-0 text-emerald-400" />;
-    if (lower.includes("density") || lower.includes("terrain")) return <Mountain className="h-4 w-4 shrink-0 text-sky-400" />;
-    if (lower.includes("material")) return <Layers className="h-4 w-4 shrink-0 text-orange-400" />;
-    if (lower.includes("worldstructure") || lower.includes("world_structure") || lower.includes("structure")) return <Globe className="h-4 w-4 shrink-0 text-violet-400" />;
-    if (lower.includes("environment") || lower.includes("environ") || lower.includes("weather")) return <Cloud className="h-4 w-4 shrink-0 text-cyan-400" />;
-    if (lower.includes("settings") || lower.includes("config") || lower === "manifest.json") return <Settings className="h-4 w-4 shrink-0 text-tn-text-muted" />;
-    if (lower.includes("world")) return <Globe className="h-4 w-4 shrink-0 text-indigo-400" />;
-    if (lower.includes("prefab") || lower.includes("instance")) return <FileText className="h-4 w-4 shrink-0 text-amber-400" />;
-    return <FileJson className="h-4 w-4 shrink-0 text-tn-text-muted" />;
-  }
-  return <File className="h-4 w-4 shrink-0 text-tn-text-muted" />;
+  const { Icon, className } = getFileIconSpec(name);
+  return <Icon className={className} />;
 }
 
 interface ContextMenuState {
@@ -654,7 +632,7 @@ function TreeNode({
     >
       {depth > 0 ? <IndentGuides depth={depth} /> : null}
       <span className="w-3 shrink-0" />
-      <FileIcon name={entry.name} />
+      <FileIcon name={entry.path} />
       <span className="truncate">{entry.name}</span>
       {legacyHits > 0 ? (
         <span className="ml-auto">

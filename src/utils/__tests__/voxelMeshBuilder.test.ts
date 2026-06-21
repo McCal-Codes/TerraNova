@@ -342,6 +342,32 @@ describe("buildVoxelMeshes — multiple materials", () => {
     expect(meshes).toHaveLength(2);
     expect(meshes.map((m) => m.materialIndex).sort()).toEqual([0, 1]);
   });
+
+  it("skips hidden material indices", () => {
+    const n = 4;
+    const ys = 4;
+    const d = makeDensities(n, ys);
+    setSolid(d, 1, 1, 1, n);
+    setSolid(d, 2, 1, 1, n);
+
+    const voxels: VoxelData = {
+      positions: new Float32Array([1, 1, 1, 2, 1, 1]),
+      materialIds: new Uint8Array([0, 1]),
+      materials: [
+        { name: "Grass", color: "#5cb85c" },
+        { name: "Dirt", color: "#a0724a" },
+      ],
+      count: 2,
+    };
+
+    const allMeshes = buildVoxelMeshes(voxels, d, n, ys, 1, 1, 1, 0, 0, 0);
+    const filteredMeshes = buildVoxelMeshes(voxels, d, n, ys, 1, 1, 1, 0, 0, 0, undefined, new Set([1]));
+
+    expect(allMeshes).toHaveLength(2);
+    expect(filteredMeshes).toHaveLength(1);
+    expect(filteredMeshes[0]!.materialIndex).toBe(0);
+    expect(countQuads(allMeshes)).toBeGreaterThan(countQuads(filteredMeshes));
+  });
 });
 
 /* ── Greedy meshing specific tests ────────────────────────────────── */

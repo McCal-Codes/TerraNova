@@ -18,10 +18,25 @@ export interface ReleaseData {
 
 // ── Cache ──────────────────────────────────────────────────────────────────────
 
-const CACHE_STORAGE_KEY = "terranova:releases-cache";
+const CACHE_STORAGE_KEY = "terranova:releases-cache-v3";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 let memoryCache: ReleaseData[] | null = null;
+let memoryCacheKey: string | null = null;
+
+function readMemoryCache(): ReleaseData[] | null {
+  if (memoryCacheKey !== CACHE_STORAGE_KEY) {
+    memoryCache = null;
+    memoryCacheKey = CACHE_STORAGE_KEY;
+  }
+  return memoryCache;
+}
+
+function writeMemoryCache(releases: ReleaseData[]): ReleaseData[] {
+  memoryCacheKey = CACHE_STORAGE_KEY;
+  memoryCache = releases;
+  return releases;
+}
 
 interface StoredCache {
   timestamp: number;
@@ -46,52 +61,121 @@ function writeLocalStorageCache(releases: ReleaseData[]) {
 
 const STRIPPED_SECTIONS = new Set(["installation", "full changelog"]);
 
+/** Strip common inline markdown for UI display (links, bold, code). */
+export function stripInlineMarkdown(text: string): string {
+  return text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isReleaseHeaderTitle(title: string): boolean {
+  return /^\[?v?\d+\.\d+/.test(title) || title.length > 100;
+}
+
+function shouldSkipSectionTitle(title: string): boolean {
+  const normalized = title.toLowerCase();
+  return STRIPPED_SECTIONS.has(normalized) || isReleaseHeaderTitle(title);
+}
+
+/** Split markdown at `##` or `###` headings (title excludes the # prefix). */
+function splitAtHeadingLevel(body: string, level: 2 | 3): { title: string; content: string }[] {
+  const marker = "#".repeat(level);
+  const regex = new RegExp(`^${marker}\\s+(.+)$`, "gm");
+  const sections: { title: string; content: string }[] = [];
+  const matches = [...body.matchAll(regex)];
+  if (matches.length === 0) return [];
+
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const title = stripInlineMarkdown(match[1]?.trim() ?? "");
+    const contentStart = (match.index ?? 0) + match[0].length;
+    const contentEnd = i + 1 < matches.length ? matches[i + 1].index! : body.length;
+    sections.push({ title, content: body.slice(contentStart, contentEnd).trim() });
+  }
+  return sections;
+}
+
+function appendSection(
+  sections: ReleaseSection[],
+  title: string,
+  content: string,
+): void {
+  if (!title || shouldSkipSectionTitle(title)) return;
+  const items = parseItems(content);
+  if (items.length > 0) sections.push({ title, items });
+}
+
 // ── Markdown parser ────────────────────────────────────────────────────────────
 
-function parseReleaseBody(body: string): ReleaseSection[] {
+/** @internal Exported for unit tests. */
+export function parseReleaseBody(body: string): ReleaseSection[] {
   const sections: ReleaseSection[] = [];
-  // Split on level-2 headings (## Heading)
-  const blocks = body.split(/^##\s+/m).filter(Boolean);
+  // Drop leading H1 release title (e.g. "# TerraNova Alpha Release")
+  const text = body.trim().replace(/^#\s+[^\n]+\n*/m, "").trim();
+  if (!text) return sections;
 
-  for (const block of blocks) {
-    const newlineIdx = block.indexOf("\n");
-    const title = (newlineIdx === -1 ? block : block.slice(0, newlineIdx)).trim();
-    if (STRIPPED_SECTIONS.has(title.toLowerCase())) continue;
-
-    const content = newlineIdx === -1 ? "" : block.slice(newlineIdx + 1).trim();
-    const items = parseItems(content);
-    if (items.length > 0) {
-      sections.push({ title, items });
+  const h2Sections = splitAtHeadingLevel(text, 2);
+  if (h2Sections.length > 0) {
+    for (const h2 of h2Sections) {
+      const h3Sections = splitAtHeadingLevel(h2.content, 3);
+      if (h3Sections.length > 0) {
+        for (const h3 of h3Sections) {
+          appendSection(sections, h3.title, h3.content);
+        }
+      } else {
+        appendSection(sections, h2.title, h2.content);
+      }
     }
+    return sections;
+  }
+
+  for (const h3 of splitAtHeadingLevel(text, 3)) {
+    appendSection(sections, h3.title, h3.content);
   }
   return sections;
 }
 
 /**
- * Parse items from a section body. Handles:
- *  - `**Label** — Description` (paragraph style)
- *  - `- **Label** — Description` (list style)
- *  - `- Plain text` (no bold prefix)
+ * Parse list items from a section body. Ignores headings, blockquotes, and prose paragraphs.
+ * Handles:
+ *  - `- **Label** — Description`
+ *  - `- Plain text`
+ *  - `- [ ] Task item`
  */
 function parseItems(content: string): { label: string; description: string }[] {
   const items: { label: string; description: string }[] = [];
-  const lines = content.split("\n");
 
-  for (const raw of lines) {
+  for (const raw of content.split("\n")) {
     const line = raw.trim();
     if (!line) continue;
+    if (/^#{1,6}\s/.test(line)) continue;
+    if (/^>/.test(line)) continue;
 
-    // Strip leading list marker
+    const isListLine = /^[-*]\s/.test(line);
+    const isBoldLabelLine = /^\*\*.+\*\*\s*[—–\-:]/.test(line);
+    if (!isListLine && !isBoldLabelLine) continue;
+
     const stripped = line.replace(/^[-*]\s+/, "");
 
-    // Try to extract **Label** — Description
-    const match = stripped.match(/^\*\*(.+?)\*\*\s*[—–\-:]\s*(.+)$/);
-    if (match) {
-      items.push({ label: match[1].trim(), description: match[2].trim() });
-    } else if (stripped.length > 0) {
-      // Plain text item — use the full text as the label
-      items.push({ label: stripped, description: "" });
+    const taskMatch = stripped.match(/^\[[ xX]\]\s*(.+)$/);
+    if (taskMatch) {
+      items.push({ label: stripInlineMarkdown(taskMatch[1]), description: "" });
+      continue;
     }
+
+    const boldMatch = stripped.match(/^\*\*(.+?)\*\*\s*[—–\-:]\s*(.+)$/);
+    if (boldMatch) {
+      items.push({
+        label: stripInlineMarkdown(boldMatch[1]),
+        description: stripInlineMarkdown(boldMatch[2]),
+      });
+      continue;
+    }
+
+    items.push({ label: stripInlineMarkdown(stripped), description: "" });
   }
   return items;
 }
@@ -103,72 +187,82 @@ const RELEASES_URL = GITHUB_RELEASES_API;
 /** Shown in What's New when GitHub has not published the alpha tag yet. */
 function bundledAlphaRelease(): ReleaseData {
   return {
-    version: "0.1.8-alpha.3",
-    date: "Jun 15, 2026",
+    version: "0.1.8-alpha.4",
+    date: "Jun 21, 2026",
     name: "0.1.8 Closed Alpha",
     sections: [
       {
         title: "Highlights",
         items: [
           {
-            label: "Pre-release node layer",
+            label: "Atmosphere tab tint editing",
             description:
-              "Cube, Axis, and Angle density nodes are now available when the pre-release asset channel is selected in Settings. They export correct Hytale JSON and show a PRE badge in the palette and on canvas.",
+              "Tune SimplexNoise2D density and delimiter bands from the biome Atmosphere tab without opening the Tint graph.",
           },
           {
-            label: "Validation panel fixes",
+            label: "Preview fidelity honesty",
             description:
-              "Pre-release nodes on the wrong channel now show a Remove node quick-fix action. OffsetConstant input connections now round-trip correctly through Hytale JSON.",
+              "Fidelity badge scores only preview-path density nodes; approximated types show a named callout with Issues link.",
           },
           {
-            label: "Smarter property sliders",
+            label: "Launch & session polish",
             description:
-              "Label drag-to-scrub scales with the field range (not step size). Shift for 10x finer. Scroll wheel on number inputs. Click a number to select-all for fast replacement.",
+              "Restore toasts on failure, empty-tree file reopen fix, License and Notice viewers in Settings.",
+          },
+          {
+            label: "Voxel material legend",
+            description:
+              "Hide or show individual block materials from Voxel preview settings; mesh rebuilds without re-evaluating density.",
           },
         ],
       },
       {
-        title: "Create Pack & editor",
+        title: "Icons & navigation",
         items: [
           {
-            label: "Visual prefab picker",
+            label: "Semantic file tree icons",
             description:
-              "Quick pick, category browse, search chips, and 3D preview — no scrolling 7k prefabs.",
+              "Distinct Lucide icons for biomes, weather, environment, materials, world structures, and settings JSON.",
           },
           {
-            label: "Property field editors",
-            description:
-              "Structured editors for curves, switch cases, nested constants/colors, and imported refs.",
-          },
-          {
-            label: "Preview settings sidebar",
-            description:
-              "Collapsible rail in split view — toolbar Settings button or edge chevron.",
-          },
-          {
-            label: "Issues clipboard",
-            description: "Copy all diagnostics to clipboard; click issues to jump to nodes.",
+            label: "Referenced Assets icons",
+            description: "Kind icons on Asset Tools referenced-asset rows beside status dots.",
           },
         ],
       },
       {
-        title: "Fixes",
+        title: "Onboarding & settings",
         items: [
           {
-            label: "Asset sync modal",
-            description: "Failed sync no longer traps the UI behind a black backdrop.",
+            label: "Session restore reliability",
+            description:
+              "Toasts when project or file restore fails; last file reopens even when the directory tree is empty.",
           },
           {
-            label: "Bridge save paths",
-            description: "Discovers your Hytale saves — no hardcoded developer defaults.",
+            label: "Getting Started link",
+            description: "Onboarding Step 4 links Getting Started and mentions F1 in-editor docs.",
           },
           {
-            label: "Frame nodes",
-            description: "Selectable nodes inside frames; fewer false dead-node warnings.",
+            label: "License & Notice",
+            description: "Settings → About opens readable LICENSE and NOTICE modals.",
           },
           {
-            label: "Preview HUD drag",
-            description: "Legend and timing overlay move with drag when anchored right/bottom.",
+            label: "What's New sync",
+            description: "Closing What's New from Settings marks the version seen.",
+          },
+        ],
+      },
+      {
+        title: "Preview",
+        items: [
+          {
+            label: "Material preview callout",
+            description:
+              "Warns when material stacks use passthrough nodes; points to Voxel preview on Terrain.",
+          },
+          {
+            label: "GradientWarp approximated",
+            description: "Included in approximated preview callout when on the evaluation path.",
           },
         ],
       },
@@ -178,16 +272,12 @@ function bundledAlphaRelease(): ReleaseData {
           {
             label: "What to test modal",
             description:
-              "Alpha checklist after onboarding — onboarding, pack wizard, preview, export, backup, bug reporter.",
+              "Expanded alpha.4 checklist — session restore, tint Atmosphere tab, fidelity callouts, legend toggles, legal viewers.",
           },
           {
             label: "Bug reporter v2",
             description:
               "Screenshots, file attachments, debug bundle v2, McCal-Codes GitHub prefills.",
-          },
-          {
-            label: "Alpha guide",
-            description: "docs/BETA_TESTING.md — install matrix, first-run steps, Gatekeeper notes.",
           },
         ],
       },
@@ -235,13 +325,13 @@ function toReleaseData(gh: GitHubRelease): ReleaseData {
 
 export async function fetchReleases(): Promise<ReleaseData[]> {
   // 1. In-memory cache (fastest)
-  if (memoryCache) return mergeBundledReleases(memoryCache);
+  const cached = readMemoryCache();
+  if (cached) return mergeBundledReleases(cached);
 
   // 2. localStorage cache (survives page reloads)
   const stored = readLocalStorageCache();
   if (stored) {
-    memoryCache = mergeBundledReleases(stored);
-    return memoryCache;
+    return mergeBundledReleases(writeMemoryCache(stored));
   }
 
   // 3. Network fetch
@@ -253,11 +343,11 @@ export async function fetchReleases(): Promise<ReleaseData[]> {
   const raw: GitHubRelease[] = await res.json();
   const releases = mergeBundledReleases(
     raw
-      .filter((r) => !r.draft)
+      .filter((r) => !r.draft && !r.tag_name.toLowerCase().includes("alpha-channel"))
       .map(toReleaseData),
   );
 
-  memoryCache = releases;
+  writeMemoryCache(releases);
   writeLocalStorageCache(releases);
   return releases;
 }

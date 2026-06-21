@@ -165,15 +165,33 @@ export function OnboardingDialog({
             {step === "assets" && "Hytale assets"}
             {step === "done" && "You are set"}
           </h2>
+          <div className="mt-3 h-1.5 rounded-full bg-tn-bg overflow-hidden">
+            <div
+              className="h-full bg-tn-accent transition-all"
+              style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
+            />
+          </div>
         </header>
 
         <div className="px-5 py-4 space-y-4 text-sm text-tn-text-muted leading-relaxed">
           {step === "welcome" && (
-            <p>
-              TerraNova edits Hytale worldgen graphs with live 2D, 3D, and voxel previews.
-              Use <strong className="text-tn-text font-normal">Create Pack</strong> on the home screen
-              to scaffold a mod, or open an existing project.
-            </p>
+            <div className="space-y-3">
+              <p>
+                TerraNova edits Hytale worldgen graphs with live 2D, 3D, and voxel previews.
+              </p>
+              <ul className="space-y-1.5 text-xs">
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-tn-accent shrink-0" />
+                  <span>
+                    Use <strong className="text-tn-text font-normal">Create Pack</strong> on the home screen to scaffold a new project.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-tn-accent shrink-0" />
+                  <span>Open an existing mod pack project anytime from File → Open.</span>
+                </li>
+              </ul>
+            </div>
           )}
 
           {step === "preview" && (
@@ -263,16 +281,35 @@ export function OnboardingDialog({
 
           {step === "done" && (
             <>
-              <p>
-                Open a project, try the preview panel (2D → 3D → Voxel), and use Bridge when testing in-game.
-                Full docs open with <strong className="text-tn-text font-normal">F1</strong> after you open a project.
-              </p>
+              <ul className="space-y-1.5 text-xs">
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-tn-accent shrink-0" />
+                  <span>Open a project and try the preview panel modes: 2D → 3D → Voxel.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-tn-accent shrink-0" />
+                  <span>Use Bridge while testing in-game to sync and reload quickly.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-tn-accent shrink-0" />
+                  <span>
+                    Open docs with <strong className="text-tn-text font-normal">F1</strong> after you load a project.
+                  </span>
+                </li>
+              </ul>
               <p className="text-[11px] text-amber-400/90 rounded border border-amber-500/25 bg-amber-500/5 px-2.5 py-2">
-                Closed alpha: after you finish here, a short <strong className="font-normal text-tn-text">What to test</strong> checklist
+                Closed alpha: after this wizard, a short <strong className="font-normal text-tn-text">What to test</strong> checklist
                 opens with focus areas for this build.
               </p>
               {onOpenLearn && (
                 <div className="flex flex-col gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => onOpenLearn("getting-started")}
+                    className="text-left px-3 py-2 text-xs rounded border border-tn-border hover:bg-tn-surface text-tn-text"
+                  >
+                    Read: Getting started (docs index)
+                  </button>
                   <button
                     type="button"
                     onClick={() => onOpenLearn("walkthroughs/quickstart")}
@@ -294,6 +331,9 @@ export function OnboardingDialog({
                   >
                     Read: Terrain and caves
                   </button>
+                  <p className="text-[10px] text-tn-text-muted px-1">
+                    After you open a project, press F1 for in-editor documentation.
+                  </p>
                 </div>
               )}
             </>

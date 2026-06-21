@@ -23,7 +23,7 @@ export const createFileCacheSlice: SliceCreator<FileCacheSliceState> = (set, get
 
   cacheCurrentFile: (filePath: string, isDirty: boolean) => {
     const state = get();
-    const { nodes, edges, biomeRanges, noiseRangeConfig, biomeConfig, settingsConfig, instanceConfig, materialConfig, biomeSections, activeBiomeSection, editingContext, originalWrapper, preservedNodeEditorMetadata, rawJsonContent, outputNodeId, history, historyIndex, fileCache } = state;
+    const { nodes, edges, biomeRanges, noiseRangeConfig, biomeConfig, settingsConfig, instanceConfig, materialConfig, biomeSections, activeBiomeSection, editingContext, originalWrapper, preservedNodeEditorMetadata, importLayoutMode, hytaleLayoutOffsets, biomeCanvasMode, rawJsonContent, outputNodeId, history, historyIndex, fileCache } = state;
 
     // Snapshot active section's current state into biomeSections before caching
     let sectionsToCache = biomeSections;
@@ -56,6 +56,9 @@ export const createFileCacheSlice: SliceCreator<FileCacheSliceState> = (set, get
       preservedNodeEditorMetadata: preservedNodeEditorMetadata
         ? structuredClone(preservedNodeEditorMetadata)
         : null,
+      importLayoutMode,
+      hytaleLayoutOffsets: hytaleLayoutOffsets ? structuredClone(hytaleLayoutOffsets) : null,
+      biomeCanvasMode,
       rawJsonContent: rawJsonContent ? structuredClone(rawJsonContent) : null,
       outputNodeId,
       history,
@@ -88,6 +91,9 @@ export const createFileCacheSlice: SliceCreator<FileCacheSliceState> = (set, get
       editingContext: cached.editingContext,
       originalWrapper: cached.originalWrapper,
       preservedNodeEditorMetadata: cached.preservedNodeEditorMetadata ?? null,
+      importLayoutMode: cached.importLayoutMode ?? null,
+      hytaleLayoutOffsets: cached.hytaleLayoutOffsets ?? null,
+      biomeCanvasMode: cached.biomeCanvasMode ?? "tabs",
       rawJsonContent: cached.rawJsonContent,
       invalidJsonFile: null,
       outputNodeId: cached.outputNodeId,

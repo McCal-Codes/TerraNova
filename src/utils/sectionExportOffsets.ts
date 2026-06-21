@@ -1,6 +1,11 @@
 import type { Node } from "@xyflow/react";
 import { NODE_HEIGHT, NODE_WIDTH } from "@/constants";
 import { annotationNodeSize, isGraphNode } from "@/utils/annotationUtils";
+import {
+  restoreGlobalHytalePositions,
+  type ImportLayoutMode,
+  type LayoutOffset,
+} from "@/utils/applyHytaleImportLayout";
 import { biomeSectionSortOrder } from "@/utils/sectionAnnotationRouting";
 import { sanitizeGraphNodesAndEdges } from "@/utils/sanitizeGraphNodes";
 
@@ -85,4 +90,39 @@ export function stackBiomeSectionNodesForExport(
   }
 
   return stacked;
+}
+
+/**
+ * Merge per-section canvas nodes into one Hytale metadata coordinate space
+ * by restoring the import-time normalization offsets (no vertical stacking).
+ */
+export function mergeBiomeSectionNodesForHytaleExport(
+  sectionNodes: Record<string, Node[]>,
+  offsets: Record<string, LayoutOffset>,
+): Node[] {
+  const order = biomeSectionSortOrder(Object.keys(sectionNodes));
+  const merged: Node[] = [];
+
+  for (const sectionKey of order) {
+    const { nodes } = sanitizeGraphNodesAndEdges(sectionNodes[sectionKey] ?? [], []);
+    if (nodes.length === 0) continue;
+    const offset = offsets[sectionKey] ?? { x: 0, y: 0 };
+    merged.push(...restoreGlobalHytalePositions(nodes, offset));
+  }
+
+  return merged;
+}
+
+/**
+ * Pick stacked or global merge based on how the biome was imported.
+ */
+export function prepareBiomeSectionNodesForExport(
+  sectionNodes: Record<string, Node[]>,
+  importLayoutMode: ImportLayoutMode | null | undefined,
+  hytaleLayoutOffsets?: Record<string, LayoutOffset> | null,
+): Node[] {
+  if (importLayoutMode === "hytale" && hytaleLayoutOffsets) {
+    return mergeBiomeSectionNodesForHytaleExport(sectionNodes, hytaleLayoutOffsets);
+  }
+  return stackBiomeSectionNodesForExport(sectionNodes);
 }

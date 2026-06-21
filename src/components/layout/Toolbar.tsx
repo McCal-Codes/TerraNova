@@ -157,7 +157,7 @@ export function Toolbar() {
 
     <>
 
-      <div className="flex h-9 shrink-0 items-center gap-1 border-b border-tn-border bg-tn-surface/95 px-2">
+      <div className="flex h-9 shrink-0 items-center gap-1 border-b border-tn-border bg-tn-surface px-2">
 
         <div className="flex items-center gap-0.5">
 

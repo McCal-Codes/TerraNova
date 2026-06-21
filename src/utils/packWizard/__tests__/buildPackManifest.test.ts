@@ -70,9 +70,9 @@ describe("buildPackManifest", () => {
   it("injects starter prefab when template props disabled", () => {
     const biome = { Name: "X", Props: [] };
     const patched = patchBiomeStarterPrefab(biome, false, "props/rocks/boulder");
-    const props = patched.Props as { Assignments: { Prop: { Path: string } } }[];
+    const props = patched.Props as { PropDistribution: { Prop: { Path: string } } }[];
     expect(props).toHaveLength(1);
-    expect(props[0]?.Assignments.Prop.Path).toBe("props/rocks/boulder");
+    expect(props[0]?.PropDistribution.Prop.Path).toBe("props/rocks/boulder");
   });
 
   it("appends starter prefab when template props enabled", () => {

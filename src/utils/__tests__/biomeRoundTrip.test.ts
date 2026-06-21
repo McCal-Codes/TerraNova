@@ -198,28 +198,24 @@ describe("Prop section node types and edges with rootParentField", () => {
     expect(edges[0].targetHandle).toBe("Prop");
   });
 
-  it("Complex prop tree: Conditional with nested Prefab children", () => {
+  it("Complex prop tree: Weighted with nested Prefab children", () => {
     const assignments = {
       Type: "Constant",
       Prop: {
-        Type: "Conditional",
-        Threshold: 0.5,
-        Condition: { Type: "SimplexNoise2D", Frequency: 0.01, Seed: 1 },
-        TrueInput: { Type: "Prefab", Path: "trees/oak" },
-        FalseInput: { Type: "Prefab", Path: "trees/birch" },
+        Type: "Weighted",
+        Seed: "1",
+        Entries: [
+          { Weight: 1, Prop: { Type: "Prefab", Path: "trees/oak" } },
+          { Weight: 1, Prop: { Type: "Prefab", Path: "trees/birch" } },
+        ],
       },
     };
     const { nodes, edges } = jsonToGraph(assignments, 0, 0, "asgn_0", "Assignments");
-    // 5 nodes: SimplexNoise2D, Prefab(oak), Prefab(birch), Prop:Conditional, Assignment:Constant
-    expect(nodes.length).toBe(5);
+    // Weighted keeps nested prefabs inline in Entries[]
+    expect(nodes.length).toBe(2);
     expect(nodes.find((n) => n.type === "Assignment:Constant")).toBeDefined();
-    expect(nodes.find((n) => n.type === "Prop:Conditional")).toBeDefined();
-    // Noise condition has no prefix (density)
-    expect(nodes.find((n) => n.type === "SimplexNoise2D")).toBeDefined();
-    // TrueInput/FalseInput Prefabs — currently no FIELD_CATEGORY_PREFIX for these
-    // so they won't get Prop: prefix. Check that edges still exist.
-    expect(edges.length).toBe(4);
-    // Verify round-trip preserves all data
+    expect(nodes.find((n) => n.type === "Prop:Weighted")).toBeDefined();
+    expect(edges.length).toBe(1);
     const result = graphToJson(nodes, edges);
     expect(result).toEqual(assignments);
   });

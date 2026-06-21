@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Node, Edge } from "@xyflow/react";
-import { analyzeBiome, analyzeGraph, collectInlineImportedRefs } from "../graphDiagnostics";
+import { analyzeBiome, analyzeGraph, collectInlineImportedRefs, computeFidelityScore, computePreviewFidelityScore } from "../graphDiagnostics";
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
@@ -32,6 +32,37 @@ function makeEdge(source: string, target: string, targetHandle?: string): Edge {
 describe("analyzeGraph — empty graph", () => {
   it("returns no diagnostics for empty graph", () => {
     expect(analyzeGraph([], [])).toEqual([]);
+  });
+});
+
+describe("computePreviewFidelityScore", () => {
+  it("ignores density nodes not on the preview path", () => {
+    const nodes: Node[] = [
+      makeNode("noise", "SimplexNoise2D"),
+      makeNode("sum", "Sum"),
+      makeNode("pipe", "Pipeline"),
+      makeNode("mat", "Material:Constant", { Solid: "Rock_Stone" }),
+    ];
+    (nodes[1]!.data as Record<string, unknown>)._outputNode = true;
+    const edges = [makeEdge("noise", "sum", "Inputs")];
+
+    expect(computePreviewFidelityScore(nodes, edges)).toBe(100);
+    expect(computeFidelityScore(nodes)).toBeLessThan(100);
+  });
+
+  it("includes approximated nodes on the preview path", () => {
+    const nodes: Node[] = [
+      makeNode("noise", "SimplexNoise2D"),
+      makeNode("pipe", "Pipeline"),
+      makeNode("sum", "Sum"),
+    ];
+    (nodes[2]!.data as Record<string, unknown>)._outputNode = true;
+    const edges = [
+      makeEdge("noise", "pipe"),
+      makeEdge("pipe", "sum", "Inputs"),
+    ];
+
+    expect(computePreviewFidelityScore(nodes, edges)).toBeLessThan(100);
   });
 });
 

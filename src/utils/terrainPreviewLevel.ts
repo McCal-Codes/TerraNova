@@ -473,3 +473,42 @@ export function computeTerrainAutoFitYBounds(
     reason: ref.reason,
   };
 }
+
+export interface VoxelYBounds {
+  worldYMin: number;
+  worldYMax: number;
+}
+
+/**
+ * Expand voxel Y bounds so the nominal terrain surface (ContentFields base / yLevel)
+ * lies inside the volume. Prevents an all-solid brick when voxel Y max is below Base Y
+ * while 2D/3D preview at yLevel already looks correct.
+ */
+export function expandVoxelYBoundsToIncludeSurface(
+  yMin: number,
+  yMax: number,
+  levels: Pick<TerrainReferenceLevels, "referenceY" | "suggestedYMin" | "suggestedYMax" | "bedrockY">,
+  options?: { anchorY?: number; minSpan?: number },
+): VoxelYBounds {
+  const anchorY = options?.anchorY ?? levels.referenceY;
+  const minSpan = options?.minSpan ?? 56;
+  const belowPad = Math.max(16, Math.min(48, Math.floor(minSpan * 0.4)));
+  const abovePad = Math.max(20, Math.min(72, Math.floor(minSpan * 0.45)));
+
+  let worldYMin = Math.min(yMin, levels.suggestedYMin, anchorY - belowPad);
+  let worldYMax = Math.max(yMax, levels.suggestedYMax, anchorY + abovePad);
+
+  const bedrock = levels.bedrockY ?? 0;
+  worldYMin = Math.max(bedrock, worldYMin);
+
+  if (worldYMax - worldYMin < minSpan) {
+    const mid = anchorY;
+    worldYMin = Math.max(bedrock, Math.floor(mid - minSpan / 2));
+    worldYMax = Math.min(DEFAULT_WORLD_HEIGHT, Math.ceil(mid + minSpan / 2));
+  }
+
+  return {
+    worldYMin: Math.max(0, Math.floor(worldYMin)),
+    worldYMax: Math.min(DEFAULT_WORLD_HEIGHT, Math.ceil(worldYMax)),
+  };
+}

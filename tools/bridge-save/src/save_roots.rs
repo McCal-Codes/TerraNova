@@ -2,12 +2,37 @@
 
 use std::path::{Path, PathBuf};
 
-/// `%APPDATA%/Hytale/UserData`, `~/Library/Application Support/Hytale/UserData`, or `~/.local/share/Hytale/UserData`.
-pub fn hytale_user_data_root() -> Option<PathBuf> {
+/// Hytale launcher patchline — release and pre-release data are isolated (Update 6+).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum HytalePatchline {
+    #[default]
+    Release,
+    PreRelease,
+}
+
+impl HytalePatchline {
+    pub fn from_channel(channel: &str) -> Self {
+        if channel.eq_ignore_ascii_case("pre-release") {
+            Self::PreRelease
+        } else {
+            Self::Release
+        }
+    }
+
+    pub fn as_channel(self) -> &'static str {
+        match self {
+            Self::Release => "release",
+            Self::PreRelease => "pre-release",
+        }
+    }
+}
+
+/// `%APPDATA%/Hytale`, `~/Library/Application Support/Hytale`, or `~/.local/share/Hytale`.
+pub fn hytale_config_root() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
         let appdata = std::env::var_os("APPDATA")?;
-        return Some(PathBuf::from(appdata).join("Hytale").join("UserData"));
+        return Some(PathBuf::from(appdata).join("Hytale"));
     }
     #[cfg(target_os = "macos")]
     {
@@ -16,8 +41,7 @@ pub fn hytale_user_data_root() -> Option<PathBuf> {
             PathBuf::from(home)
                 .join("Library")
                 .join("Application Support")
-                .join("Hytale")
-                .join("UserData"),
+                .join("Hytale"),
         );
     }
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
@@ -27,18 +51,43 @@ pub fn hytale_user_data_root() -> Option<PathBuf> {
             PathBuf::from(home)
                 .join(".local")
                 .join("share")
-                .join("Hytale")
-                .join("UserData"),
+                .join("Hytale"),
         );
     }
 }
 
+/// UserData root for a patchline (`UserData` or `data/pre-release/UserData`).
+pub fn hytale_user_data_root_for(patchline: HytalePatchline) -> Option<PathBuf> {
+    let base = hytale_config_root()?;
+    Some(match patchline {
+        HytalePatchline::Release => base.join("UserData"),
+        HytalePatchline::PreRelease => base.join("data").join("pre-release").join("UserData"),
+    })
+}
+
+/// `%APPDATA%/Hytale/UserData`, `~/Library/Application Support/Hytale/UserData`, or `~/.local/share/Hytale/UserData`.
+pub fn hytale_user_data_root() -> Option<PathBuf> {
+    hytale_user_data_root_for(HytalePatchline::Release)
+}
+
+pub fn hytale_saves_root_for(patchline: HytalePatchline) -> Option<PathBuf> {
+    hytale_user_data_root_for(patchline).map(|p| p.join("Saves"))
+}
+
 pub fn hytale_saves_root() -> Option<PathBuf> {
-    hytale_user_data_root().map(|p| p.join("Saves"))
+    hytale_saves_root_for(HytalePatchline::Release)
+}
+
+pub fn hytale_global_mods_dir_for(patchline: HytalePatchline) -> Option<PathBuf> {
+    hytale_user_data_root_for(patchline).map(|p| p.join("Mods"))
+}
+
+pub fn active_save_pointer_path_for(patchline: HytalePatchline) -> Option<PathBuf> {
+    hytale_user_data_root_for(patchline).map(|p| p.join("bridge-active-save.txt"))
 }
 
 pub fn active_save_pointer_path() -> Option<PathBuf> {
-    hytale_user_data_root().map(|p| p.join("bridge-active-save.txt"))
+    active_save_pointer_path_for(HytalePatchline::Release)
 }
 
 pub fn read_active_save_pointer() -> Option<PathBuf> {
@@ -206,6 +255,14 @@ pub fn resolve_save_root(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pre_release_user_data_root() {
+        let root = hytale_user_data_root_for(HytalePatchline::PreRelease);
+        assert!(root.is_some());
+        let path = root.unwrap().to_string_lossy().replace('\\', "/");
+        assert!(path.ends_with("/data/pre-release/UserData"));
+    }
 
     #[test]
     fn parse_embedded_mod_pack_path() {

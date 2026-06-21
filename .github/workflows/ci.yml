@@ -27,6 +27,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
 
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5
+        with:
+          distribution: temurin
+          java-version: 25
+
       - uses: swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: |
@@ -41,6 +46,16 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Bundle Bridge plugin JAR for Tauri embed
+        working-directory: tools/terranova-bridge-plugin
+        run: |
+          chmod +x gradlew
+          ./gradlew jar --no-daemon
+          mkdir -p ../../src-tauri/assets/bridge-plugin
+          JAR=$(ls -t build/libs/TerraNova.Bridge*.jar | grep -v plain | head -1)
+          cp "$JAR" ../../src-tauri/assets/bridge-plugin/TerraNova.Bridge.jar
+          test -s ../../src-tauri/assets/bridge-plugin/TerraNova.Bridge.jar
 
       - name: Validate (lint, build, test, docs, changelog, Rust)
         run: pnpm validate
@@ -58,3 +73,10 @@ jobs:
       - name: Build TerraNova.Bridge JVM plugin
         working-directory: tools/terranova-bridge-plugin
         run: chmod +x gradlew && ./gradlew jar --no-daemon
+
+      - name: Bundle plugin JAR for Tauri embed
+        run: |
+          JAR=$(ls -t tools/terranova-bridge-plugin/build/libs/TerraNova.Bridge*.jar | grep -v plain | head -1)
+          mkdir -p src-tauri/assets/bridge-plugin
+          cp "$JAR" src-tauri/assets/bridge-plugin/TerraNova.Bridge.jar
+          test -s src-tauri/assets/bridge-plugin/TerraNova.Bridge.jar

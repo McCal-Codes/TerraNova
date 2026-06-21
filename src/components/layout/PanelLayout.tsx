@@ -382,7 +382,7 @@ export function PanelLayout() {
       </div>
 
       {!rightPanelVisible && (
-        <div className="flex w-8 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface/90">
+        <div className="flex w-8 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface">
           <ChromeIconButton
             size="sm"
             label="Show right panel"
@@ -404,7 +404,7 @@ export function PanelLayout() {
             <div className="absolute inset-y-0 left-[2px] w-px bg-tn-border/40 group-hover:bg-tn-accent/60 group-active:bg-tn-accent transition-colors" />
           </div>
 
-          <div className="flex w-8 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface/90">
+          <div className="flex w-8 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface">
             <ChromeIconButton
               size="sm"
               label="Hide right panel"

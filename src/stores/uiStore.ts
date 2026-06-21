@@ -108,6 +108,8 @@ function persistBookmarks(bookmarks: Map<number, Bookmark>) {
 
 export type RightPanelMode = "properties" | "docs";
 export type AtmosphereEditorUIMode = "simple" | "advanced";
+export type BiomeMapperUIMode = AtmosphereEditorUIMode;
+export type NoiseRangeSurface = "placement" | "selector" | "split";
 
 export interface UIState {
   showGrid: boolean;
@@ -120,8 +122,11 @@ export interface UIState {
   compactAssetInspector: boolean;
   syncAtmospherePreview: boolean;
   atmosphereEditorUIMode: AtmosphereEditorUIMode;
+  biomeMapperUIMode: BiomeMapperUIMode;
+  noiseRangeSurface: NoiseRangeSurface;
   atmospherePreviewHour: number;
   requestedDocSlug: string | null;
+  requestedSettingsTab: "general" | "system" | "assets" | "shortcuts" | "developer" | "about" | null;
   helpMode: boolean;
 
   // Props deletion confirmation preference
@@ -145,8 +150,13 @@ export interface UIState {
   toggleAssetInspectorCompact: () => void;
   toggleSyncAtmospherePreview: () => void;
   setAtmosphereEditorUIMode: (mode: AtmosphereEditorUIMode) => void;
+  setBiomeMapperUIMode: (mode: BiomeMapperUIMode) => void;
+  setNoiseRangeSurface: (surface: NoiseRangeSurface) => void;
   setAtmospherePreviewHour: (hour: number) => void;
   setRequestedDocSlug: (slug: string | null) => void;
+  setRequestedSettingsTab: (
+    tab: "general" | "system" | "assets" | "shortcuts" | "developer" | "about" | null,
+  ) => void;
   toggleHelpMode: () => void;
   setRightPanelMode: (mode: RightPanelMode) => void;
 
@@ -176,8 +186,11 @@ export const useUIStore = create<UIState>((set, get) => ({
   compactAssetInspector: getStoredBool("tn-compactAssetInspector", false),
   syncAtmospherePreview: getStoredBool("tn-syncAtmospherePreview", false),
   atmosphereEditorUIMode: getStoredString("tn-atmosphereEditorUIMode", "simple", ["simple", "advanced"]),
+  biomeMapperUIMode: getStoredString("tn-biomeMapperUIMode", "simple", ["simple", "advanced"]),
+  noiseRangeSurface: getStoredString("tn-noiseRangeSurface", "placement", ["placement", "selector", "split"]),
   atmospherePreviewHour: getStoredPreviewHour(),
   requestedDocSlug: null,
+  requestedSettingsTab: null,
   helpMode: false,
   rightPanelMode: getStoredString("tn-rightPanelMode", "properties", ["properties", "docs"]),
   suppressPropDeleteConfirm: getStoredBool("tn-suppressPropDeleteConfirm", false),
@@ -233,12 +246,22 @@ export const useUIStore = create<UIState>((set, get) => ({
     persist("tn-atmosphereEditorUIMode", mode);
     set({ atmosphereEditorUIMode: mode });
   },
+  setBiomeMapperUIMode: (mode) => {
+    persist("tn-biomeMapperUIMode", mode);
+    set({ biomeMapperUIMode: mode });
+  },
+  setNoiseRangeSurface: (surface) => {
+    persist("tn-noiseRangeSurface", surface);
+    set({ noiseRangeSurface: surface });
+  },
   setAtmospherePreviewHour: (hour) => {
     const clamped = Math.max(0, Math.min(23, Math.round(hour)));
     persist("tn-atmospherePreviewHour", String(clamped));
     set({ atmospherePreviewHour: clamped });
   },
   setRequestedDocSlug: (slug) => set((s) => (s.requestedDocSlug === slug ? s : { requestedDocSlug: slug })),
+  setRequestedSettingsTab: (tab) =>
+    set((s) => (s.requestedSettingsTab === tab ? s : { requestedSettingsTab: tab })),
   toggleHelpMode: () => set({ helpMode: !get().helpMode }),
 
   setSuppressPropDeleteConfirm: (value) => {

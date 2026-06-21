@@ -384,7 +384,7 @@ In practice:
 
 1. Start with `DistanceExponential` if the island shape still feels undefined.
 2. Switch to `DistanceS` only when you know you want two different edge behaviors.
-3. Generate after every parameter change. Curves are easy to over-tune when you move three values at once.
+3. Evaluate after every parameter change. Curves are easy to over-tune when you move three values at once.
 
 ---
 

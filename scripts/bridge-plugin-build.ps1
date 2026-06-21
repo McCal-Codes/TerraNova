@@ -45,6 +45,25 @@ try {
         Select-Object -First 1
     if ($jar) {
         Write-Host "Built: $($jar.FullName)"
+
+        # Bundle into Tauri assets for in-app Deploy Plugin
+        $bundleDir = Join-Path $repoRoot "src-tauri\assets\bridge-plugin"
+        New-Item -ItemType Directory -Force -Path $bundleDir | Out-Null
+        $bundleDest = Join-Path $bundleDir "TerraNova.Bridge.jar"
+        Copy-Item -LiteralPath $jar.FullName -Destination $bundleDest -Force
+        Write-Host "Bundled: $bundleDest"
+
+        # Auto-deploy to Hytale Mods folder if it exists
+        $modsDir = Join-Path $env:APPDATA "Hytale\UserData\Mods"
+        if (Test-Path -LiteralPath $modsDir) {
+            $dest = Join-Path $modsDir $jar.Name
+            Copy-Item -LiteralPath $jar.FullName -Destination $dest -Force
+            Write-Host "Deployed: $dest"
+            Write-Host "Enable 'TerraNova: Bridge' on your save in Hytale, then run: pnpm bridge:run"
+        } else {
+            Write-Host "Hytale Mods folder not found at: $modsDir"
+            Write-Host "Copy $($jar.Name) there manually once Hytale has been launched at least once."
+        }
     }
 } finally {
     Pop-Location

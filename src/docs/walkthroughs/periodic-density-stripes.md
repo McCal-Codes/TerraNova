@@ -67,7 +67,7 @@ The Scale output now maps 100 world blocks to 1 unit of coordinate space.
    - Repeat the pattern — the curve tiles across the full coordinate range
 3. Connect `Scale` → `CurveMapper`.
 4. Connect `CurveMapper` → `Terrain Out`.
-5. Click **Generate**. You should see repeating stripes.
+5. Click **Evaluate now**. You should see repeating stripes.
 
 **Stripe width is controlled entirely by the `ScaleX` value** — no need to redraw the curve.
 

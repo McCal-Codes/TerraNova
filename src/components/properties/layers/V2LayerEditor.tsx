@@ -99,7 +99,7 @@ export function V2LayerEditor(props: { sadNodeId: string; layers: MaterialLayer[
         </div>
       </div>
 
-      <div className="rounded border border-tn-border bg-white/[0.03] p-2">
+      <div className="rounded border border-tn-border bg-tn-bg p-2">
         <div className="grid gap-2 md:grid-cols-2">
           <div className="flex items-center gap-2">
             <label className="text-[10px] text-tn-text-muted shrink-0 w-16">Context</label>
@@ -130,7 +130,7 @@ export function V2LayerEditor(props: { sadNodeId: string; layers: MaterialLayer[
           </div>
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2 rounded border border-tn-border/50 bg-tn-bg/40 px-2 py-1.5">
+        <div className="mt-2 flex items-center justify-between gap-2 rounded border border-tn-border/50 bg-tn-bg px-2 py-1.5">
           <div className="flex items-center gap-2">
             <span className="text-[10px] uppercase tracking-wider text-tn-text-muted">Condition</span>
             <ConditionBadge type={conditionType} />
@@ -162,7 +162,7 @@ export function V2LayerEditor(props: { sadNodeId: string; layers: MaterialLayer[
         ) : (
           <div className="flex flex-col gap-2">
             {v2Layers.map((layer, idx) => (
-              <div key={layer.nodeId} className="border border-tn-border rounded p-2 bg-white/[0.03] flex flex-col gap-2">
+              <div key={layer.nodeId} className="border border-tn-border rounded p-2 bg-tn-bg flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-xs">Layer {layer.layerIndex ?? idx + 1}</span>
                   <span className="text-[10px] font-medium px-1.5 py-0.5 rounded leading-none bg-tn-accent/15 text-tn-accent">

@@ -1,9 +1,15 @@
 import { memo, useCallback, useRef, useState } from "react";
+import { LayoutPanelLeft, Map } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { usePreviewStore } from "@/stores/previewStore";
+import { useUIStore } from "@/stores/uiStore";
 import { EditorCanvas } from "./EditorCanvas";
-import { BiomeRangeEditor } from "./BiomeRangeEditor";
+import { WorldBiomeMapperPanel } from "./biomeMapper/WorldBiomeMapperPanel";
+import { BiomeSelectorMapPanel } from "./biomeMapper/BiomeSelectorMapPanel";
+import { WorldStructureSettingsPanel } from "./biomeMapper/WorldStructureSettingsPanel";
+import { ImportWorldStructureDialog } from "@/components/dialogs/ImportWorldStructureDialog";
 import { BiomeSectionTabs } from "./BiomeSectionTabs";
+import { BiomeOverviewCanvas } from "./BiomeOverviewCanvas";
 import { SettingsEditorView } from "./SettingsEditorView";
 import { WeatherEditorView } from "./WeatherEditorView";
 import { EnvironmentEditorView } from "./EnvironmentEditorView";
@@ -182,88 +188,249 @@ function InvalidJsonReadOnlyView() {
   );
 }
 
-const ROW_H = 28;
-const EDITOR_OVERHEAD = 90; // header + coverage strip + column headers
-const MIN_EDITOR_H = 160;
-const MAX_EDITOR_H = 500;
-
-function defaultEditorHeight(biomeCount: number): number {
-  if (biomeCount === 0) return 160;
-  // Show ~8–12 rows by default, capped
-  const visibleRows = Math.min(biomeCount, 12);
-  return Math.max(MIN_EDITOR_H, Math.min(MAX_EDITOR_H, visibleRows * ROW_H + EDITOR_OVERHEAD));
-}
-
-/** NoiseRange layout with floating view mode overlay */
-const NoiseRangeView = memo(function NoiseRangeView() {
-  const viewMode = usePreviewStore((s) => s.viewMode);
-  const originalWrapper = useEditorStore((s) => s.originalWrapper);
-  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
-  const biomeCount = useEditorStore((s) => s.biomeRanges.length);
-  const [manualHeight, setManualHeight] = useState<number | null>(null);
+/** Side-by-side or stacked biome mapper + selector density graph. */
+const NoiseRangeSplitView = memo(function NoiseRangeSplitView({
+  mapperPanel,
+}: {
+  mapperPanel: React.ReactNode;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const splitRatio = usePreviewStore((s) => s.splitRatio);
+  const setSplitRatio = usePreviewStore((s) => s.setSplitRatio);
+  const splitDirection = usePreviewStore((s) => s.splitDirection);
+  const dragging = useRef(false);
+  const isVertical = splitDirection === "vertical";
 
-  const editorHeight = manualHeight ?? defaultEditorHeight(biomeCount);
-
-  const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    const startY = e.clientY;
-    const startH = editorHeight;
+    dragging.current = true;
+
     const onMouseMove = (ev: MouseEvent) => {
-      const maxH = (containerRef.current?.getBoundingClientRect().height ?? 600) * 0.6;
-      setManualHeight(Math.max(MIN_EDITOR_H, Math.min(maxH, startH + (ev.clientY - startY))));
+      if (!dragging.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const ratio = isVertical
+        ? Math.max(0.2, Math.min(0.8, (ev.clientX - rect.left) / rect.width))
+        : Math.max(0.2, Math.min(0.8, (ev.clientY - rect.top) / rect.height));
+      setSplitRatio(ratio);
     };
+
     const onMouseUp = () => {
+      dragging.current = false;
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
+
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  }, [editorHeight]);
+  }, [setSplitRatio, isVertical]);
+
+  if (isVertical) {
+    return (
+      <div ref={containerRef} className="flex h-full flex-row">
+        <div style={{ width: `${splitRatio * 100}%` }} className="min-w-0 overflow-hidden border-r border-tn-border">
+          {mapperPanel}
+        </div>
+        <div
+          className="w-1.5 shrink-0 cursor-col-resize bg-tn-border transition-colors hover:bg-tn-accent/50"
+          onMouseDown={onMouseDown}
+        />
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <EditorCanvas />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full">
-      <EditorContextBar />
+    <div ref={containerRef} className="flex h-full flex-col">
+      <div style={{ height: `${splitRatio * 100}%` }} className="min-h-0 shrink-0 overflow-hidden border-b border-tn-border">
+        {mapperPanel}
+      </div>
+      <div
+        className="h-1.5 shrink-0 cursor-row-resize bg-tn-border transition-colors hover:bg-tn-accent/50"
+        onMouseDown={onMouseDown}
+      />
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <EditorCanvas />
+      </div>
+    </div>
+  );
+});
 
-      {viewMode === "preview" ? (
-        <EditorWorkspace>
-          <PreviewPanel />
-        </EditorWorkspace>
-      ) : viewMode === "split" ? (
-        <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
-          <div className="shrink-0" style={{ height: editorHeight }}>
-            <BiomeRangeEditor />
-          </div>
-          <div
-            className="shrink-0 h-1 bg-tn-border hover:bg-tn-accent/50 cursor-row-resize transition-colors"
-            onMouseDown={onDividerMouseDown}
-          />
-          <EditorWorkspace>
-            <SplitView />
-          </EditorWorkspace>
-        </div>
-      ) : viewMode === "compare" ? (
-        <EditorWorkspace>
-          <ComparisonView />
-        </EditorWorkspace>
-      ) : viewMode === "json" ? (
-        <EditorWorkspace>
+/** NoiseRange: mapper-first layout; selector graph and preview via layout picker. */
+const NoiseRangeView = memo(function NoiseRangeView() {
+  const viewMode = usePreviewStore((s) => s.viewMode);
+  const surface = useUIStore((s) => s.noiseRangeSurface);
+  const setSurface = useUIStore((s) => s.setNoiseRangeSurface);
+  const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
+  const [importOpen, setImportOpen] = useState(false);
+
+  const openSelectorGraph = useCallback(() => {
+    setSurface("selector");
+    usePreviewStore.getState().setViewMode("graph");
+  }, [setSurface]);
+
+  const openSplitView = useCallback(() => {
+    setSurface("split");
+    const preview = usePreviewStore.getState();
+    preview.setViewMode("split");
+    preview.setSplitDirection("vertical");
+  }, [setSurface]);
+
+  const mapperPanel = (
+    <WorldBiomeMapperPanel
+      onImport={() => setImportOpen(true)}
+      onOpenSelectorGraph={openSelectorGraph}
+      onOpenSplitView={openSplitView}
+      mapPanel={<BiomeSelectorMapPanel />}
+      worldSettingsPanel={<WorldStructureSettingsPanel />}
+    />
+  );
+
+  return (
+    <div className="flex h-full flex-col">
+      <EditorContextBar />
+      <ImportWorldStructureDialog open={importOpen} onClose={() => setImportOpen(false)} />
+      <EditorWorkspace>
+        {viewMode === "preview" && <PreviewPanel />}
+        {viewMode === "compare" && <ComparisonView />}
+        {viewMode === "json" && (
           <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />
-        </EditorWorkspace>
-      ) : (
-        <div ref={containerRef} className="flex-1 min-h-0 flex flex-col">
-          <div className="shrink-0" style={{ height: editorHeight }}>
-            <BiomeRangeEditor />
-          </div>
-          <div
-            className="shrink-0 h-1 bg-tn-border hover:bg-tn-accent/50 cursor-row-resize transition-colors"
-            onMouseDown={onDividerMouseDown}
-          />
-          <EditorWorkspace>
+        )}
+        {viewMode !== "preview" && viewMode !== "compare" && viewMode !== "json" && (
+          surface === "selector" ? (
             <EditorCanvas />
-          </EditorWorkspace>
+          ) : surface === "split" && viewMode === "split" ? (
+            <NoiseRangeSplitView mapperPanel={mapperPanel} />
+          ) : (
+            mapperPanel
+          )
+        )}
+      </EditorWorkspace>
+    </div>
+  );
+});
+
+/** Biome graph surface — section tab editor or unified overview. */
+const BiomeGraphCanvas = memo(function BiomeGraphCanvas() {
+  const biomeCanvasMode = useEditorStore((s) => s.biomeCanvasMode);
+  return biomeCanvasMode === "overview" ? <BiomeOverviewCanvas /> : <EditorCanvas />;
+});
+
+/** Split view that respects biome overview mode in the graph pane. */
+const BiomeSplitView = memo(function BiomeSplitView() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const splitRatio = usePreviewStore((s) => s.splitRatio);
+  const setSplitRatio = usePreviewStore((s) => s.setSplitRatio);
+  const splitDirection = usePreviewStore((s) => s.splitDirection);
+  const dragging = useRef(false);
+  const isVertical = splitDirection === "vertical";
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!dragging.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const ratio = isVertical
+        ? Math.max(0.15, Math.min(0.85, (ev.clientX - rect.left) / rect.width))
+        : Math.max(0.15, Math.min(0.85, (ev.clientY - rect.top) / rect.height));
+      setSplitRatio(ratio);
+    };
+
+    const onMouseUp = () => {
+      dragging.current = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [setSplitRatio, isVertical]);
+
+  if (isVertical) {
+    return (
+      <div ref={containerRef} className="flex flex-row h-full">
+        <div style={{ width: `${splitRatio * 100}%` }} className="min-w-0 overflow-hidden">
+          <BiomeGraphCanvas />
         </div>
-      )}
+        <div
+          className="shrink-0 w-1.5 bg-tn-border hover:bg-tn-accent/50 cursor-col-resize transition-colors"
+          onMouseDown={onMouseDown}
+        />
+        <div style={{ flex: 1 }} className="min-w-0 overflow-hidden">
+          <PreviewPanel />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="flex flex-col h-full">
+      <div style={{ height: `${splitRatio * 100}%` }} className="min-h-0 overflow-hidden">
+        <BiomeGraphCanvas />
+      </div>
+      <div
+        className="shrink-0 h-1.5 bg-tn-border hover:bg-tn-accent/50 cursor-row-resize transition-colors"
+        onMouseDown={onMouseDown}
+      />
+      <div style={{ flex: 1 }} className="min-h-0 overflow-hidden">
+        <PreviewPanel />
+      </div>
+    </div>
+  );
+});
+
+/** Toggle between per-section tabs and unified Hytale-style overview canvas. */
+const BiomeCanvasModeToggle = memo(function BiomeCanvasModeToggle() {
+  const biomeCanvasMode = useEditorStore((s) => s.biomeCanvasMode);
+  const setBiomeCanvasMode = useEditorStore((s) => s.setBiomeCanvasMode);
+  const flushActiveBiomeSection = useEditorStore((s) => s.flushActiveBiomeSection);
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 border-b border-tn-border bg-tn-bg/80">
+      <span className="text-[10px] font-medium uppercase tracking-wide text-tn-text-muted/80">
+        Canvas
+      </span>
+      <div
+        className="inline-flex rounded-lg border border-tn-border bg-tn-surface p-0.5"
+        role="tablist"
+        aria-label="Biome canvas mode"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={biomeCanvasMode === "tabs"}
+          onClick={() => setBiomeCanvasMode("tabs")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-medium transition-colors ${
+            biomeCanvasMode === "tabs"
+              ? "bg-tn-accent/15 text-tn-accent shadow-sm"
+              : "text-tn-text-muted hover:text-tn-text hover:bg-white/5"
+          }`}
+        >
+          <LayoutPanelLeft className="h-3 w-3" aria-hidden />
+          Section tabs
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={biomeCanvasMode === "overview"}
+          onClick={() => {
+            flushActiveBiomeSection();
+            setBiomeCanvasMode("overview");
+          }}
+          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-medium transition-colors ${
+            biomeCanvasMode === "overview"
+              ? "bg-tn-accent/15 text-tn-accent shadow-sm"
+              : "text-tn-text-muted hover:text-tn-text hover:bg-white/5"
+          }`}
+        >
+          <Map className="h-3 w-3" aria-hidden />
+          Overview
+        </button>
+      </div>
     </div>
   );
 });
@@ -273,19 +440,25 @@ const BiomeView = memo(function BiomeView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
   const originalWrapper = useEditorStore((s) => s.originalWrapper);
   const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
+  const biomeCanvasMode = useEditorStore((s) => s.biomeCanvasMode);
   const { isPropContext } = usePropEditingContext();
   useAutoSplitOnPropSection(isPropContext);
 
+  const showSectionTabs = biomeCanvasMode === "tabs";
+
   return (
     <div className="flex flex-col h-full">
-      <div className="shrink-0 bg-tn-surface border-b border-tn-border overflow-x-auto">
-        <BiomeSectionTabs />
-      </div>
+      <BiomeCanvasModeToggle />
+      {showSectionTabs ? (
+        <div className="shrink-0 bg-tn-surface border-b border-tn-border overflow-x-auto">
+          <BiomeSectionTabs />
+        </div>
+      ) : null}
       <EditorContextBar />
       <EditorWorkspace>
-        {viewMode === "graph" && <EditorCanvas />}
+        {viewMode === "graph" && <BiomeGraphCanvas />}
         {viewMode === "preview" && <PreviewPanel />}
-        {viewMode === "split" && <SplitView />}
+        {viewMode === "split" && <BiomeSplitView />}
         {viewMode === "compare" && <ComparisonView />}
         {viewMode === "json" && <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />}
       </EditorWorkspace>

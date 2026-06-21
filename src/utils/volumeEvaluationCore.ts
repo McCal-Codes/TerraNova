@@ -41,12 +41,14 @@ export function evaluateDensityGrid3D(
   let minVal = Infinity;
   let maxVal = -Infinity;
 
+  const originX = Number(ctx.contentFields?.previewOriginX ?? 0);
+  const originZ = Number(ctx.contentFields?.previewOriginZ ?? 0);
   const wxCoords = new Float64Array(n);
   const wzCoords = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     const w = rangeMin + i * stepXZ;
-    wxCoords[i] = w;
-    wzCoords[i] = w;
+    wxCoords[i] = originX + w;
+    wzCoords[i] = originZ + w;
   }
 
   const sliceStride = n * n;

@@ -19,7 +19,7 @@ The simplest terrain: a flat surface at a fixed height. This is the starting poi
 1. Right-click the canvas → **Add Node** → **Terrain** → **BaseHeight**
 2. In the properties panel set `Distance` to `false` (default).
 3. Add a **Sum** node. Connect `BaseHeight` → `Sum` → `Terrain Out`.
-4. Click **Generate**. You should see a flat plane.
+4. Click **Evaluate now** (or enable **Auto-refresh**). You should see a flat plane.
 
 ```nodegraph
 {

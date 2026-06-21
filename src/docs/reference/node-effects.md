@@ -189,9 +189,18 @@ Reference-backed UAT (Vite dev server, port 1420):
 | `?shape-preview-gallery=1&case=underworld-max` | Same | Max heatmap with merged upstream cell walls; sub-target buttons pick a single `CellNoise2D` |
 | `?shape-preview-gallery=1&case=sdf-showcase` | DEV SDF graph (Hytale-style fields) | Pink zero contour for Ellipsoid, Cuboid, Cylinder, Plane, Shell, Cube — use shape picker row |
 | `?shape-preview-gallery=1&case=mudcracks-cube` | `Mudcracks_Actual_WIP_11.json` Cube subtree | Reference Manual curve on Cube SDF |
-| `?shape-preview-gallery=1&case=tropical-pcn` | `templates/references/Tropical_Pirate_Islands.json` | `PositionsCellNoise` cell walls + amber mesh samples (Mesh2D via Occurrence) |
+| `?shape-preview-gallery=1&case=density-noise-3d` | DEV density basics | SimplexNoise3D volume (Voxel default) |
+| `?shape-preview-gallery=1&case=density-min-carve` | DEV density basics | Min carve with inverted SimplexNoise3D |
+| `?shape-preview-gallery=1&case=density-max-2d` | DEV density basics | Max of two SimplexNoise2D layers |
+| `?shape-preview-gallery=1&case=tropical-pcn` | `templates/references/Tropical_Pirate_Islands.json` | `PositionsCellNoise` cell walls + amber mesh samples (Mesh2D via Occurrence); **Material Colors** shows delimiter-driven soil bands |
+| `?shape-preview-gallery=1&case=hytale-example-cellnoise2d` | `Examples/Example_CellNoise2D.json` (synced release) | Merged `CellNoise2D` walls on terrain output combiner |
+| `?shape-preview-gallery=1&case=hytale-generative-arches` | `Generative/Generative_Arches.json` (synced release) | **PCN** cell map + mesh dots (`PositionsCellNoise` → `Mesh2D`) |
+| `?shape-preview-gallery=1&case=hytale-generative-veins` | `Generative/Generative_Veins.json` (synced release) | PCN cell map on carved generative terrain |
+| `?shape-preview-gallery=1&case=hytale-plains1-river` | `Plains1/Plains1_River.json` (synced release) | **Voxel-first** hills + hydrography (not a PCN showcase) |
+| `?shape-preview-gallery=1&case=hytale-plains1-deeproot` | `Plains1/Plains1_Deeproot.json` (synced release) | Voxel + cutaway cave voids from imported module |
+| `?shape-preview-gallery=1&case=hytale-test-features&patch=32` | `Test_Features.json` (synced release) | **56-patch node UAT** — pick patch 1–56 (PCN return types, noise, SDF); omit `patch` for Max overview |
 
-Use the gallery header **2D / 3D / Voxel** buttons. PCN cases default to **2D**; the harness warns if you switch to Voxel. Voxel mode uses `materialConfig` from the reference biome (not a synthetic graph). Legacy `?case=pcn` and `?case=mix` redirect to `underworld-cell` and `underworld-max`.
+Use the gallery header **2D / 3D / Voxel** buttons. PCN / cell cases default to **2D** with the cell map overlay; survival hydro cases (`hytale-plains1-*`) default to **Voxel**. The harness warns if you switch a PCN case to Voxel. Voxel **Material Colors** uses the biome `MaterialProvider` graph when present (not only flat `materialConfig`). Legacy `?case=pcn` and `?case=mix` redirect to `underworld-cell` and `underworld-max`.
 
 | Organic boundary distortion | `FastGradientWarp` |
 | Blend terrain branches | `Mix` + `Normalizer` |

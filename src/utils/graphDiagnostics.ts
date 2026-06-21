@@ -10,7 +10,7 @@ import { validateFields } from "@/schema/validation";
 import { isDeprecatedOrLegacyTypeKey, getLegacyReplacement, getDeprecationTier, isPrereleaseTypeKey } from "@/nodes/shared/legacyTypes";
 import { nodeTypes } from "@/nodes/index";
 import { getEvalStatus } from "@/utils/densityEvaluator";
-import { findDensityRoot } from "./density/evalTypes";
+import { findDensityRoot, DENSITY_TYPES } from "./density/evalTypes";
 import { EvalStatus } from "@/schema/types";
 import {
   cloneDelimiterRecords,
@@ -110,6 +110,7 @@ export type GraphDiagnosticCode =
   | "biome-tint-missing-provider"
   | "biome-tint-missing-ref-name"
   | "biome-tint-unknown-ref"
+  | "biome-tint-empty-delimiters"
   | "biome-name-missing"
   | "legacy-node"
   | "unknown-node-type"
@@ -122,7 +123,15 @@ export type GraphDiagnosticCode =
   | "curvemapper-in-range-mismatch"
   | "curvemapper-out-range-hint"
   | "sum-raw-noise-height-curvemapper"
-  | "prerelease-node";
+  | "prerelease-node"
+  | "biome-range-empty"
+  | "biome-range-default-missing"
+  | "biome-range-default-not-listed"
+  | "biome-range-gap"
+  | "biome-range-overlap"
+  | "biome-range-duplicate-name"
+  | "biome-range-missing-file"
+  | "biome-range-unassigned-project-biome";
 
 export interface GraphDiagnostic {
   nodeId: string | null;
@@ -1222,6 +1231,7 @@ export function analyzeBiome(
           message: "TintProvider DensityDelimited has no delimiters - will produce no tint variation",
           severity: "warning",
           biomeSection: "TintProvider",
+          code: "biome-tint-empty-delimiters",
         });
       }
     }
@@ -1276,4 +1286,59 @@ export function computeFidelityScore(nodes: Node[]): number {
     if (getEvalStatus(type) === EvalStatus.Full) faithful++;
   }
   return total === 0 ? 100 : Math.round((faithful / total) * 100);
+}
+
+function buildPreviewPathNodeIds(nodes: Node[], edges: Edge[]): Set<string> {
+  const previewReverseAdj = new Map<string, string[]>();
+  for (const edge of edges) {
+    if (!previewReverseAdj.has(edge.target)) previewReverseAdj.set(edge.target, []);
+    previewReverseAdj.get(edge.target)!.push(edge.source);
+  }
+  const previewRoot = findDensityRoot(nodes, edges);
+  const onPreviewPath = new Set<string>();
+  if (previewRoot) {
+    collectUpstreamIds(previewRoot.id, previewReverseAdj, onPreviewPath);
+  }
+  return onPreviewPath;
+}
+
+/**
+ * Fidelity score scoped to density nodes on the active preview evaluation path.
+ */
+export function computePreviewFidelityScore(nodes: Node[], edges: Edge[]): number {
+  const onPreviewPath = buildPreviewPathNodeIds(nodes, edges);
+  if (onPreviewPath.size === 0) return 100;
+
+  let faithful = 0;
+  let total = 0;
+  for (const node of nodes) {
+    if (!onPreviewPath.has(node.id)) continue;
+    const type = getNodeType(node);
+    if (!type || !DENSITY_TYPES.has(type)) continue;
+    total++;
+    if (getEvalStatus(type) === EvalStatus.Full) faithful++;
+  }
+  return total === 0 ? 100 : Math.round((faithful / total) * 100);
+}
+
+export interface ApproximatedPreviewNode {
+  id: string;
+  type: string;
+  label: string;
+}
+
+export function listApproximatedNodesOnPreviewPath(nodes: Node[], edges: Edge[]): ApproximatedPreviewNode[] {
+  const onPreviewPath = buildPreviewPathNodeIds(nodes, edges);
+  const results: ApproximatedPreviewNode[] = [];
+  for (const node of nodes) {
+    if (!onPreviewPath.has(node.id)) continue;
+    const type = getNodeType(node);
+    if (getEvalStatus(type) !== EvalStatus.Approximated) continue;
+    const data = node.data as BaseNodeData;
+    const label = typeof data.label === "string" && data.label.trim()
+      ? data.label.trim()
+      : type;
+    results.push({ id: node.id, type, label });
+  }
+  return results;
 }

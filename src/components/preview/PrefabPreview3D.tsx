@@ -8,6 +8,10 @@ import {
   MathUtils,
 } from "three";
 import type { PrefabPreviewMeshData } from "@/utils/hytaleBlockAssets/buildPrefabPreviewMesh";
+import {
+  computePrefabPreviewCameraDistance,
+  computePrefabPreviewFitRadius,
+} from "@/utils/hytaleBlockAssets/buildPrefabPreviewMesh";
 
 interface PrefabMeshProps {
   data: PrefabPreviewMeshData;
@@ -33,17 +37,47 @@ const PrefabMesh = memo(function PrefabMesh({ data }: PrefabMeshProps) {
   );
 });
 
-function FitCamera({ data, staticView = false }: { data: PrefabPreviewMeshData; staticView?: boolean }) {
-  const { camera, invalidate } = useThree();
+function FitCamera({
+  data,
+  staticView = false,
+  compact = false,
+}: {
+  data: PrefabPreviewMeshData;
+  staticView?: boolean;
+  compact?: boolean;
+}) {
+  const { camera, controls, invalidate } = useThree();
 
   useEffect(() => {
     const [cx, cy, cz] = data.center;
-    const distance = Math.max(data.radius * 2.2, 4);
-    camera.position.set(cx + distance, cy + distance * 0.65, cz + distance);
+    const fitRadius = computePrefabPreviewFitRadius(data);
+    const fovDeg = compact ? 38 : 45;
+    const padding = compact ? 1.55 : 1.4;
+    const distance = computePrefabPreviewCameraDistance(fitRadius, fovDeg, padding);
+
+    camera.position.set(
+      cx + distance * 0.72,
+      cy + distance * 0.55,
+      cz + distance * 0.72,
+    );
     camera.lookAt(cx, cy, cz);
     camera.updateProjectionMatrix();
+
+    const orbit = controls as {
+      target: { set: (x: number, y: number, z: number) => void };
+      minDistance?: number;
+      maxDistance?: number;
+      update: () => void;
+    } | null;
+    if (orbit) {
+      orbit.target.set(cx, cy, cz);
+      orbit.minDistance = Math.max(fitRadius * 0.3, 2);
+      orbit.maxDistance = Math.max(fitRadius * 10, 64);
+      orbit.update();
+    }
+
     if (staticView) invalidate();
-  }, [camera, data, invalidate, staticView]);
+  }, [camera, controls, data, invalidate, staticView, compact]);
 
   return null;
 }
@@ -58,6 +92,7 @@ interface PrefabPreview3DProps {
 /** Compact orbitable 3D preview of a Hytale prefab (vertex colors from synced block textures). */
 export function PrefabPreview3D({ mesh, className, compact = false }: PrefabPreview3DProps) {
   const [cx, cy, cz] = mesh.center;
+  const fitRadius = computePrefabPreviewFitRadius(mesh);
   const bg = new Color("#1c1a17");
 
   return (
@@ -70,7 +105,7 @@ export function PrefabPreview3D({ mesh, className, compact = false }: PrefabPrev
       }
     >
       <Canvas
-        camera={{ fov: compact ? 38 : 45, near: 0.1, far: 500 }}
+        camera={{ fov: compact ? 38 : 45, near: 0.1, far: Math.max(800, fitRadius * 24) }}
         dpr={compact ? 1 : undefined}
         frameloop={compact ? "demand" : "always"}
         gl={{ preserveDrawingBuffer: !compact, antialias: !compact }}
@@ -82,18 +117,18 @@ export function PrefabPreview3D({ mesh, className, compact = false }: PrefabPrev
         <directionalLight position={[12, 18, 8]} intensity={0.85} castShadow={!compact} />
         <directionalLight position={[-8, 10, -6]} intensity={0.25} color="#b0c4de" />
         <PrefabMesh data={mesh} />
-        <FitCamera data={mesh} staticView={compact} />
+        <FitCamera data={mesh} staticView={compact} compact={compact} />
         {!compact && (
           <>
             <OrbitControls
               target={[cx, cy, cz]}
               enableDamping
               dampingFactor={0.08}
-              minDistance={MathUtils.clamp(mesh.radius * 0.4, 2, 40)}
-              maxDistance={Math.max(mesh.radius * 6, 24)}
+              minDistance={MathUtils.clamp(fitRadius * 0.3, 2, 40)}
+              maxDistance={Math.max(fitRadius * 10, 64)}
             />
             <gridHelper
-              args={[Math.max(mesh.radius * 2, 8), 8, "#4a4438", "#312d28"]}
+              args={[Math.max(fitRadius * 2.4, 8), 8, "#4a4438", "#312d28"]}
               position={[cx, mesh.bounds.min[1], cz]}
             />
           </>

@@ -10,8 +10,10 @@ import { SDF_DEFAULT_VOXEL_Y } from "@/utils/shapePreview/sdfPreviewDefaults";
 import { readStoredPreviewDefaults } from "@/stores/configStore";
 import { initial2dPreviewResolution, clamp2dPreviewResolution } from "@/utils/previewResolution";
 import { safeStoredJson } from "@/utils/safeLocalStorage";
+import type { PreviewRootResolution } from "@/utils/previewRootResolver";
+import type { PrefabPreviewMeshData } from "@/utils/hytaleBlockAssets/buildPrefabPreviewMesh";
 
-export type PreviewMode = "2d" | "3d" | "voxel" | "world";
+export type PreviewMode = "2d" | "3d" | "voxel" | "world" | "prefab";
 export type PropPreviewMode = "placement" | "prefab3d";
 export type ViewMode = "graph" | "preview" | "split" | "compare" | "json";
 export type SplitDirection = "horizontal" | "vertical";
@@ -76,6 +78,10 @@ interface PreviewState {
 
   viewMode: ViewMode;
   autoRefresh: boolean;
+  /** Property-panel scoped live preview for selected node edits. */
+  livePropertyPreview: boolean;
+  /** Monotonic token used for one-shot manual refresh when autoRefresh is disabled. */
+  manualPreviewRefreshToken: number;
   colormap: ColormapId;
   splitRatio: number;
   showInlinePreviews: boolean;
@@ -133,8 +139,18 @@ interface PreviewState {
   showMaterialLegend: boolean;
   voxelMaterials: Uint8Array | null;
   voxelPalette: Array<{ name: string; color: string }>;
+  /** Material names hidden from voxel mesh (legend toggles). */
+  hiddenVoxelMaterialNames: string[];
+  _voxelSurfaceData: import("@/utils/voxelExtractor").VoxelData | null;
+  _voxelVolumeMaterialIds: Uint8Array | null;
+  _voxelVolumeRes: number | null;
+  _voxelVolumeYSlices: number | null;
   /** Surface voxel count from last volume extract (for HUD). */
   surfaceVoxelCount: number | null;
+  /** Last resolved voxel evaluation root (for debug HUD). */
+  voxelRootResolution: PreviewRootResolution | null;
+  /** Density min/max and solid fraction from last voxel volume. */
+  voxelDensityStats: { min: number; max: number; positiveFraction: number } | null;
   voxelMeshData: VoxelMeshData[] | null;
   /** Fingerprint of the graph + params used to build `voxelMeshData`. */
   voxelEvalKey: string | null;
@@ -153,6 +169,9 @@ interface PreviewState {
   _autoFitGraphHash: string;
   _autoFitContentGraphHash: string;
   _userManualYAdjust: boolean;
+  /** User picked preview mode manually — skip auto-voxel routing. */
+  _userManualPreviewMode: boolean;
+  _autoVoxelGraphHash: string;
   isFitToContentRunning: boolean;
 
   worldCenterX: number;
@@ -164,6 +183,8 @@ interface PreviewState {
   worldError: string | null;
   /** Last World preview terrain provenance (from Bridge chunk responses). */
   worldDataSource: "save" | "mixed" | "synthetic" | null;
+  /** Hytale texture-sampled block colors resolved for the current world palette. */
+  worldBlockColorStats: { textured: number; total: number } | null;
   worldChunkCount: number;
   worldTotalChunks: number;
   worldFollowPlayer: boolean;
@@ -175,6 +196,19 @@ interface PreviewState {
   /** Layout from last `buildWorldMeshes` — maps block coords to scene space. */
   worldSceneLayout: Pick<WorldMeshResult, "sceneYMin" | "sceneScale" | "worldMidX" | "worldMidZ"> | null;
   showWorldPlayerMarker: boolean;
+
+  prefabMeshData: VoxelMeshData[] | null;
+  texturedPrefabMesh: PrefabPreviewMeshData | null;
+  prefabTextureStats: { textured: number; total: number; entityCount: number } | null;
+  prefabPath: string | null;
+  isPrefabLoading: boolean;
+  prefabError: string | null;
+  setPrefabMeshData: (data: VoxelMeshData[] | null) => void;
+  setTexturedPrefabMesh: (mesh: PrefabPreviewMeshData | null) => void;
+  setPrefabTextureStats: (stats: { textured: number; total: number; entityCount: number } | null) => void;
+  setPrefabPath: (path: string | null) => void;
+  setPrefabLoading: (loading: boolean) => void;
+  setPrefabError: (error: string | null) => void;
 
   showPositionOverlay: boolean;
   positionOverlayNodeId: string | null;
@@ -213,7 +247,7 @@ interface PreviewState {
   fidelityScore: number;
 
   // Actions
-  setMode: (mode: PreviewMode) => void;
+  setMode: (mode: PreviewMode, options?: { automated?: boolean }) => void;
   setPropPreviewMode: (mode: PropPreviewMode) => void;
   setPropManualPrefabPath: (path: string | null) => void;
   setResolution: (res: number) => void;
@@ -225,6 +259,8 @@ interface PreviewState {
   setPreviewError: (error: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
   setAutoRefresh: (enabled: boolean) => void;
+  setLivePropertyPreview: (enabled: boolean) => void;
+  requestManualPreviewRefresh: () => void;
   setColormap: (id: ColormapId) => void;
   setSplitRatio: (ratio: number) => void;
   setShowInlinePreviews: (enabled: boolean) => void;
@@ -271,6 +307,7 @@ interface PreviewState {
   setShowMaterialLegend: (show: boolean) => void;
   setVoxelMaterials: (materials: Uint8Array | null, palette: Array<{ name: string; color: string }>) => void;
   setVoxelMeshData: (data: VoxelMeshData[] | null) => void;
+  toggleVoxelMaterialVisibility: (name: string) => void;
   setFluidPlaneConfig: (config: { type: "water" | "lava"; yPosition: number; size?: number } | null) => void;
   setShowSSAO: (show: boolean) => void;
   setShowEdgeOutline: (show: boolean) => void;
@@ -283,6 +320,8 @@ interface PreviewState {
   _setAutoFitGraphHash: (hash: string) => void;
   _setAutoFitContentGraphHash: (hash: string) => void;
   _setUserManualYAdjust: (manual: boolean) => void;
+  _setUserManualPreviewMode: (manual: boolean) => void;
+  _setAutoVoxelGraphHash: (hash: string) => void;
   setFitToContentRunning: (running: boolean) => void;
 
   setWorldCenterX: (x: number) => void;
@@ -293,6 +332,7 @@ interface PreviewState {
   setWorldLoading: (loading: boolean) => void;
   setWorldError: (error: string | null) => void;
   setWorldDataSource: (source: "save" | "mixed" | "synthetic" | null) => void;
+  setWorldBlockColorStats: (stats: { textured: number; total: number } | null) => void;
   setWorldProgress: (loaded: number, total: number) => void;
   setWorldFollowPlayer: (follow: boolean) => void;
   setWorldSurfaceDepth: (depth: number) => void;
@@ -404,6 +444,7 @@ const PERSIST_MAP: Record<string, string> = {
   showMeshSamples: "tn-showMeshSamples",
   showSdfSurface: "tn-showSdfSurface",
   shapePreviewSeed: "tn-shapePreviewSeed",
+  livePropertyPreview: "tn-livePropertyPreview",
   compareNodeA: "tn-compareNodeA",
   compareNodeB: "tn-compareNodeB",
   compareModeA: "tn-compareModeA",
@@ -436,6 +477,7 @@ function hydratePersistedState() {
   const configDefaults = readStoredPreviewDefaults();
   return {
     viewMode: (getStored("tn-viewMode") as ViewMode | null) ?? "graph",
+    livePropertyPreview: getStoredBool("tn-livePropertyPreview", true),
     colormap: (getStored("tn-colormap") as ColormapId | null) ?? "blue-red",
     splitRatio: getStoredFloat("tn-splitRatio", 0.6),
     showInlinePreviews: getStoredBool("tn-showInlinePreviews", false),
@@ -462,8 +504,9 @@ function hydratePersistedState() {
     cutawayEnabled: getStoredBool("tn-cutawayEnabled", false),
     cutawayLevel: getStoredFloat("tn-cutawayLevel", 60),
     show3DVolumeView: getStoredBool("tn-show3DVolumeView", false),
+    // Default voxel window should be tall enough to include terrain peaks by default.
     voxelYMin: getStoredFloat("tn-voxelYMin", 0),
-    voxelYMax: getStoredFloat("tn-voxelYMax", 128),
+    voxelYMax: getStoredFloat("tn-voxelYMax", 256),
     voxelYSlices: getStoredFloat("tn-voxelYSlices", configDefaults.defaultVoxelYSlices),
     voxelResolution: getStoredFloat("tn-voxelResolution", configDefaults.defaultVoxelRes),
     showThresholdView: getStoredBool("tn-showThresholdView", false),
@@ -475,13 +518,14 @@ function hydratePersistedState() {
     showHillShade: getStoredBool("tn-showHillShade", true),
     usgsTopoStyle: getStoredBool("tn-usgsTopoStyle", true),
     autoFitYEnabled: getStoredBool("tn-autoFitYEnabled", true),
-    autoFitContentEnabled: getStoredBool("tn-autoFitContentEnabled", false),
-    terrainRefUseBaseY: getStoredBool("tn-terrainRefUseBaseY", false),
+    autoFitContentEnabled: getStoredBool("tn-autoFitContentEnabled", true),
+    // Terrain graphs read best when anchored to Base Y (ContentFields) by default.
+    terrainRefUseBaseY: getStoredBool("tn-terrainRefUseBaseY", true),
     worldCenterX: getStoredFloat("tn-worldCenterX", 0),
     worldCenterZ: getStoredFloat("tn-worldCenterZ", 0),
     worldRadius: getStoredFloat("tn-worldRadius", 2),
     worldYMin: getStoredFloat("tn-worldYMin", 0),
-    worldYMax: getStoredFloat("tn-worldYMax", 128),
+    worldYMax: getStoredFloat("tn-worldYMax", 256),
     worldFollowPlayer: getStoredBool("tn-worldFollowPlayer", false),
     worldSurfaceDepth: Math.min(getStoredFloat("tn-worldSurfaceDepth", 32), 40),
     worldLavaLevel: getStoredFloat("tn-worldLavaLevel", 0),
@@ -580,6 +624,7 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     previewError: null,
     densityEvalKey: null,
     autoRefresh: true,
+    manualPreviewRefreshToken: 0,
     canvasTransform: { ...DEFAULT_CANVAS_TRANSFORM },
     crossSectionLine: null,
     verticalSectionDensities: null,
@@ -592,18 +637,32 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     voxelError: null,
     voxelMaterials: null,
     voxelPalette: [],
+    hiddenVoxelMaterialNames: [],
+    _voxelSurfaceData: null,
+    _voxelVolumeMaterialIds: null,
+    _voxelVolumeRes: null,
+    _voxelVolumeYSlices: null,
     surfaceVoxelCount: null,
+    voxelRootResolution: null,
+    voxelDensityStats: null,
     voxelMeshData: null,
     voxelEvalKey: null,
     fluidPlaneConfig: null,
     isWorldLoading: false,
     worldError: null,
     worldDataSource: null,
+    worldBlockColorStats: null,
     worldChunkCount: 0,
     worldTotalChunks: 0,
     worldLivePlayer: null,
     worldSceneLayout: null,
     showWorldPlayerMarker: true,
+    prefabMeshData: null,
+    texturedPrefabMesh: null,
+    prefabTextureStats: null,
+    prefabPath: null,
+    isPrefabLoading: false,
+    prefabError: null,
     positionOverlayNodeId: null,
     positionOverlayPoints: [],
     cellShapeGrid: null,
@@ -621,14 +680,19 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     _autoFitGraphHash: "",
     _autoFitContentGraphHash: "",
     _userManualYAdjust: false,
+    _userManualPreviewMode: false,
+    _autoVoxelGraphHash: "",
     isFitToContentRunning: false,
 
     // Hydrated persisted values
     ...hydrated,
 
     // ── Actions ──
-    setMode: (mode) => {
+    setMode: (mode, options) => {
       const state = usePreviewStore.getState();
+      if (!options?.automated) {
+        originalSet({ _userManualPreviewMode: true });
+      }
       if (mode === "2d") {
         const resolution = clamp2dPreviewResolution(state.resolution);
         if (resolution !== state.resolution) {
@@ -653,6 +717,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setLoading: (isLoading) => originalSet((s) => (s.isLoading === isLoading ? s : { isLoading })),
     setPreviewError: (error) => originalSet((s) => (s.previewError === error ? s : { previewError: error })),
     setAutoRefresh: (autoRefresh) => originalSet({ autoRefresh }),
+    setLivePropertyPreview: (livePropertyPreview) => persistedSet({ livePropertyPreview }),
+    requestManualPreviewRefresh: () => originalSet((s) => ({ manualPreviewRefreshToken: s.manualPreviewRefreshToken + 1 })),
     setCanvasTransform: (canvasTransform) => originalSet({ canvasTransform }),
     resetCanvasTransform: () => originalSet({ canvasTransform: { ...DEFAULT_CANVAS_TRANSFORM } }),
     setCrossSectionLine: (crossSectionLine) => originalSet({ crossSectionLine }),
@@ -667,16 +733,41 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setVoxelLoading: (isVoxelLoading) => originalSet({ isVoxelLoading }),
     setVoxelEvalProgressRes: (voxelEvalProgressRes) => originalSet({ voxelEvalProgressRes }),
     setVoxelError: (voxelError) => originalSet({ voxelError }),
-    setVoxelMaterials: (voxelMaterials, voxelPalette) => originalSet({ voxelMaterials, voxelPalette }),
+    setVoxelMaterials: (voxelMaterials, voxelPalette) =>
+      originalSet((state) => {
+        const paletteNames = new Set(voxelPalette.map((entry) => entry.name));
+        const hiddenVoxelMaterialNames = state.hiddenVoxelMaterialNames.filter((name) =>
+          paletteNames.has(name),
+        );
+        return { voxelMaterials, voxelPalette, hiddenVoxelMaterialNames };
+      }),
     setVoxelMeshData: (voxelMeshData) =>
       originalSet({
         voxelMeshData,
-        ...(voxelMeshData == null ? { surfaceVoxelCount: null } : {}),
+        ...(voxelMeshData == null
+          ? {
+              surfaceVoxelCount: null,
+              voxelDensityStats: null,
+              _voxelSurfaceData: null,
+              _voxelVolumeMaterialIds: null,
+              _voxelVolumeRes: null,
+              _voxelVolumeYSlices: null,
+            }
+          : {}),
       }),
+    toggleVoxelMaterialVisibility: (name) => {
+      const state = usePreviewStore.getState();
+      const hidden = state.hiddenVoxelMaterialNames.includes(name)
+        ? state.hiddenVoxelMaterialNames.filter((n) => n !== name)
+        : [...state.hiddenVoxelMaterialNames, name];
+      originalSet({ hiddenVoxelMaterialNames: hidden });
+      void import("@/utils/finishVoxelFromVolume").then((m) => m.rebuildVoxelMeshFromCache());
+    },
     setFluidPlaneConfig: (fluidPlaneConfig) => originalSet({ fluidPlaneConfig }),
     setWorldLoading: (isWorldLoading) => originalSet({ isWorldLoading }),
     setWorldError: (worldError) => originalSet({ worldError }),
     setWorldDataSource: (worldDataSource) => originalSet({ worldDataSource }),
+    setWorldBlockColorStats: (worldBlockColorStats) => originalSet({ worldBlockColorStats }),
     setWorldProgress: (worldChunkCount, worldTotalChunks) => originalSet({ worldChunkCount, worldTotalChunks }),
     setPositionOverlayNodeId: (positionOverlayNodeId) => originalSet({ positionOverlayNodeId }),
     setPositionOverlayPoints: (positionOverlayPoints) => originalSet({ positionOverlayPoints }),
@@ -688,6 +779,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     _setAutoFitGraphHash: (_autoFitGraphHash) => originalSet({ _autoFitGraphHash }),
     _setAutoFitContentGraphHash: (_autoFitContentGraphHash) => originalSet({ _autoFitContentGraphHash }),
     _setUserManualYAdjust: (_userManualYAdjust) => originalSet({ _userManualYAdjust }),
+    _setUserManualPreviewMode: (_userManualPreviewMode) => originalSet({ _userManualPreviewMode }),
+    _setAutoVoxelGraphHash: (_autoVoxelGraphHash) => originalSet({ _autoVoxelGraphHash }),
     setFitToContentRunning: (isFitToContentRunning) => originalSet({ isFitToContentRunning }),
 
     // Persisted setters — use persistedSet for auto-localStorage sync
@@ -729,7 +822,7 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setAutoFitContentEnabled: (autoFitContentEnabled) => {
       persistedSet({ autoFitContentEnabled });
       if (autoFitContentEnabled) {
-        originalSet({ _autoFitContentGraphHash: "", _userManualYAdjust: false });
+        originalSet({ _autoFitContentGraphHash: "", _userManualYAdjust: false, _userManualPreviewMode: false, _autoVoxelGraphHash: "" });
       }
     },
     setTerrainRefUseBaseY: (terrainRefUseBaseY) => persistedSet({ terrainRefUseBaseY }),
@@ -745,6 +838,12 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setWorldLivePlayer: (worldLivePlayer) => originalSet({ worldLivePlayer }),
     setWorldSceneLayout: (worldSceneLayout) => originalSet({ worldSceneLayout }),
     setShowWorldPlayerMarker: (showWorldPlayerMarker) => originalSet({ showWorldPlayerMarker }),
+    setPrefabMeshData: (prefabMeshData) => originalSet({ prefabMeshData }),
+    setTexturedPrefabMesh: (texturedPrefabMesh) => originalSet({ texturedPrefabMesh }),
+    setPrefabTextureStats: (prefabTextureStats) => originalSet({ prefabTextureStats }),
+    setPrefabPath: (prefabPath) => originalSet({ prefabPath }),
+    setPrefabLoading: (isPrefabLoading) => originalSet({ isPrefabLoading }),
+    setPrefabError: (prefabError) => originalSet({ prefabError }),
     setShowPositionOverlay: (showPositionOverlay) => persistedSet({ showPositionOverlay }),
     setPositionOverlayColor: (positionOverlayColor) => persistedSet({ positionOverlayColor }),
     setPositionOverlaySize: (positionOverlaySize) => persistedSet({ positionOverlaySize }),

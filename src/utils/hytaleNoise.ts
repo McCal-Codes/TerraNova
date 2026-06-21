@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Hytale-compatible simplex noise implementation.
  *
  * Matches the V2 Java runtime's noise generation pipeline:
@@ -76,14 +76,24 @@ const FIXED_PERM: readonly number[] = [
   222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180,
 ];
 
-/** Build 512-entry lookup from fixed V2 table (seed is ignored â€” V2 uses fixed perm) */
-function buildPermutationTable(_seed: number): Uint8Array {
+/**
+ * 512-entry lookup built from the fixed V2 permutation table.
+ * Note: V2 uses a hardcoded permutation table; the seed does not affect the table.
+ *
+ * This is a global constant to avoid allocating a new Uint8Array per seed.
+ */
+const FIXED_PERM_512: Uint8Array = (() => {
   const perm = new Uint8Array(512);
   for (let i = 0; i < 256; i++) {
     perm[i] = FIXED_PERM[i];
     perm[i + 256] = FIXED_PERM[i];
   }
   return perm;
+})();
+
+/** Return the fixed 512-entry permutation table (seed ignored). */
+function buildPermutationTable(_seed: number): Uint8Array {
+  return FIXED_PERM_512;
 }
 
 /* â”€â”€ 2D Simplex Noise â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

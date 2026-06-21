@@ -267,6 +267,7 @@ export function buildVoxelMeshes(
   offsetY: number,
   offsetZ: number,
   volumeMaterialIds?: Uint8Array,
+  hiddenMaterialIndices?: Set<number>,
 ): VoxelMeshData[] {
   const n = resolution;
   const ys = ySlices;
@@ -284,7 +285,9 @@ export function buildVoxelMeshes(
       for (let x = 0; x < n; x++) {
         const idx = yOff + z * n + x;
         if (densities[idx] < SOLID_THRESHOLD) continue;
-        matGrid[idx] = volumeMaterialIds?.[idx] ?? 0;
+        const matId = volumeMaterialIds?.[idx] ?? 0;
+        if (hiddenMaterialIndices?.has(matId)) continue;
+        matGrid[idx] = matId;
       }
     }
   }
@@ -297,7 +300,9 @@ export function buildVoxelMeshes(
       const bz = Math.round(voxelData.positions[i * 3 + 2]);
       if (bx < 0 || bx >= n || by < 0 || by >= ys || bz < 0 || bz >= n) continue;
       const idx = by * n * n + bz * n + bx;
-      matGrid[idx] = voxelData.materialIds[i];
+      const matId = voxelData.materialIds[i];
+      if (hiddenMaterialIndices?.has(matId)) continue;
+      matGrid[idx] = matId;
     }
   }
 

@@ -7,29 +7,50 @@
  */
 
 import { useEffect, useRef } from "react";
-import { loadSession, clearSession } from "@/utils/sessionPersist";
+import { loadSession, clearSession, updateSession } from "@/utils/sessionPersist";
 import { useProjectStore } from "@/stores/projectStore";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { useEditorStore } from "@/stores/editorStore";
+import { useToastStore } from "@/stores/toastStore";
 import { listDirectory } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
+
+interface UseSessionRestoreOptions {
+  /** Called when phase-1 restore finishes (success or failure). */
+  onBootComplete?: () => void;
+}
+
+function markSessionRestoreReady(onBootComplete?: () => void): void {
+  useProjectStore.getState().setSessionRestoreReady(true);
+  onBootComplete?.();
+}
 
 /**
  * Phase 1: Call in App component. Restores projectPath + directory tree
  * so the editor mounts instead of the home screen.
  */
-export function useSessionRestore(): void {
+export function useSessionRestore(options?: UseSessionRestoreOptions): void {
+  const onBootCompleteRef = useRef(options?.onBootComplete);
+  onBootCompleteRef.current = options?.onBootComplete;
   const ranRef = useRef(false);
 
   useEffect(() => {
     if (ranRef.current) return;
     ranRef.current = true;
 
+    const finishBoot = () => markSessionRestoreReady(onBootCompleteRef.current);
+
     // Only attempt restore when starting fresh (no project already loaded)
-    if (useProjectStore.getState().projectPath !== null) return;
+    if (useProjectStore.getState().projectPath !== null) {
+      finishBoot();
+      return;
+    }
 
     const session = loadSession();
-    if (!session.projectPath) return;
+    if (!session.projectPath) {
+      finishBoot();
+      return;
+    }
 
     (async () => {
       try {
@@ -38,9 +59,16 @@ export function useSessionRestore(): void {
         useProjectStore.getState().setDirectoryTree(entries.map(mapDirEntry));
         useRecentProjectsStore.getState().addProject(session.projectPath!);
       } catch {
-        // Project path no longer valid — clear and stay on home screen
         clearSession();
         useProjectStore.getState().reset();
+        useToastStore.getState().addToast(
+          "Could not restore your last project. The folder may have moved or been removed.",
+          "warning",
+          undefined,
+          "Session restore",
+        );
+      } finally {
+        finishBoot();
       }
     })();
   }, []);
@@ -49,9 +77,6 @@ export function useSessionRestore(): void {
 /**
  * Phase 2: Call inside ProjectEditor (within ReactFlowProvider).
  * Opens the previously active file using the provided openFile callback.
- *
- * Uses a ref for the callback so we always invoke the latest version,
- * and waits for the directory tree to be populated (indicating Phase 1 finished).
  */
 export function useSessionRestoreFile(
   openFile: (filePath: string) => Promise<void>,
@@ -60,38 +85,38 @@ export function useSessionRestoreFile(
   openFileRef.current = openFile;
 
   const ranRef = useRef(false);
-
-  // Watch for directory tree to become available (Phase 1 completion signal)
-  const directoryTree = useProjectStore((s) => s.directoryTree);
+  const sessionRestoreReady = useProjectStore((s) => s.sessionRestoreReady);
 
   useEffect(() => {
     if (ranRef.current) return;
-    // Wait until Phase 1 has populated the directory tree
-    if (directoryTree.length === 0) return;
+    if (!sessionRestoreReady) return;
 
     ranRef.current = true;
 
     const session = loadSession();
     if (!session.currentFile) return;
 
-    // Use a brief delay to ensure React has flushed all store updates
     const timer = setTimeout(async () => {
       try {
         await openFileRef.current(session.currentFile!);
 
-        // Restore biome section if applicable
         if (session.activeBiomeSection) {
           const { biomeSections, switchBiomeSection } = useEditorStore.getState();
           if (biomeSections && session.activeBiomeSection in biomeSections) {
             switchBiomeSection(session.activeBiomeSection);
           }
         }
-      } catch (err) {
-        // File no longer exists — user can manually pick a new one
-        console.warn("[TerraNova] Session file restore failed:", err);
+      } catch {
+        updateSession({ currentFile: null });
+        useToastStore.getState().addToast(
+          "Could not reopen your last file. Pick a file from the project tree.",
+          "warning",
+          undefined,
+          "Session restore",
+        );
       }
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [directoryTree]);
+  }, [sessionRestoreReady]);
 }

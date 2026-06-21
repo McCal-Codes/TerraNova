@@ -67,7 +67,7 @@ export const PipelineIndicator = memo(function PipelineIndicator({ embedded = fa
   return (
     <div
       className={`flex h-7 items-center gap-0 select-none px-3 ${
-        embedded ? "bg-transparent" : "shrink-0 border-b border-tn-border bg-tn-bg"
+        embedded ? "shrink-0 border-b border-tn-border bg-tn-bg" : "shrink-0 border-b border-tn-border bg-tn-bg"
       }`}
     >
       {STEPS.map((step, i) => {

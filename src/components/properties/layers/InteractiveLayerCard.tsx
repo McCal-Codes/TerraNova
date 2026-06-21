@@ -23,7 +23,7 @@ export function InteractiveLayerCard({
   const color = MATERIAL_COLORS[materialName.toLowerCase()] ?? "#666";
 
   return (
-    <div className="flex items-center gap-1.5 p-2 rounded border border-tn-border bg-white/[0.02] transition-all duration-150 hover:border-white/20 hover:bg-white/5">
+    <div className="flex items-center gap-1.5 p-2 rounded border border-tn-border bg-tn-bg transition-colors duration-150 hover:border-tn-border hover:bg-tn-surface">
       {/* Drag handle */}
       <div
         className="shrink-0 cursor-grab active:cursor-grabbing touch-none select-none p-0.5"

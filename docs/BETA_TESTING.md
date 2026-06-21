@@ -1,6 +1,6 @@
 # TerraNova closed alpha / beta testing
 
-This guide is for testers installing **0.1.8-alpha.2** (closed alpha) from [McCal-Codes/TerraNova Releases](https://github.com/McCal-Codes/TerraNova/releases). You do not need Node.js or Rust unless you are building from source.
+This guide is for testers installing **0.1.8-alpha.4** (closed alpha) from [McCal-Codes/TerraNova Releases](https://github.com/McCal-Codes/TerraNova/releases). You do not need Node.js or Rust unless you are building from source.
 
 ## Prerequisites
 
@@ -19,15 +19,17 @@ This guide is for testers installing **0.1.8-alpha.2** (closed alpha) from [McCa
 
 ## First-run checklist
 
-1. Install and launch TerraNova **0.1.8-alpha.2** (or update from alpha.1 in-app).
+1. Install and launch TerraNova **0.1.8-alpha.4** (or update from alpha.3 in-app).
 2. Complete **onboarding** (four steps):
    - Step 3: enable Hytale asset sync, confirm release path, run **Sync now** (progress modal appears).
-   - Step 4: open a walkthrough from **Read guide** links (optional).
-3. Read the **What to test** modal (alpha checklist) and work through its focus areas.
-4. On the home screen, try **Create Pack** (Simple or Advanced).
-5. Open a project and smoke the preview panel: expand **Settings** on the preview toolbar (or the edge chevron in split view), then **2D** → **3D** → **Voxel** on a terrain biome.
-6. **File → Export Asset Pack** and confirm output under `{Group}.{Name}/Server/HytaleGenerator/`.
-7. **Export** your pack and test in a Hytale save (Bridge is **not** in scope for the first alpha).
+   - Step 4: open **Getting Started** from the doc links (optional); note **F1** for in-editor docs.
+3. Read the **What to test** modal (alpha checklist) and work through its focus areas — especially **session restore**, **Atmosphere tint**, **preview fidelity callouts**, and **voxel legend toggles** (new in alpha.4).
+4. Settings → About: confirm **License** and **Notice** open readable modals.
+5. On the home screen, try **Create Pack** (Simple or Advanced).
+6. Open a project and smoke the preview panel: expand **Settings** on the preview toolbar (or the edge chevron in split view), then **2D** → **3D** → **Voxel** on a terrain biome; try **Legend visibility** checkboxes in Voxel settings.
+7. On a biome with Simplex tint, edit **Atmosphere → Tint** (Seed/Scale/delimiters) without opening the Tint graph.
+8. **File → Export Asset Pack** and confirm output under `{Group}.{Name}/Server/HytaleGenerator/`.
+9. **Export** your pack and test in a Hytale save (Bridge is **not** in scope for the closed alpha).
 
 ### Alpha cadence and support
 
@@ -97,12 +99,12 @@ Re-publish release artifacts after rewrite if tags moved to new SHAs.
 ### Maintainer: announce to testers (copy/paste)
 
 ```text
-TerraNova 0.1.8-alpha.2 is up (closed alpha prerelease).
+TerraNova 0.1.8-alpha.4 is up (closed alpha prerelease).
 
-Install: https://github.com/McCal-Codes/TerraNova/releases — pick v0.1.8-alpha.2, or update in-app from alpha.1.
+Install: https://github.com/McCal-Codes/TerraNova/releases — pick v0.1.8-alpha.4, or update in-app from alpha.3.
 Windows: .msi/.exe · macOS: .dmg (Right-click → Open first time) · Linux: .AppImage
 
-First run: complete onboarding → Step 3 asset sync → read “What to test” checklist.
+First run: onboarding → Step 3 asset sync → read expanded “What to test” checklist (session restore, Atmosphere tint, fidelity callouts, voxel legend).
 Please use in-app bug reporter (screenshots help) or Alpha feedback on GitHub.
 Bridge/live sync is NOT in scope for this cut — export your pack and test in-game.
 ```
@@ -113,7 +115,7 @@ Manual closed-alpha builds: **GitHub → Actions → Alpha → Run workflow**
 
 1. Ensure `pnpm validate` passes and `docs/CHANGELOG.md` Unreleased is populated
 2. Enter version (e.g. `0.1.8-alpha.2`); start with `publish: false` to verify builds
-3. Re-run with `publish: true` for a draft prerelease; paste CHANGELOG sections into the release body
+3. Re-run with `publish: true` for a draft prerelease; release body is auto-generated from `docs/CHANGELOG.md` via `scripts/release-notes.mjs`
 
 Tag-based releases still work via `git tag v0.1.8-alpha.N` push (see `.github/workflows/release.yml`).
 

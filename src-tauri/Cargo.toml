@@ -1,6 +1,6 @@
 [package]
 name = "terranova"
-version = "0.1.8-alpha.3"
+version = "0.1.8-alpha.4"
 description = "Offline design studio for Hytale World Generation V2"
 authors = ["McCal <business@mcc-cal.com>"]
 license = "LGPL-2.1"

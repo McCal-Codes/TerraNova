@@ -29,6 +29,7 @@ import { isMac, isTauriRuntime } from "@/utils/platform";
 import { checkForUpdates } from "@/utils/updater";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
+import { useUIStore } from "@/stores/uiStore";
 import type { SvgExportOptions } from "@/utils/exportSvg";
 import { useReactFlow } from "@xyflow/react";
 import { useTauriIO } from "@/hooks/useTauriIO";
@@ -36,6 +37,11 @@ import { useGlobalKeyboardShortcuts } from "@/hooks/useGlobalKeyboardShortcuts";
 import { useInstantSave } from "@/hooks/useInstantSave";
 import { useProjectLegacyScan } from "@/hooks/useProjectLegacyScan";
 import { useSessionRestore } from "@/hooks/useSessionRestore";
+import { hasPersistedProjectSession } from "@/utils/sessionPersist";
+import { AlphaWhatToTestDialog } from "@/components/dialogs/AlphaWhatToTestDialog";
+import { OnboardingDialog, isOnboardingComplete } from "@/components/dialogs/OnboardingDialog";
+import { isAlphaWhatToTestDismissed } from "@/constants/alphaTestFocus";
+
 type PendingAction = "window-close" | "close-project";
 
 const DocsPanel = lazy(() =>
@@ -56,9 +62,22 @@ export default function App() {
   }, []);
 
   // Restore previous session (project path) on app mount
-  useSessionRestore();
+  const [sessionBootPending, setSessionBootPending] = useState(hasPersistedProjectSession);
+  const onSessionBootComplete = useCallback(() => setSessionBootPending(false), []);
+  useSessionRestore({ onBootComplete: onSessionBootComplete });
+
+  const [alphaTestOpen, setAlphaTestOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const alphaTestPromptedRef = useRef(false);
 
   const projectPath = useProjectStore((s) => s.projectPath);
+
+  useEffect(() => {
+    if (alphaTestPromptedRef.current || sessionBootPending || projectPath === null) return;
+    if (!isOnboardingComplete() || isAlphaWhatToTestDismissed()) return;
+    alphaTestPromptedRef.current = true;
+    setAlphaTestOpen(true);
+  }, [sessionBootPending, projectPath]);
   const { openFile } = useTauriIO();
 
   const [showDialog, setShowDialog] = useState(false);
@@ -71,6 +90,16 @@ export default function App() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [settingsSystemTab, setSettingsSystemTab] = useState<SystemTab>("cpu");
   const [showExportSvg, setShowExportSvg] = useState(false);
+
+  const requestedSettingsTab = useUIStore((s) => s.requestedSettingsTab);
+  const setRequestedSettingsTab = useUIStore((s) => s.setRequestedSettingsTab);
+
+  useEffect(() => {
+    if (!requestedSettingsTab) return;
+    setSettingsTab(requestedSettingsTab);
+    setShowSettings(true);
+    setRequestedSettingsTab(null);
+  }, [requestedSettingsTab, setRequestedSettingsTab]);
 
   // Bypass flag: when true the onCloseRequested handler lets the close through.
   const forceCloseRef = useRef(false);
@@ -108,6 +137,7 @@ export default function App() {
   // ---- Post-update verification + auto-check for updates ----
   useEffect(() => {
     const updateTarget = localStorage.getItem("tn-update-target");
+    const autoCheckUpdates = useSettingsStore.getState().autoCheckUpdates;
     if (updateTarget) {
       localStorage.removeItem("tn-update-target");
       getVersion().then((currentVersion) => {
@@ -123,7 +153,7 @@ export default function App() {
       return; // Skip auto-update check this launch
     }
 
-    if (!useSettingsStore.getState().autoCheckUpdates) return;
+    if (!autoCheckUpdates) return;
     const timer = setTimeout(checkForUpdates, 3000);
     return () => clearTimeout(timer);
   }, []);
@@ -261,6 +291,19 @@ export default function App() {
     return <ShapePreviewGalleryHarnessLazy />;
   }
 
+  if (sessionBootPending && projectPath === null) {
+    return (
+      <>
+        <div className="flex flex-col h-screen bg-tn-bg text-tn-text">
+          <SimpleTitleBar />
+          <LoadingDialog open message="Restoring your project…" />
+          <Toast />
+        </div>
+        <BugReportHost />
+      </>
+    );
+  }
+
   if (projectPath === null) {
     return (
       <>
@@ -295,6 +338,7 @@ export default function App() {
         setSettingsSystemTab={setSettingsSystemTab}
         showExportSvg={showExportSvg}
         setShowExportSvg={setShowExportSvg}
+        onOpenAlphaChecklist={() => setAlphaTestOpen(true)}
         dialog={dialog}
       />
       <LoadingDialog open={loading} message="Loading, please wait..." />
@@ -302,6 +346,15 @@ export default function App() {
       <SyncProgressModal />
       <BugReportHost />
       <AlphaPackBackupDialog />
+      <AlphaWhatToTestDialog
+        open={alphaTestOpen}
+        onClose={() => setAlphaTestOpen(false)}
+        onOpenOnboarding={() => {
+          setAlphaTestOpen(false);
+          setOnboardingOpen(true);
+        }}
+      />
+      <OnboardingDialog open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
     </ReactFlowProvider>
   );
 }
@@ -397,6 +450,7 @@ function ProjectEditor({
   setSettingsSystemTab,
   showExportSvg,
   setShowExportSvg,
+  onOpenAlphaChecklist,
   dialog,
 }: {
   requestCloseProject: () => void;
@@ -412,6 +466,7 @@ function ProjectEditor({
   setSettingsSystemTab: (tab: SystemTab) => void;
   showExportSvg: boolean;
   setShowExportSvg: (show: boolean) => void;
+  onOpenAlphaChecklist?: () => void;
   dialog: React.ReactNode;
 }) {
   const openSettings = useCallback((tab: SettingsTab = "general", systemTab: SystemTab = "cpu") => {
@@ -463,6 +518,7 @@ function ProjectEditor({
         onClose={() => setShowSettings(false)}
         initialTab={settingsTab}
         initialSystemTab={settingsSystemTab}
+        onOpenAlphaChecklist={onOpenAlphaChecklist}
       />
       <ExportSvgDialogWrapper open={showExportSvg} onClose={() => setShowExportSvg(false)} />
     </>

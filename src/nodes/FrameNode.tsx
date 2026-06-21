@@ -28,7 +28,8 @@ function pointerMovedBeyondThreshold(
 }
 
 export const FrameNode = memo(function FrameNode({ id, selected, data }: NodeProps) {
-  const nodeData = data as unknown as FrameNodeData;
+  const nodeData = data as unknown as FrameNodeData & { _readOnlyOverview?: boolean };
+  const readOnlyOverview = Boolean(nodeData._readOnlyOverview);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(nodeData.name ?? "");
   const cancelEditRef = useRef(false);
@@ -149,6 +150,53 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
 
   const width = nodeData.width ?? 300;
   const height = nodeData.height ?? 200;
+  const frameColor = readOnlyOverview ? `${FRAME_COLOR}cc` : FRAME_COLOR;
+  const frameBg = readOnlyOverview ? "rgba(74, 127, 165, 0.08)" : FRAME_BG;
+  const frameBorder = readOnlyOverview ? "rgba(74, 127, 165, 0.35)" : (selected ? FRAME_COLOR : FRAME_BORDER);
+
+  if (readOnlyOverview) {
+    return (
+      <div
+        style={{
+          width,
+          height,
+          background: frameBg,
+          border: `1px solid ${frameBorder}`,
+          borderRadius: 10,
+          pointerEvents: "none",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            minHeight: 26,
+            padding: "4px 10px",
+            background: "rgba(74, 127, 165, 0.1)",
+            borderBottom: `1px solid ${frameBorder}`,
+            borderRadius: "9px 9px 0 0",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <span
+            style={{
+              color: frameColor,
+              fontSize: 10,
+              fontWeight: 600,
+              userSelect: "none",
+              opacity: nodeData.name ? 0.9 : 0.55,
+            }}
+          >
+            {nodeData.name || "Frame"}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

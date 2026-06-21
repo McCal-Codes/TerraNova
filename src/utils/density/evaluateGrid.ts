@@ -48,6 +48,8 @@ export function evaluateDensityGrid(
   }
 
   const step = n > 1 ? (rangeMax - rangeMin) / (n - 1) : 0;
+  const originX = Number(options?.contentFields?.previewOriginX ?? 0);
+  const originZ = Number(options?.contentFields?.previewOriginZ ?? 0);
   let minVal = Infinity;
   let maxVal = -Infinity;
 
@@ -57,8 +59,8 @@ export function evaluateDensityGrid(
 
   for (let row = 0; row < n; row++) {
     for (let col = 0; col < n; col++) {
-      const sx = rangeMin + col * step;
-      const sz = rangeMin + row * step;
+      const sx = originX + rangeMin + col * step;
+      const sz = originZ + rangeMin + row * step;
       const val = ctx.evaluate(ctx.rootId, sx, yLevel, sz);
       values[row * n + col] = val;
       if (val < minVal) minVal = val;

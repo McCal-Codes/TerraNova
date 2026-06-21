@@ -36,7 +36,7 @@ Tell the reader what they are building in this step and why.
 1. Add **NodeName** (Category in the node palette).
 2. Set `FieldName` to `value`.
 3. Connect `NodeA` -> `NodeB`.
-4. Click **Generate**. You should see [describe what appears].
+4. Click **Evaluate now**. You should see [describe what appears].
 
 ```nodegraph
 {
@@ -85,7 +85,7 @@ Build on Step 1. Add what changes and why.
     { "nodeId": "a",   "text": "This is the anchor from Step 1. It still defines the baseline." },
     { "nodeId": "b",   "text": "This is the new node. Explain what it contributes." },
     { "nodeId": "sum", "text": "Sum combines the two contributions. The result is fed to the output." },
-    { "nodeId": "out", "text": "The final density reaches Terrain Out. Click Generate to see the change." }
+    { "nodeId": "out", "text": "The final density reaches Terrain Out. Click Evaluate now to see the change." }
   ]
 }
 ```

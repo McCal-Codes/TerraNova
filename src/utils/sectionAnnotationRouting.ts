@@ -93,9 +93,18 @@ function collectNodeIdsFromAsset(asset: unknown, ids: Set<string>): void {
   if (typeof record.$NodeId === "string") {
     ids.add(record.$NodeId);
   }
+  if (typeof record.__hytaleNodeId === "string") {
+    ids.add(record.__hytaleNodeId);
+  }
   for (const value of Object.values(record)) {
     collectNodeIdsFromAsset(value, ids);
   }
+}
+
+function addAnchorNodeId(record: Record<string, unknown> | undefined, ids: Set<string>): void {
+  if (!record) return;
+  if (typeof record.$NodeId === "string") ids.add(record.$NodeId);
+  if (typeof record.__hytaleNodeId === "string") ids.add(record.__hytaleNodeId);
 }
 
 /**
@@ -111,8 +120,16 @@ export function collectBiomeSectionNodeIds(
   const density = terrain?.Density;
   if (density && typeof density === "object" && "Type" in (density as Record<string, unknown>)) {
     const ids = new Set<string>();
+    addAnchorNodeId(terrain, ids);
     collectNodeIdsFromAsset(density, ids);
     sectionNodeIds.Terrain = ids;
+  }
+
+  if (typeof wrapper.$NodeId === "string" || typeof wrapper.__hytaleNodeId === "string") {
+    const ids = new Set<string>();
+    if (typeof wrapper.$NodeId === "string") ids.add(wrapper.$NodeId);
+    if (typeof wrapper.__hytaleNodeId === "string") ids.add(wrapper.__hytaleNodeId);
+    sectionNodeIds.Biome = ids;
   }
 
   const matProvider = wrapper.MaterialProvider;
@@ -124,8 +141,12 @@ export function collectBiomeSectionNodeIds(
 
   if (Array.isArray(wrapper.Props)) {
     for (let i = 0; i < wrapper.Props.length; i++) {
+      const prop = wrapper.Props[i] as Record<string, unknown>;
       const ids = new Set<string>();
-      collectNodeIdsFromAsset(wrapper.Props[i], ids);
+      addAnchorNodeId(prop, ids);
+      const dist = prop.PropDistribution as Record<string, unknown> | undefined;
+      addAnchorNodeId(dist, ids);
+      collectNodeIdsFromAsset(prop, ids);
       sectionNodeIds[`Props[${i}]`] = ids;
     }
   }

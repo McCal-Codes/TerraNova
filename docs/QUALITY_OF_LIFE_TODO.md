@@ -4,6 +4,18 @@ Legend: `[x]` = shipped, `[ ]` = not started, `[~]` = partial / in progress
 
 ---
 
+## Alpha 4 (0.1.8-alpha.4) — shipped
+
+- [x] **Session restore reliability** — toasts on project/file failure; empty directory tree no longer blocks phase-2 file reopen; stale `currentFile` cleared on open failure.
+- [x] **License & Notice viewers** — Settings → About opens readable LICENSE and NOTICE modals.
+- [x] **What's New seen sync** — closing What's New from Settings marks version seen (matches home dismiss).
+- [x] **Path-scoped preview fidelity** — badge scores only density nodes on the active preview path.
+- [x] **Approximated preview callout** — named Pipeline/GradientWarp/etc. nodes with Issues panel link.
+- [x] **Material preview passthrough warning** — callout when stack uses Surface/Exported stub nodes.
+- [x] **Voxel legend visibility toggles** — per-material hide/show in Voxel settings sidebar; mesh + HUD legend filter hidden materials.
+
+---
+
 ## Docs panel
 
 - [x] **Curve previews in docs** (`curve:` fence renders live CurveCanvas read-only). Shipped in da5a736.
@@ -62,8 +74,8 @@ Legend: `[x]` = shipped, `[ ]` = not started, `[~]` = partial / in progress
 
 ## Validation panel
 
-- [ ] **Biome-level issue navigation** — clicking a biome-level issue jumps to that section, not just graph nodes.
-- [ ] **One-click auto-fixes** for safe diagnostics (delimiter sorting, missing defaults, simple ref cleanup).
+- [x] **Biome-level issue navigation** — Issues panel uses `biomeSection` + `useNavigateToDiagnostic`
+- [~] **One-click auto-fixes** for safe diagnostics — env/tint/biome fixes in ValidationPanel; tint unknown-ref + empty delimiter bands
 - [x] **Project-wide legacy node scanner** — scan all `.json` files in the pack for legacy node types, show a collapsible "Project-wide" breakdown in the validation panel. Per-file open-and-fix only (no bulk replace).
 - [x] **Amber dot badge** on file tree entries that have legacy node hits.
 
@@ -76,7 +88,7 @@ Legend: `[x]` = shipped, `[ ]` = not started, `[~]` = partial / in progress
 - [x] **Clickable asset file paths** open directly in editor. Shipped in 0.1.6.
 - [ ] **Drag-and-drop timeline for weather types** in the forecast editor.
 - [ ] **Weather preset browser** — import/export named weather patterns.
-- [ ] **TintProvider density parameters editable** from the AtmosphereTab tint section without requiring node graph access (see mccal_todo.md for detail).
+- [x] **TintProvider density parameters editable** from the AtmosphereTab tint section without requiring node graph access (see mccal_todo.md for detail).
 - [x] **Weather forecast hour buckets visible** in the AtmosphereTab so users can see the full day/night schedule at a glance. Shipped via `BiomeAtmosphereForecastPanel` + **24-Hour Schedule** strip.
 - [x] **`EnvironmentProvider {}` empty object shows "uses server default" label** in the biome dashboard and AtmosphereTab (graph section omitted when `{}` has no `Type`). Shipped in 0.1.6 follow-up.
 - [x] **Export environment name collision warning** — Atmosphere tab export blocks when `Env_*` file already exists. Shipped in 0.1.6.
@@ -88,18 +100,18 @@ Legend: `[x]` = shipped, `[ ]` = not started, `[~]` = partial / in progress
 - [x] **Block/material autocomplete** (BlockTypeList in node inputs). Shipped previously.
 - [x] **Biome browser search and validation** (rich template entries, one-click fixes). Shipped in 0.1.6.
 - [ ] **Right-click any file in left pane to open in File Explorer** (reveal in OS).
-- [ ] **File tree semantic icons** — `getFileIcon()` parallel to `getFileColor()` returning lucide icons for environment/weather/biome/material/etc. files. See mccal_todo.md Pass 1B.
-- [ ] **Asset Tools "Referenced Assets" row icons** — kind-specific lucide icons next to status dot. See mccal_todo.md Pass 1A.
+- [x] **File tree semantic icons** — `getFileIconSpec()` in `fileTreeIcons.ts` returning lucide icons for environment/weather/biome/material/etc. files. Shipped Pass 1B.
+- [x] **Asset Tools "Referenced Assets" row icons** — kind-specific lucide icons next to status dot via `getReferencedAssetKindIcon`. Shipped Pass 1A.
 - [ ] **Detailed error info for failed asset pack loads** with auto-fix suggestions for common UTF-8 and schema issues.
 
 ---
 
 ## Material / voxel preview
 
-- [ ] **Voxel preview shows all materials** with add/remove options.
+- [~] **Voxel preview shows all materials** with add/remove options — legend hide/show shipped in alpha.4; add/remove materials and compliance checker still open.
 - [ ] **Material compliance checker** — flags material assignments that don't match Hytale worldgen rules.
-- [ ] **Biome browser inline tint swatch** — read TintProvider.Delimiters colors on load and show a color preview strip beside each biome.
-- [ ] **Biome browser environment resolution** — show which `Env_*` the biome resolves to beside each project biome entry.
+- [x] **Biome browser inline tint swatch** — Atmosphere tab `BiomeBrowserRow` tint strip
+- [x] **Biome browser environment resolution** — resolved env label on browser rows
 
 ---
 
@@ -110,8 +122,8 @@ Legend: `[x]` = shipped, `[ ]` = not started, `[~]` = partial / in progress
 - [x] **Curves reference** (all 12 types with live previews and Min/Max explanations). Shipped in da5a736.
 - [x] **Node Effects reference** (tables, terrain patterns, quick-pick guide). Shipped in da5a736.
 - [x] **Terrain Types catalog** (12 terrain types, snippets, curves, difficulty labels). Shipped in 0b1ec2a.
-- [ ] **Tint system guide** — explain the 2D tint limitation, density-proxy workaround, SliderDensity pattern, and dual-sample slope trick. Content is already in mccal_todo.md; needs to become a doc page.
-- [ ] **Environment inheritance guide** — explain `Parent` field, zone/cave/unique inheritance trees, safe defaults. Content is in mccal_todo.md.
+- [x] **Tint system guide** — [src/docs/reference/tint-system.md](../src/docs/reference/tint-system.md)
+- [x] **Environment inheritance guide** — [src/docs/reference/environment-parent-inheritance.md](../src/docs/reference/environment-parent-inheritance.md)
 - [ ] **Props and placement guide** — prop density functions, scanner nodes, Occurrence/Jitter2d, placement conditions.
 - [ ] **Materials guide** — Assignment, Pattern:Mask, depth-based layering, tintable materials.
 - [ ] **Quickstart** polish pass — currently sparse, could benefit from a first-graph walkthrough matching the new getting-started.md style.

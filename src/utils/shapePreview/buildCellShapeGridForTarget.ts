@@ -6,6 +6,7 @@ import {
   type CellShapeGridResult,
 } from "./cellShapeGrid";
 import { getCellNoisePreviewFields } from "./cellNoisePreviewFields";
+import type { DensityExportMap } from "@/utils/densityExportRegistry";
 import {
   findUpstreamCellNoiseNodes,
   SHAPE_PREVIEW_COMBINER_TYPES,
@@ -20,6 +21,7 @@ export function buildCellShapeGridForTarget(
   rangeMax: number,
   gridRes: number,
   sliceY: number,
+  externalDensityExports?: DensityExportMap,
 ): CellShapeGridResult | null {
   const type = getNodeType(target);
   const fields = ((target.data as Record<string, unknown>)?.fields ?? {}) as Record<
@@ -34,7 +36,13 @@ export function buildCellShapeGridForTarget(
 
   if (!SHAPE_PREVIEW_COMBINER_TYPES.has(type)) return null;
 
-  const upstream = findUpstreamCellNoiseNodes(nodes, edges, target.id);
+  const upstream = findUpstreamCellNoiseNodes(
+    nodes,
+    edges,
+    target.id,
+    6,
+    externalDensityExports,
+  );
   const grids: CellShapeGridResult[] = [];
   for (const node of upstream) {
     const cf = getCellNoisePreviewFields(

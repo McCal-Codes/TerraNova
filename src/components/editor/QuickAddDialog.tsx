@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { ALL_DEFAULTS, type CategoryDefaultsEntry } from "@/schema/defaults";
 import { SNIPPET_CATALOG, placeSnippet, type SnippetDefinition } from "@/schema/snippets";
+import { WORLDGEN_REFERENCE_BLOCKS } from "@/schema/worldgenReferenceBlocks";
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
 import { findHandleDef, getHandles } from "@/nodes/handleRegistry";
 import type { HandleDef } from "@/nodes/shared/handles";
@@ -15,6 +16,7 @@ import { entryMatchesSearch } from "@/utils/nodeTypeSearch";
 import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 import connectionsData from "@/data/connections.json";
 import { safeStoredJson } from "@/utils/safeLocalStorage";
+import { afterPlaceDensityBasicsSnippet } from "@/utils/densityBasics/afterPlaceSnippet";
 
 export { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 
@@ -51,6 +53,10 @@ const QUICK_ADD_WIDTH = 360;
 const QUICK_ADD_HEIGHT = 430;
 const QUICK_ADD_MARGIN = 12;
 const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;
+const QUICK_ADD_SNIPPETS: SnippetDefinition[] = [
+  ...WORLDGEN_REFERENCE_BLOCKS,
+  ...SNIPPET_CATALOG,
+];
 
 function getRecentTypes(): string[] {
   return safeStoredJson<string[]>(RECENT_KEY, []);
@@ -216,9 +222,14 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
   const filteredSnippets = useMemo(() => {
     // Don't show snippets when connection-aware filtering is active
     if (pendingConnection) return [];
-    if (!search) return SNIPPET_CATALOG;
+    if (!search) return QUICK_ADD_SNIPPETS;
     const q = search.trim().toLowerCase();
-    return SNIPPET_CATALOG.filter((s) => s.name.toLowerCase().includes(q));
+    return QUICK_ADD_SNIPPETS.filter((s) => (
+      s.name.toLowerCase().includes(q)
+      || s.description.toLowerCase().includes(q)
+      || s.category.toLowerCase().includes(q)
+      || (s.tags?.some((tag) => tag.toLowerCase().includes(q)) ?? false)
+    ));
   }, [search, pendingConnection]);
 
   // Recent nodes (shown when search is empty)
@@ -313,6 +324,7 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
         });
         const { nodes, edges } = placeSnippet(snippet, flowPos);
         useEditorStore.getState().addSnippet(nodes, edges);
+        afterPlaceDensityBasicsSnippet(snippet, nodes);
         onClose();
       } catch (err) {
         if (import.meta.env.DEV) console.error("Failed to place snippet:", err);
@@ -437,6 +449,11 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
 
             // Section labels
             const isSnippetStart = i === recentCount && snippetCount > 0;
+            const isWorldgenReferenceStart = de.kind === "snippet" && (
+              i === recentCount
+              || (displayEntries[i - 1]?.kind === "snippet"
+                && (displayEntries[i - 1] as { kind: "snippet"; snippet: SnippetDefinition }).snippet.library !== "worldgen-reference")
+            ) && de.snippet.library === "worldgen-reference";
             const isAllNodesStart =
               i === recentCount + snippetCount && filteredNodeEntries.length > 0 && (recentCount > 0 || snippetCount > 0);
 
@@ -446,6 +463,11 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
                   {isSnippetStart && (
                     <div className="px-3 py-1 text-[10px] text-tn-text-muted font-medium uppercase tracking-wider mt-1">
                       Snippets
+                    </div>
+                  )}
+                  {isWorldgenReferenceStart && (
+                    <div className="px-3 py-1 text-[10px] text-tn-text-muted font-medium uppercase tracking-wider mt-1">
+                      Worldgen References
                     </div>
                   )}
                   <button
@@ -467,7 +489,7 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
                       </span>
                     </span>
                     <span className="text-[10px]" style={{ color: SNIPPET_COLOR }}>
-                      Snippet
+                      {de.snippet.library === "worldgen-reference" ? "Reference" : "Snippet"}
                     </span>
                   </button>
                 </div>

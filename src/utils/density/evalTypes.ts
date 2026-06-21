@@ -20,6 +20,7 @@ const APPROXIMATED_TYPES = new Set([
   "ColumnDensity",
   "CaveDensity",
   "DistanceToBiomeEdge",
+  "GradientWarp",
 ]);
 
 export function getEvalStatus(type: string): EvalStatus {
@@ -74,6 +75,35 @@ export function getNodeType(node: Node): string {
   return (data.type as string) ?? "";
 }
 
+const TERRAIN_COMBINER_TYPES = new Set([
+  "Sum", "Min", "Max", "Mix", "WeightedSum", "Clamp", "Multiplier", "Product",
+  "Pipeline", "TerrainBoolean",
+]);
+
+const NON_TERRAIN_BIOME_FIELDS = new Set([
+  "EnvironmentProvider",
+  "TintProvider",
+  "MaterialProvider",
+  "Positions",
+  "Assignments",
+]);
+
+function isTerrainDensityCandidate(node: Node): boolean {
+  const data = node.data as Record<string, unknown>;
+  const field = data._biomeField;
+  if (typeof field === "string" && NON_TERRAIN_BIOME_FIELDS.has(field)) {
+    return false;
+  }
+  return DENSITY_TYPES.has(getNodeType(node));
+}
+
+function preferTerrainTerminal(nodes: Node[]): Node | null {
+  const combiner = nodes.find((n) => TERRAIN_COMBINER_TYPES.has(getNodeType(n)));
+  if (combiner) return combiner;
+  const nonConstant = nodes.find((n) => getNodeType(n) !== "Constant");
+  return nonConstant ?? nodes[0] ?? null;
+}
+
 export function findDensityRoot(nodes: Node[], edges: Edge[]): Node | null {
   const outputNode = nodes.find(
     (n) => (n.data as Record<string, unknown>)._outputNode === true,
@@ -87,9 +117,10 @@ export function findDensityRoot(nodes: Node[], edges: Edge[]): Node | null {
 
   const sourcesWithOutgoing = new Set(edges.map((e) => e.source));
   const terminals = nodes.filter((n) => !sourcesWithOutgoing.has(n.id));
+  const terrainTerminals = terminals.filter(isTerrainDensityCandidate);
 
-  const terminalDensity = terminals.find((n) => DENSITY_TYPES.has(getNodeType(n)));
+  const terminalDensity = preferTerrainTerminal(terrainTerminals);
   if (terminalDensity) return terminalDensity;
 
-  return nodes.find((n) => DENSITY_TYPES.has(getNodeType(n))) ?? null;
+  return nodes.find((n) => isTerrainDensityCandidate(n)) ?? null;
 }

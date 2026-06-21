@@ -81,6 +81,8 @@ The three biome windows from the example JSON partition the full [-1, 1] noise r
 
 Each biome occupies roughly equal portions of the noise distribution. To make a biome more common, widen its range. To make it rare, narrow it.
 
+In TerraNova, open a `NoiseRange` world structure to use the **World Biome Mapper**: range table with project biome linking, validation diagnostics, **Selector map** preview, reference import, and **World generation heights** (`ContentFields` / spawn summary).
+
 ```nodegraph
 {
   "kind": "conceptual",

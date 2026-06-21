@@ -49,6 +49,7 @@ export function ControlsWorld() {
       s.serverStatus?.bridge_version?.includes("sidecar") === true,
   );
   const worldDataSource = usePreviewStore((s) => s.worldDataSource);
+  const worldBlockColorStats = usePreviewStore((s) => s.worldBlockColorStats);
   const worldLivePlayer = usePreviewStore((s) => s.worldLivePlayer);
   const showWorldPlayerMarker = usePreviewStore((s) => s.showWorldPlayerMarker);
   const setShowWorldPlayerMarker = usePreviewStore((s) => s.setShowWorldPlayerMarker);
@@ -86,6 +87,23 @@ export function ControlsWorld() {
 
       {!bridgeConnected && (
         <p className="text-[10px] text-yellow-400">Connect to bridge to load world data</p>
+      )}
+
+      {bridgeConnected && worldBlockColorStats && (
+        <p
+          className={`text-[10px] leading-snug ${
+            worldBlockColorStats.textured === worldBlockColorStats.total
+              ? "text-emerald-400"
+              : worldBlockColorStats.textured > 0
+                ? "text-cyan-400"
+                : "text-amber-400"
+          }`}
+        >
+          Block colors: {worldBlockColorStats.textured}/{worldBlockColorStats.total} from synced Hytale assets
+          {worldBlockColorStats.textured === 0
+            ? " — run Settings → Assets sync for in-game textures"
+            : ""}
+        </p>
       )}
 
       {bridgeConnected && worldDataSource && (
@@ -135,7 +153,7 @@ export function ControlsWorld() {
       <SliderField label="Chunk Radius" value={worldRadius} min={1} max={5} step={1} onChange={setWorldRadius} />
       <SliderField label="Y Min" value={worldYMin} min={0} max={319} step={1} onChange={setWorldYMin} />
       <SliderField label="Y Max" value={worldYMax} min={1} max={320} step={1} onChange={setWorldYMax} />
-      <SliderField label="Surface Depth" value={worldSurfaceDepth} min={4} max={40} step={4} onChange={setWorldSurfaceDepth} />
+      <SliderField label="Surface Depth" value={worldSurfaceDepth} min={4} max={128} step={4} onChange={setWorldSurfaceDepth} />
       <SliderField label="Lava Level" value={worldLavaLevel} min={0} max={200} step={1} onChange={setWorldLavaLevel} />
 
       {bridgeConnected && worldLivePlayer && (

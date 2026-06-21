@@ -1,10 +1,12 @@
-﻿import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { safeJsonParse } from "@/utils/safeLocalStorage";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useUIStore } from "@/stores/uiStore";
-import { writeTextFile, pathExists, listDirectory, listTemplateBiomes, readAssetFile, type TemplateBiomeEntry } from "@/utils/ipc";
+import { writeTextFile, pathExists, listDirectory, listTemplateBiomes, readAssetFile, readAssetFileText, type TemplateBiomeEntry } from "@/utils/ipc";
+import { extractBiomeBrowserMeta, type BiomeBrowserMeta } from "@/utils/biomeBrowserSummary";
+import { BiomeBrowserRow } from "./BiomeBrowserRow";
 import { asRecord, type JsonRecord, isEmptyEnvironmentProvider } from "@/utils/atmosphere";
 import { AtmosphereHelpCard } from "@/components/editor/atmosphere/AtmosphereHelpCard";
 import { BiomeAtmosphereForecastPanel } from "./BiomeAtmosphereForecastPanel";
@@ -15,9 +17,11 @@ import {
   resolveBiomeAtmosphere,
   type ResolveBiomeAtmosphereMetadata,
 } from "@/utils/resolveBiomeAtmosphere";
-import { applyBiomeTintBand } from "./biomeTintUtils";
+import { applyBiomeTintBand, isSimplexNoise2DTint, readTintDelimiters, updateTintDelimiters, updateTintDensity } from "./biomeTintUtils";
 import { ColorPickerField } from "./ColorPickerField";
 import { SliderField } from "./SliderField";
+import { TintDensityField } from "./TintDensityField";
+import { TintDelimitersField } from "./TintDelimitersField";
 import { joinPath, inferServerRoot, normalizePath, getDirname } from "@/utils/pathUtils";
 
 // ---------------------------------------------------------------------------
@@ -284,6 +288,7 @@ export function AtmosphereTab({
   const setNodes = useEditorStore((s) => s.setNodes);
   const setEdges = useEditorStore((s) => s.setEdges);
   const setOutputNode = useEditorStore((s) => s.setOutputNode);
+  const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
   const currentFile = useProjectStore((s) => s.currentFile);
@@ -296,6 +301,7 @@ export function AtmosphereTab({
   const { openFile } = useTauriIO();
   const [weatherInfo, setWeatherInfo] = useState<ResolvedWeatherInfo>(INITIAL_WEATHER_INFO);
   const [resolvedEnvironmentDoc, setResolvedEnvironmentDoc] = useState<JsonRecord | null>(null);
+  const [tintAdvancedOpen, setTintAdvancedOpen] = useState(false);
 
   const [atm, setAtm] = useState<AtmosphereState>(() => ({
     ...loadAtmosphere(),
@@ -492,6 +498,30 @@ export function AtmosphereTab({
   const [biomeLoadStatus, setBiomeLoadStatus] = useState<"idle" | "loading" | "error">("idle");
   const [templateBiomes, setTemplateBiomes] = useState<TemplateBiomeEntry[]>([]);
   const [templateLoadStatus, setTemplateLoadStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [biomeMetaByPath, setBiomeMetaByPath] = useState<Record<string, BiomeBrowserMeta>>({});
+  const biomeMetaRef = useRef(biomeMetaByPath);
+  biomeMetaRef.current = biomeMetaByPath;
+
+  const loadBiomeMeta = useCallback(async (paths: string[]) => {
+    const missing = paths.filter((path) => !biomeMetaRef.current[path]);
+    if (missing.length === 0) return;
+    const entries = await Promise.all(
+      missing.map(async (path) => {
+        try {
+          const text = await readAssetFileText(path);
+          const parsed = safeJsonParse(text, null);
+          return [path, extractBiomeBrowserMeta(parsed)] as const;
+        } catch {
+          return [path, { environmentLabel: "—", tintColors: [] as string[] }] as const;
+        }
+      }),
+    );
+    setBiomeMetaByPath((prev) => {
+      const next = { ...prev };
+      for (const [path, meta] of entries) next[path] = meta;
+      return next;
+    });
+  }, []);
 
   const loadBiomeFiles = useCallback(async () => {
     const serverRoot = inferServerRootWithHint(currentFile, projectPath, weatherInfo.serverRoot);
@@ -531,6 +561,16 @@ export function AtmosphereTab({
       setTemplateLoadStatus("error");
     }
   }, []);
+
+  useEffect(() => {
+    if (!biomeBrowserOpen) return;
+    const paths =
+      biomeBrowserTab === "project"
+        ? biomeFiles.map((f) => f.path)
+        : templateBiomes.map((t) => t.path);
+    if (paths.length === 0) return;
+    void loadBiomeMeta(paths);
+  }, [biomeBrowserOpen, biomeBrowserTab, biomeFiles, templateBiomes, loadBiomeMeta]);
 
   // Environment export
   const [exportName, setExportName] = useState("");
@@ -780,6 +820,24 @@ export function AtmosphereTab({
     });
   }
 
+  function commitTintProvider(nextTint: Record<string, unknown>, label: string) {
+    if (!biomeConfig) return;
+    setBiomeConfig({ ...biomeConfig, TintProvider: nextTint });
+    setDirty(true);
+    commitState(label);
+    syncTintSection(nextTint);
+  }
+
+  function handleTintDensityChange(density: Record<string, unknown>) {
+    const liveTint = useEditorStore.getState().biomeConfig?.TintProvider as Record<string, unknown> | undefined;
+    commitTintProvider(updateTintDensity(liveTint, density), "Edit TintProvider.Density");
+  }
+
+  function handleTintDelimitersChange(delimiters: Array<Record<string, unknown>>) {
+    const liveTint = useEditorStore.getState().biomeConfig?.TintProvider as Record<string, unknown> | undefined;
+    commitTintProvider(updateTintDelimiters(liveTint, delimiters), "Edit TintProvider.Delimiters");
+  }
+
   const exportServerRoot = inferServerRootWithHint(currentFile, projectPath, weatherInfo.serverRoot);
   const exportEnvironmentDir =
     (weatherInfo.environmentPath ? getDirname(normalizePath(weatherInfo.environmentPath)) : null)
@@ -1012,9 +1070,43 @@ export function AtmosphereTab({
             </div>
             {tintBandColors.length > 3 && (
               <p className="text-[10px] text-tn-text-muted leading-tight">
-                Quick controls edit the first 3 bands. Tint graph editing is disabled for now.
+                Quick color controls edit the first 3 bands. Use Advanced below for all bands and ranges.
               </p>
             )}
+            {isSimplexNoise2DTint(tint ?? undefined) ? (
+              <TintDensityField
+                tintProvider={tint}
+                onChange={handleTintDensityChange}
+                onBlur={onBlur}
+              />
+            ) : (
+              <p className="text-[10px] text-amber-400/90 leading-tight">
+                This tint uses a custom density graph. Open the Tint section to edit noise parameters.
+              </p>
+            )}
+            <details
+              open={tintAdvancedOpen}
+              onToggle={(e) => setTintAdvancedOpen((e.target as HTMLDetailsElement).open)}
+              className="rounded border border-tn-border/60 bg-tn-bg/40"
+            >
+              <summary className="cursor-pointer px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">
+                Advanced — delimiter ranges
+              </summary>
+              <div className="px-2 pb-2 pt-1">
+                <TintDelimitersField
+                  delimiters={readTintDelimiters(tint)}
+                  onChange={handleTintDelimitersChange}
+                  onBlur={onBlur}
+                />
+              </div>
+            </details>
+            <button
+              type="button"
+              onClick={() => switchBiomeSection("TintProvider")}
+              className="text-[10px] text-tn-accent border border-tn-accent/40 rounded px-2 py-1 hover:bg-tn-accent/10 transition-colors w-full"
+            >
+              Open Tint graph
+            </button>
           </>
         ) : (
           <>
@@ -1130,14 +1222,13 @@ export function AtmosphereTab({
                   {biomeFiles
                     .filter((f) => !biomeSearch || f.name.toLowerCase().includes(biomeSearch.toLowerCase()))
                     .map((f) => (
-                      <button
+                      <BiomeBrowserRow
                         key={f.path}
-                        onClick={() => { void openFile(f.path); }}
-                        className="text-left px-2 py-0.5 rounded text-[10px] text-tn-text font-mono hover:bg-tn-accent/15 hover:text-tn-accent transition-colors truncate"
-                        title={f.path}
-                      >
-                        {f.name}
-                      </button>
+                        name={f.name}
+                        path={f.path}
+                        meta={biomeMetaByPath[f.path]}
+                        onOpen={() => { void openFile(f.path); }}
+                      />
                     ))
                   }
                 </div>
@@ -1157,15 +1248,14 @@ export function AtmosphereTab({
                   <span className="text-[10px] text-tn-text-muted px-1">No template biomes found.</span>
                 )}
                 {templateBiomes.map((t) => (
-                  <button
+                  <BiomeBrowserRow
                     key={t.path}
-                    onClick={() => { void openFile(t.path); }}
-                    className="text-left px-2 py-1 rounded text-[10px] hover:bg-tn-accent/15 hover:text-tn-accent transition-colors group"
-                    title={t.path}
-                  >
-                    <div className="font-mono text-tn-text group-hover:text-tn-accent truncate">{t.biomeName}</div>
-                    <div className="text-tn-text-muted/70 group-hover:text-tn-accent/60 truncate">{t.displayName} · {t.templateName}</div>
-                  </button>
+                    name={t.biomeName}
+                    path={t.path}
+                    subtitle={`${t.displayName} · ${t.templateName}`}
+                    meta={biomeMetaByPath[t.path]}
+                    onOpen={() => { void openFile(t.path); }}
+                  />
                 ))}
               </div>
             )}

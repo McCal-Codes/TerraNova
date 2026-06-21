@@ -127,6 +127,8 @@ import { CommentNode } from "./CommentNode";
 
 // ── Frames ────────────────────────────────────────────────────────────
 import { FrameNode } from "./FrameNode";
+import { OverviewSectionBackdrop } from "./OverviewSectionBackdrop";
+import { SectionAnchorNode } from "./SectionAnchorNode";
 
 // ── Root ──────────────────────────────────────────────────────────────
 import { RootNode } from "./RootNode";
@@ -419,6 +421,10 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
 
   // ── Frames ───────────────────────────────────────────────────────────
   frame: FrameNode,
+
+  // ── Biome overview ───────────────────────────────────────────────────
+  overviewSection: OverviewSectionBackdrop,
+  sectionAnchor: SectionAnchorNode,
 
   // ── Root ────────────────────────────────────────────────────────────
   Root: RootNode,

@@ -1,8 +1,9 @@
 import { usePreviewStore } from "@/stores/previewStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { triggerManualEvaluation } from "@/hooks/usePreviewEvaluation";
-import { getNodeType } from "@/utils/density/evalTypes";
+import { DENSITY_TYPES, getNodeType } from "@/utils/density/evalTypes";
 import { supportsShapePreviewCard } from "@/utils/shapePreview/shapePreviewProfile";
+import { useResolvePreviewRoot } from "@/hooks/useResolvePreviewRoot";
 import { COLORMAPS } from "@/utils/colormaps";
 import {
   PreviewCallout,
@@ -32,6 +33,9 @@ export function SharedControls({ canExport = false, onExport }: SharedControlsPr
 
   const nodes = useEditorStore((s) => s.nodes);
   const outputNodeId = useEditorStore((s) => s.outputNodeId);
+  const rootResolution = useResolvePreviewRoot();
+
+  const densityNodes = nodes.filter((n) => DENSITY_TYPES.has(getNodeType(n)));
 
   const errorMessage = previewError || worldError;
 
@@ -83,6 +87,10 @@ export function SharedControls({ canExport = false, onExport }: SharedControlsPr
         </PreviewField>
       )}
 
+      {rootResolution.warning && mode !== "world" ? (
+        <PreviewCallout tone="warning">{rootResolution.warning}</PreviewCallout>
+      ) : null}
+
       {mode !== "world" && (
         <PreviewField label="Preview target" htmlFor="preview-target">
           <select
@@ -97,13 +105,14 @@ export function SharedControls({ canExport = false, onExport }: SharedControlsPr
             <option value="__auto__">
               {outputNodeId ? "Auto (designated output)" : "Auto (terminal node)"}
             </option>
-            {nodes.map((n) => {
-              const data = n.data as Record<string, unknown>;
-              const typeName = (data?.type as string) ?? n.type ?? "Node";
+            {densityNodes.map((n) => {
+              const typeName = getNodeType(n);
               const isOutput = n.id === outputNodeId;
+              const isRecommended = n.id === rootResolution.recommendedNodeId;
               return (
                 <option key={n.id} value={n.id}>
                   {isOutput ? "\u2605 " : ""}
+                  {isRecommended && !isOutput ? "\u25C6 " : ""}
                   {typeName} ({n.id})
                 </option>
               );

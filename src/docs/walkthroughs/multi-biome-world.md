@@ -130,8 +130,13 @@ If the Mountains biome is blending too softly into Forest, keep the biome transi
 
 With terrain built for each biome, assign the noise ranges that determine where each biome appears.
 
-1. Open the **Biome Ranges** panel (left sidebar → **Ranges** tab, or **World → Biome Ranges** in the menu).
-2. For each biome, set `Min` and `Max`:
+1. Open your **WorldStructure** / `NoiseRange` JSON (for example `MainWorld.json`).
+2. Use the **World Biome Mapper** panel above the selector canvas:
+   - **Coverage strip** — 1D view of all ranges on the −1…1 noise axis
+   - **Validation callout** — gaps, overlaps, missing biome files, and unassigned project biomes
+   - **Split equally** — partition the axis evenly across listed biomes
+   - **Import…** — pull range/selector layouts from bundled templates or synced Hytale release assets
+3. For each biome, set `Min` and `Max` (or pick from project biome files via the name picker):
 
 | Biome | Min | Max |
 |-------|-----|-----|
@@ -139,8 +144,8 @@ With terrain built for each biome, assign the noise ranges that determine where 
 | Forest | –0.33 | 0.33 |
 | Mountains | 0.33 | 1.0 |
 
-3. Set **DefaultBiome** to `Plains` (used if the selector falls on an exact boundary — rare, but required).
-4. The ranges must cover the full –1 to 1 span with no gaps and no overlaps.
+4. Set **DefaultBiome** to `Plains` (used if the selector falls on an exact boundary — rare, but required). Expand **Transition settings** in the mapper panel.
+5. The ranges must cover the full –1 to 1 span with no gaps and no overlaps.
 
 > **Tip:** Equal thirds (–1/–0.33/0.33/1) gives roughly equal biome coverage. Shift the splits to make one biome dominate — e.g. `Mountains` at 0.6 to 1.0 makes them rarer.
 
@@ -150,7 +155,7 @@ With terrain built for each biome, assign the noise ranges that determine where 
 
 The selector noise controls the *shape* and *size* of biome regions — separate from any individual biome's terrain noise.
 
-In the **Noise Range Config** (World settings or Biome Ranges panel):
+Open **Transition settings** in the World Biome Mapper, then tune the selector **Density** graph on the canvas below. Expand **Selector map** for a 2D preview of which biome owns each X/Z column (terrain blending at edges is not shown — only selector assignment).
 
 | Field | Recommended | Effect |
 |-------|-------------|--------|
@@ -165,7 +170,7 @@ In the **Noise Range Config** (World settings or Biome Ranges panel):
 
 ## Step 6 — Test and Tune Biome Boundaries
 
-Generate a preview and look for the biome boundaries.
+Evaluate a preview and look for the biome boundaries.
 
 **In 2D heatmap mode:**
 - Biome boundaries show as visible terrain height changes

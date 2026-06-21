@@ -55,11 +55,11 @@ function minimalPrefabProp(path: string): Record<string, unknown> {
   return {
     Runtime: 0,
     Skip: false,
-    Positions: { Type: "Mesh2D", Resolution: 6, Jitter: 0.3 },
-    Assignments: {
-      Type: "Constant",
+    PropDistribution: {
+      Type: "PropDistribution:Constant",
+      Positions: { Type: "Mesh2D", Resolution: 6, Jitter: 0.3 },
       Prop: {
-        Type: "Prefab",
+        Type: "Prop:Prefab",
         Path: path,
         Directionality: { Type: "Uniform" },
         Scanner: {

@@ -4118,7 +4118,7 @@ dependencies = [
 
 [[package]]
 name = "terranova"
-version = "0.1.8-alpha.3"
+version = "0.1.8-alpha.4"
 dependencies = [
  "bridge-save",
  "fastnoise-lite",

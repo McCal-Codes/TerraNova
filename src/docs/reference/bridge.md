@@ -47,17 +47,37 @@ The **display name** (for example **Autmn Forest**) comes from that instance's `
 
 Player/world resolution is implemented once in `tools/bridge-save` (shared by Tauri and the sidecar).
 
-### Option B — TerraNova Bridge JVM plugin (command executor)
+### Option B — TerraNova Bridge JVM plugin (shipped)
 
-Build from this repo:
+Build from this repo (JDK 25):
 
 ```powershell
 pnpm bridge:plugin:build
 ```
 
-Copy `tools/terranova-bridge-plugin/build/libs/TerraNova.Bridge.jar` to `%APPDATA%\Hytale\UserData\Mods\`, enable **TerraNova: Bridge** on your save, and keep the **sidecar** running for editor HTTP preview.
+This produces `tools/terranova-bridge-plugin/build/libs/TerraNova.Bridge-*.jar` and bundles `src-tauri/assets/bridge-plugin/TerraNova.Bridge.jar` for the desktop app.
 
-The plugin polls `bridge/pending-commands.log` on the active save (see `UserData/bridge-active-save.txt` while the sidecar runs) and runs queued console commands in-game.
+**In TerraNova:** open **Bridge** (`Ctrl+B`) → **Deploy Plugin**. TerraNova copies the bundled JAR into the global mods folder for your **Settings → Assets** channel:
+
+| Channel | Global mods folder (Windows) |
+|---------|------------------------------|
+| Release | `%APPDATA%\Hytale\UserData\Mods\` |
+| Pre-release | `%APPDATA%\Hytale\data\pre-release\UserData\Mods\` |
+
+Enable **TerraNova Bridge** on your save in Hytale, then keep the **sidecar** running for editor HTTP preview.
+
+The plugin polls `bridge/pending-commands.log` on the active save (see `bridge-active-save.txt` under the matching UserData root while the sidecar runs) and runs queued console commands in-game.
+
+**In-game commands** (server console or chat):
+
+| Command | Purpose |
+|---------|---------|
+| `/tnbridge status` | Plugin health and active save |
+| `/tnbridge doctor` | Pointer file, pending queue, save layout |
+| `/tnbridge notify on\|off` | Chat when queued commands run |
+| `/tnbridge pause` / `/tnbridge resume` | Stop or resume polling |
+
+See `tools/terranova-bridge-plugin/README.md` for build details.
 
 ### Option C — Full in-server HTTP (future)
 
@@ -143,7 +163,7 @@ After sync, use **Reload worldgen** (and chunk regen if needed) on the server to
 | **VS Code Hytale Devtools** ([Marketplace](https://marketplace.visualstudio.com/items?itemName=jrddp.hytale-devtools)) | Worldgen node editor + companion mod when you run the server from VS Code | Different workflow (mod dev in VS Code, not McCal save packs) |
 | **Vanilla commands** ([`/worldgen`](https://www.hytalecommands.com/worldgen), [`/chunk`](https://www.hytalecommands.com/chunk)) | Reload defs, regen one chunk at a time | Manual; sidecar now **queues** these lines for paste |
 | **ReChunk / SafeRegen** ([rechunk](https://github.com/renancmd/rechunk), [SafeRegen](https://hytaletools.cc/mods/saferegen)) | Bulk regen with base protection | World maintenance, not biome JSON sync |
-| **TerraNovaBridge JVM plugin** (planned; [CommandManager API](https://hytale-docs.pages.dev/modding/plugins/commands/)) | `handleCommand(ConsoleSender.INSTANCE, "worldgen reload --clear")` etc. | Not public yet; sidecar uses `bridge/pending-commands.log` until then |
+| **TerraNova Bridge JVM plugin** (shipped; [CommandManager API](https://hytale-docs.pages.dev/modding/plugins/commands/)) | Tails `pending-commands.log`, runs `worldgen reload --clear` etc. via `/tnbridge` | Deploy from Bridge dialog; sidecar still required for HTTP World preview today |
 
 **McCal.\*** and other content packs are normal asset packs ([asset pack docs](https://github.com/HytaleModding/site/blob/main/content/docs/en/official-documentation/worldgen/pack-tutorial/asset-packs.mdx)) — enable on the save, sync into that folder, reload in-game. **`TerraNova.Bridge`** is only an optional empty sync slot.
 
@@ -161,9 +181,9 @@ On first run the sidecar writes **`bridge/ITERATION.md`** under the save with co
 
 ### Roadmap (sidecar → plugin)
 
-1. **Now** — executable queued commands, save-disk preview, shared `bridge-save`.
-2. **Next** — minimal JVM mod: tail `pending-commands.log`, call `CommandManager.handleCommand`.
-3. **Then** — live chunk bytes, palette from server, `bridge_mode: plugin`, drop synthetic fallback where possible.
+1. **Now** — executable queued commands via JVM plugin, save-disk World preview, shared `bridge-save`, **Deploy Plugin** in Bridge dialog.
+2. **Next** — live chunk bytes and palette from server; optional `bridge_mode: plugin` HTTP inside Hytale.
+3. **Then** — drop synthetic chunk fallback where server bytes are available.
 
 ---
 

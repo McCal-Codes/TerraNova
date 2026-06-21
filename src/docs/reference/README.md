@@ -12,9 +12,15 @@ If you are still learning, start with these focused pages before diving into the
 - [Curves Reference](./curves.md) — curve types and shape previews
 - [Reading the Graph](./reading-the-graph.md) — how to read the editor visually
 - [Terrain Snippets](./terrain-types.md) — paste-ready terrain examples
+- [Worldgen References + Live Preview](./worldgen-references-live-preview.md) — insert custom reference blocks and tune them with instant preview feedback
+- [Custom Worldgen Block Promotion Path](./custom-worldgen-block-promotion.md) — when to graduate templates into first-class nodes
+- [Community Pack Study References](./community-pack-references.md) — Skyreach Ravines, Dragon's Fantasy Scenes, and mapping to McCal packs
+- [Test_Features Worldgen Gallery](./test-features-worldgen-gallery.md) — shipped 56-patch in-game node museum (PCN return types, SDF primitives)
 - [Exporting](./exporting.md) — export paths, node-to-Hytale type mapping, field renames
 - [Hytale CurveMapper Conventions](./hytale-curvemapper-conventions.md) — release asset patterns, JSON shape, editor ↔ export mapping
 - [Bridge](./bridge.md) — sync the open file to a running server (not a full pack push)
+- [Tint System](./tint-system.md) — 2D tint limits, density-proxy patterns, and Atmosphere tab editing
+- [Environment Parent Inheritance](./environment-parent-inheritance.md) — `Parent` chains and safe environment bases
 
 Use the rest of this page when you need exact terms, schemas, or category listings.
 

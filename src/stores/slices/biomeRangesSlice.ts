@@ -1,5 +1,6 @@
 import { emit } from "../storeEvents";
 import { getMutateAndCommit } from "./historySlice";
+import { normalizeRanges } from "@/utils/biomeRangeDomain";
 import type {
   SliceCreator,
   BiomeRangesSliceState,
@@ -29,7 +30,17 @@ export const createBiomeRangesSlice: SliceCreator<BiomeRangesSliceState> = (set)
   return {
     ...biomeRangesInitialState,
 
-    setBiomeRanges: (ranges) => set({ biomeRanges: ranges }),
+    setBiomeRanges: (ranges) => set({ biomeRanges: normalizeRanges(ranges) }),
+
+    bulkUpdateBiomeRanges: (ranges, label) => {
+      const mutateAndCommit = getMutateAndCommit();
+      mutateAndCommit(
+        () => ({ biomeRanges: normalizeRanges(ranges) }),
+        label,
+      );
+      markDirty();
+    },
+
     setNoiseRangeConfig: (config) => set({ noiseRangeConfig: config }),
 
     updateBiomeRange: (index, entry) => {

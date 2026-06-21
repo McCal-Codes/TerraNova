@@ -3,6 +3,7 @@ import { useReactFlow } from "@xyflow/react";
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
 import { ALL_DEFAULTS, type CategoryDefaultsEntry } from "@/schema/defaults";
 import { SNIPPET_CATALOG, placeSnippet, type SnippetDefinition } from "@/schema/snippets";
+import { WORLDGEN_REFERENCE_BLOCKS } from "@/schema/worldgenReferenceBlocks";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useDragStore } from "@/stores/dragStore";
@@ -19,11 +20,17 @@ import { isPaletteTypeKeyVisible, isPrereleaseTypeKey } from "@/nodes/shared/leg
 import { useSettingsStore } from "@/stores/settingsStore";
 import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 import { safeStoredJson } from "@/utils/safeLocalStorage";
+import { afterPlaceDensityBasicsSnippet } from "@/utils/densityBasics/afterPlaceSnippet";
 
 const SNIPPET_COLOR = "#a78bfa";
 const ROOT_PALETTE_COLOR = "#8B4450";
 const PALETTE_EXPANDED_KEY = "terranova:palette-expanded-categories";
 const PALETTE_DENSITY_SUBS_KEY = "terranova:palette-expanded-density-subs";
+const PALETTE_SNIPPET_ORDER = ["Density basics", "Worldgen References"];
+const ALL_PALETTE_SNIPPETS: SnippetDefinition[] = [
+  ...WORLDGEN_REFERENCE_BLOCKS,
+  ...SNIPPET_CATALOG,
+];
 
 function allCategoriesCollapsed(): Set<AssetCategory> {
   return new Set(Object.values(AssetCategory));
@@ -202,7 +209,9 @@ const CONTEXT_TO_CATEGORY: Record<string, AssetCategory> = {
 export function NodePalette() {
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Set<AssetCategory>>(loadPaletteCollapsed);
-  const [snippetsCollapsed, setSnippetsCollapsed] = useState<Set<string>>(() => new Set(SNIPPET_CATALOG.map((s) => s.category)));
+  const [snippetsCollapsed, setSnippetsCollapsed] = useState<Set<string>>(
+    () => new Set(ALL_PALETTE_SNIPPETS.map((s) => s.category)),
+  );
   const [collapsedSubs, setCollapsedSubs] = useState<Set<DensitySubcategory>>(loadDensitySubsCollapsed);
   const addNode = useEditorStore((s) => s.addNode);
   const addSnippet = useEditorStore((s) => s.addSnippet);
@@ -227,11 +236,16 @@ export function NodePalette() {
 
   // Filter snippets by search (name or description)
   const filteredSnippets = hasSearch
-    ? SNIPPET_CATALOG.filter((s) => {
+    ? ALL_PALETTE_SNIPPETS.filter((s) => {
         const lq = search.trim().toLowerCase();
-        return s.name.toLowerCase().includes(lq) || s.description.toLowerCase().includes(lq);
+        return (
+          s.name.toLowerCase().includes(lq)
+          || s.description.toLowerCase().includes(lq)
+          || s.category.toLowerCase().includes(lq)
+          || (s.tags?.some((tag) => tag.toLowerCase().includes(lq)) ?? false)
+        );
       })
-    : SNIPPET_CATALOG;
+    : ALL_PALETTE_SNIPPETS;
 
   // Group snippets by category
   const groupedSnippets = useMemo(() => filteredSnippets.reduce((acc, snippet) => {
@@ -239,6 +253,12 @@ export function NodePalette() {
     acc[snippet.category].push(snippet);
     return acc;
   }, {} as Record<string, SnippetDefinition[]>), [filteredSnippets]);
+  const sortedSnippetCategories = useMemo(() => {
+    const categories = Object.keys(groupedSnippets);
+    const head = PALETTE_SNIPPET_ORDER.filter((name) => categories.includes(name));
+    const tail = categories.filter((name) => !head.includes(name)).sort((a, b) => a.localeCompare(b));
+    return [...head, ...tail];
+  }, [groupedSnippets]);
 
   // Context-aware category ordering: pinned category first
   const contextCategory = editingContext ? CONTEXT_TO_CATEGORY[editingContext] : null;
@@ -318,6 +338,7 @@ export function NodePalette() {
     const position = getViewportCenter();
     const { nodes, edges } = placeSnippet(snippet, position);
     addSnippet(nodes, edges);
+    afterPlaceDensityBasicsSnippet(snippet, nodes);
   }
 
   function handleRootClick() {
@@ -567,7 +588,8 @@ export function NodePalette() {
         )}
 
         {/* Snippets section grouped by category */}
-        {Object.entries(groupedSnippets).map(([category, snippets]) => {
+        {sortedSnippetCategories.map((category) => {
+          const snippets = groupedSnippets[category] ?? [];
           const isCategoryCollapsed = snippetsCollapsed.has(category) && !hasSearch;
           return (
             <div key={category} className="mb-1">

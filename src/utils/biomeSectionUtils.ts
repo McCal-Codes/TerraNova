@@ -1,5 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { BiomeSectionData, BiomeConfig } from "@/stores/editorStore";
+import { summarizePropSectionFromGraph } from "@/utils/propSectionSummary";
 
 /* ── Section summaries ─────────────────────────────────────────────── */
 
@@ -25,6 +26,11 @@ function getSectionColor(key: string): string {
   return "#8C8878";
 }
 
+/** Accent color for a biome section tab / overview region. */
+export function getBiomeSectionColor(key: string): string {
+  return getSectionColor(key);
+}
+
 export function getBiomeSectionLabel(key: string): string {
   if (key === "MaterialProvider") return "Materials";
   if (key === "EnvironmentProvider") return "Atmosphere";
@@ -37,12 +43,16 @@ export function getBiomeSectionLabel(key: string): string {
 }
 
 export function getSectionSummary(key: string, data: BiomeSectionData): SectionSummary {
+  const rootTypeChain = key.startsWith("Props[")
+    ? summarizePropSectionFromGraph(data.nodes, data.edges).shortLabel
+    : getRootTypeChain(data.nodes, data.edges);
+
   return {
     key,
     label: getBiomeSectionLabel(key),
     nodeCount: data.nodes.length,
     edgeCount: data.edges.length,
-    rootTypeChain: getRootTypeChain(data.nodes, data.edges),
+    rootTypeChain,
     color: getSectionColor(key),
   };
 }
@@ -110,6 +120,8 @@ export interface PropSummaryEntry {
   positionsType: string;
   positionsParams: string;
   assignmentsType: string;
+  distributionVariant: string | null;
+  shortLabel: string;
   nodeCount: number;
 }
 
@@ -125,37 +137,22 @@ export function getPropSummaries(
     const section = biomeSections[sectionKey];
     if (!section) continue;
 
-    const posRoot = section.nodes.find(
-      (n) => (n.data as Record<string, unknown>)._biomeField === "Positions",
-    );
-    const asgnRoot = section.nodes.find(
-      (n) => (n.data as Record<string, unknown>)._biomeField === "Assignments",
-    );
+    const summary = summarizePropSectionFromGraph(section.nodes, section.edges);
 
     entries.push({
       index: i,
       runtime: meta.Runtime,
       skip: meta.Skip,
-      positionsType: posRoot ? getNodeType(posRoot) : "—",
-      positionsParams: posRoot ? extractFieldSummary(posRoot) : "",
-      assignmentsType: asgnRoot ? getNodeType(asgnRoot) : "—",
+      positionsType: summary.positionsType ?? "—",
+      positionsParams: summary.positionsParams,
+      assignmentsType: summary.assignmentsType ?? "—",
+      distributionVariant: summary.distributionVariant,
+      shortLabel: summary.shortLabel,
       nodeCount: section.nodes.length,
     });
   }
 
   return entries;
-}
-
-function extractFieldSummary(node: Node): string {
-  const data = node.data as Record<string, unknown>;
-  const fields = (data.fields as Record<string, unknown>) ?? {};
-  const parts: string[] = [];
-  for (const [k, v] of Object.entries(fields)) {
-    if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") {
-      parts.push(`${k}=${v}`);
-    }
-  }
-  return parts.join(", ");
 }
 
 /* ── Material layer extraction ─────────────────────────────────────── */

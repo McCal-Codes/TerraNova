@@ -33,6 +33,7 @@ describe("fitToContentBoundsFromResult", () => {
       rangeMax: 42,
       voxelYMin: 55,
       voxelYMax: 92,
+      yLevel: 74,
     });
   });
 
@@ -51,6 +52,7 @@ describe("fitToContentBoundsFromResult", () => {
       rangeMax: 8,
       voxelYMin: 64,
       voxelYMax: 70,
+      yLevel: 67,
     });
   });
 });

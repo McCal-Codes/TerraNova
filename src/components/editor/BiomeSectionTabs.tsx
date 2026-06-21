@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useEditorStore } from "@/stores/editorStore";
 import { useUIStore } from "@/stores/uiStore";
-import { getSectionSummary } from "@/utils/biomeSectionUtils";
-
-const HIDDEN_SECTION_KEYS = new Set(["EnvironmentProvider", "TintProvider"]);
+import { getSectionSummary, getPropSummaries } from "@/utils/biomeSectionUtils";
+import {
+  NewPropSourceDialog,
+  type PropSourceConfirmPayload,
+} from "@/components/dialogs/NewPropSourceDialog";
 
 const TAB_COLORS: Record<string, string> = {
   Terrain: "#5B8DBF",
@@ -99,27 +101,21 @@ function TabIcon({ sectionKey }: { sectionKey: string }) {
 
 export function BiomeSectionTabs() {
   const biomeSections = useEditorStore((s) => s.biomeSections);
+  const biomeConfig = useEditorStore((s) => s.biomeConfig);
   const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
   const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
-  const addPropSection = useEditorStore((s) => s.addPropSection);
+  const addPropSectionWithGraph = useEditorStore((s) => s.addPropSectionWithGraph);
   const suppressPropDeleteConfirm = useUIStore((s) => s.suppressPropDeleteConfirm);
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [dontAskAgain, setDontAskAgain] = useState(false);
-
-  // Auto-switch away from hidden sections — must be before any conditional return
-  // to satisfy the Rules of Hooks (hooks must always be called in the same order).
-  useEffect(() => {
-    if (!biomeSections || !activeBiomeSection) return;
-    if (!HIDDEN_SECTION_KEYS.has(activeBiomeSection)) return;
-    const visibleKeys = Object.keys(biomeSections).filter((key) => !HIDDEN_SECTION_KEYS.has(key));
-    if (visibleKeys.length === 0) return;
-    switchBiomeSection(visibleKeys[0]);
-  }, [biomeSections, activeBiomeSection, switchBiomeSection]);
+  const [showNewPropDialog, setShowNewPropDialog] = useState(false);
 
   if (!biomeSections) return null;
 
-  const keys = Object.keys(biomeSections).filter((key) => !HIDDEN_SECTION_KEYS.has(key));
+  const keys = Object.keys(biomeSections);
+  const propSummaries = biomeConfig ? getPropSummaries(biomeConfig, biomeSections) : [];
+  const propSummaryByIndex = new Map(propSummaries.map((p) => [p.index, p]));
 
   const pendingSection = pendingDelete ? biomeSections[pendingDelete] : null;
   const pendingNodeCount = pendingSection?.nodes.length ?? 0;
@@ -153,6 +149,10 @@ export function BiomeSectionTabs() {
     setPendingDelete(null);
   }
 
+  function handleNewPropConfirm(payload: PropSourceConfirmPayload) {
+    addPropSectionWithGraph(payload.nodes, payload.edges, payload.meta);
+  }
+
   return (
     <div className="relative flex items-center gap-1 px-3 py-1.5">
       {keys.map((key) => {
@@ -161,8 +161,14 @@ export function BiomeSectionTabs() {
         const section = biomeSections[key];
         const summary = section ? getSectionSummary(key, section) : null;
         const nodeCount = summary?.nodeCount ?? 0;
-        const tooltip = summary?.rootTypeChain || getTabLabel(key);
         const isPropsTab = key.startsWith("Props[");
+        const propIndex = isPropsTab ? parseInt(/\[(\d+)\]/.exec(key)?.[1] ?? "0", 10) : -1;
+        const propSummary = propIndex >= 0 ? propSummaryByIndex.get(propIndex) : undefined;
+        const propMeta = biomeConfig?.propMeta[propIndex];
+        const isSkipped = Boolean(propMeta?.Skip);
+        const tooltip = propSummary
+          ? `${getTabLabel(key)} — ${propSummary.shortLabel}`
+          : summary?.rootTypeChain || getTabLabel(key);
 
         return (
           <button
@@ -170,6 +176,8 @@ export function BiomeSectionTabs() {
             onClick={() => switchBiomeSection(key)}
             title={tooltip}
             className={`group flex items-center px-3 py-1 text-xs font-medium rounded-t transition-all duration-150 whitespace-nowrap ${
+              isSkipped ? "opacity-60" : ""
+            } ${
               isActive
                 ? "text-white border-b-2"
                 : "text-tn-text-muted hover:text-tn-text hover:bg-white/5"
@@ -192,6 +200,16 @@ export function BiomeSectionTabs() {
                 {nodeCount}
               </span>
             )}
+            {isPropsTab && propMeta && propMeta.Runtime > 0 && (
+              <span className="ml-1 px-1 py-0.5 text-[9px] leading-none rounded bg-white/10 text-tn-text-muted">
+                Rt{propMeta.Runtime}
+              </span>
+            )}
+            {isPropsTab && isSkipped && (
+              <span className="ml-1 px-1 py-0.5 text-[9px] leading-none rounded bg-amber-500/20 text-amber-300">
+                skip
+              </span>
+            )}
             {isPropsTab && (
               <span
                 className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] hover:text-red-400"
@@ -209,12 +227,18 @@ export function BiomeSectionTabs() {
       })}
       {/* Add Props section button */}
       <button
-        onClick={addPropSection}
+        onClick={() => setShowNewPropDialog(true)}
         title="Add new Props section"
         className="flex items-center justify-center w-6 h-6 ml-1 text-xs text-tn-text-muted hover:text-white hover:bg-white/10 rounded transition-colors"
       >
         +
       </button>
+
+      <NewPropSourceDialog
+        open={showNewPropDialog}
+        onClose={() => setShowNewPropDialog(false)}
+        onConfirm={handleNewPropConfirm}
+      />
 
       {/* Confirmation modal — rendered via portal to escape overflow clipping */}
       {pendingDelete && createPortal(

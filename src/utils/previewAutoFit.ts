@@ -3,7 +3,7 @@ import { isGraphNode } from "@/utils/annotationUtils";
 import { createVolumeWorkerInstance } from "./volumeWorkerClient";
 import { enrichPreviewContentFields } from "./densityEvaluator";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
-import { resolveTerrainReferenceLevels, computeTerrainAutoFitYBounds } from "@/utils/terrainPreviewLevel";
+import { resolveTerrainReferenceLevels, computeTerrainAutoFitYBounds, expandVoxelYBoundsToIncludeSurface } from "@/utils/terrainPreviewLevel";
 import type { TerrainAutoFitYBounds } from "@/utils/terrainPreviewLevel";
 import type { BiomeMaterialConfig } from "@/utils/materialResolver";
 import {
@@ -12,6 +12,8 @@ import {
   graphHasUndergroundCarving,
   suggestPreviewYLevel,
 } from "@/utils/graphPreviewFeatures";
+import { isTauriRuntime } from "@/utils/platform";
+import { scanVolumeSolidsBounds } from "@/utils/previewBoundsIpc";
 
 export { graphHasCaveCarving, graphHasUndergroundCarving };
 
@@ -144,6 +146,7 @@ export function mergeScanWithTerrainAutoFit(
     };
   }
 
+  // Union: never let a scan window clip below the graph-derived surface band (e.g. Y max < Base).
   return {
     worldYMin: Math.min(scanned.worldYMin, terrain.worldYMin),
     worldYMax: Math.max(scanned.worldYMax, terrain.worldYMax),
@@ -205,6 +208,8 @@ export interface EvaluationFingerprintInput {
   edges: Edge[];
   contentFields?: Record<string, unknown>;
   rootNodeId?: string | null;
+  /** How the preview root was chosen — must match evaluation for cache identity. */
+  rootSource?: string;
   materialConfig?: unknown;
 }
 
@@ -212,12 +217,16 @@ export interface EvaluationFingerprintInput {
  * Fingerprint for preview/voxel evaluation — changes only when output could change.
  * Canvas layout (node x/y, frame size, comments) is intentionally excluded.
  */
+/** Bump when density/voxel evaluation semantics change (invalidates preview caches). */
+export const PREVIEW_EVAL_ENGINE_REV = 2;
+
 export function computeEvaluationFingerprint(input: EvaluationFingerprintInput): string {
   const base = computeGraphHash(input.nodes, input.edges);
   const root = input.rootNodeId ?? "";
+  const rootSource = input.rootSource ?? "";
   const content = input.contentFields ? JSON.stringify(input.contentFields) : "";
   const material = input.materialConfig ? JSON.stringify(input.materialConfig) : "";
-  return `${base}|r:${root}|c:${content}|m:${material}`;
+  return `rev:${PREVIEW_EVAL_ENGINE_REV}|${base}|r:${root}|rs:${rootSource}|c:${content}|m:${material}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -239,6 +248,7 @@ export interface FitToContentApply {
   rangeMax: number;
   voxelYMin: number;
   voxelYMax: number;
+  yLevel?: number;
 }
 
 /** Convert a 3D bounds scan into preview range/Y updates (symmetric XZ). */
@@ -251,12 +261,223 @@ export function fitToContentBoundsFromResult(bounds: Bounds3DResult): FitToConte
     Math.abs(bounds.worldZMax),
   );
   const half = Math.min(256, Math.max(8, Math.ceil(xzExtent)));
+  const yLevel = Math.round((bounds.worldYMin + bounds.worldYMax) / 2);
   return {
     rangeMin: -half,
     rangeMax: half,
     voxelYMin: bounds.worldYMin,
     voxelYMax: bounds.worldYMax,
+    yLevel,
   };
+}
+
+/** Apply fit-to-content bounds with terrain surface guard (Base Y clipping). */
+export function refineFitToContentApply(
+  bounds: Bounds3DResult,
+  nodes: Node[],
+  edges: Edge[],
+  contentFields: Record<string, number>,
+  options?: { useBaseY?: boolean; anchorY?: number },
+): FitToContentApply | null {
+  const apply = fitToContentBoundsFromResult(bounds);
+  if (!apply) return null;
+
+  const useBaseY = options?.useBaseY ?? false;
+  const anchorY = options?.anchorY ?? apply.yLevel;
+
+  const terrainRefBase = resolveTerrainReferenceLevels(nodes, edges, contentFields, {
+    useBaseY,
+  });
+  const terrainRefProfile = useBaseY
+    ? resolveTerrainReferenceLevels(nodes, edges, contentFields, { useBaseY: false })
+    : null;
+
+  if (terrainRefBase) {
+    const expandedA = expandVoxelYBoundsToIncludeSurface(
+      apply.voxelYMin,
+      apply.voxelYMax,
+      terrainRefBase,
+      { anchorY: anchorY ?? terrainRefBase.suggestedYLevel },
+    );
+    apply.voxelYMin = expandedA.worldYMin;
+    apply.voxelYMax = expandedA.worldYMax;
+  }
+  if (terrainRefProfile) {
+    const expandedB = expandVoxelYBoundsToIncludeSurface(
+      apply.voxelYMin,
+      apply.voxelYMax,
+      terrainRefProfile,
+      { anchorY: anchorY ?? terrainRefProfile.suggestedYLevel },
+    );
+    apply.voxelYMin = expandedB.worldYMin;
+    apply.voxelYMax = expandedB.worldYMax;
+  }
+  return apply;
+}
+
+export interface RunFitToContentOptions {
+  nodes: Node[];
+  edges: Edge[];
+  contentFields: Record<string, number>;
+  outputNodeId?: string;
+  selectedNodeId?: string;
+  useBaseY?: boolean;
+  materialConfig?: BiomeMaterialConfig | null;
+  /** Probe window — defaults from graph analysis when omitted. */
+  rangeMin?: number;
+  rangeMax?: number;
+  yMin?: number;
+  yMax?: number;
+  resolution?: number;
+  /** Merge graph-derived terrain band so scans cannot clip below Base Y. */
+  mergeTerrain?: boolean;
+}
+
+async function scanVolumeBoundsFromDensities(
+  densities: Float32Array,
+  resolution: number,
+  ySlices: number,
+  rangeMin: number,
+  rangeMax: number,
+  yMin: number,
+  yMax: number,
+): Promise<Bounds3DResult> {
+  if (isTauriRuntime()) {
+    const native = await scanVolumeSolidsBounds({
+      densities,
+      resolution,
+      ySlices,
+      rangeMin,
+      rangeMax,
+      yMin,
+      yMax,
+    });
+    if (native) {
+      return {
+        worldXMin: native.worldXMin,
+        worldXMax: native.worldXMax,
+        worldYMin: native.worldYMin,
+        worldYMax: native.worldYMax,
+        worldZMin: native.worldZMin,
+        worldZMax: native.worldZMax,
+        hasSolids: native.hasSolids,
+      };
+    }
+  }
+  return scanDensityGrid3DBounds(
+    densities,
+    resolution,
+    ySlices,
+    rangeMin,
+    rangeMax,
+    yMin,
+    yMax,
+  );
+}
+
+/**
+ * Runs a coarse volume probe to find where density solids exist, then returns
+ * surface-aware XZ/Y bounds. Uses the graph-derived window when possible so
+ * high Base-Y terrain is not missed.
+ */
+export async function runFitToContent(
+  nodesOrOptions: Node[] | RunFitToContentOptions,
+  edges?: Edge[],
+  contentFields?: Record<string, number>,
+  outputNodeId?: string,
+  selectedNodeId?: string,
+): Promise<Bounds3DResult | null> {
+  const options: RunFitToContentOptions = Array.isArray(nodesOrOptions)
+    ? {
+        nodes: nodesOrOptions,
+        edges: edges ?? [],
+        contentFields: contentFields ?? {},
+        outputNodeId,
+        selectedNodeId,
+      }
+    : nodesOrOptions;
+
+  const {
+    nodes,
+    edges: graphEdges,
+    contentFields: fields,
+    mergeTerrain = true,
+    useBaseY = false,
+    materialConfig,
+  } = options;
+  const rootNodeId = options.selectedNodeId ?? options.outputNodeId;
+
+  const defaults = analyzeGraphDefaults(nodes, graphEdges, fields, {
+    useBaseY,
+    materialConfig,
+    rootNodeId,
+  });
+
+  const rangeMin = options.rangeMin ?? defaults.suggestedRangeMin ?? -128;
+  const rangeMax = options.rangeMax ?? defaults.suggestedRangeMax ?? 128;
+  const yMin = options.yMin ?? defaults.suggestedYMin ?? 0;
+  const yMax = options.yMax ?? defaults.suggestedYMax ?? DEFAULT_WORLD_HEIGHT;
+  const resolution = options.resolution ?? 16;
+  const ySpan = Math.max(16, yMax - yMin);
+  const ySlices = Math.min(64, Math.max(16, Math.ceil(ySpan / 4)));
+
+  const worker = createVolumeWorkerInstance();
+
+  try {
+    const result = await worker.evaluate({
+      nodes,
+      edges: graphEdges,
+      resolution,
+      rangeMin,
+      rangeMax,
+      yMin,
+      yMax,
+      ySlices,
+      rootNodeId,
+      options: {
+        contentFields: enrichPreviewContentFields(fields, rangeMin, rangeMax),
+      },
+    });
+
+    let bounds = await scanVolumeBoundsFromDensities(
+      result.densities,
+      result.resolution,
+      result.ySlices,
+      rangeMin,
+      rangeMax,
+      yMin,
+      yMax,
+    );
+
+    if (mergeTerrain && bounds.hasSolids) {
+      const terrain = computeTerrainAutoFitYBounds(nodes, graphEdges, fields, {
+        rangeMin,
+        rangeMax,
+        rootNodeId,
+        useBaseY,
+        undergroundCarving: defaults.caveCarvingDetected,
+      });
+      if (terrain) {
+        const mergedY = mergeScanWithTerrainAutoFit(
+          {
+            worldYMin: bounds.worldYMin,
+            worldYMax: bounds.worldYMax,
+            hasSolids: true,
+          },
+          terrain,
+        );
+        bounds = {
+          ...bounds,
+          worldYMin: mergedY.worldYMin,
+          worldYMax: mergedY.worldYMax,
+        };
+      }
+    }
+
+    return bounds;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -347,46 +568,6 @@ export function scanDensityGrid3DBounds(
   };
 }
 
-/**
- * Runs a full-volume probe using a separate worker instance.
- * Evaluates at low resolution over Y 0-256, XZ ±128 to find where content exists.
- */
-export async function runFitToContent(
-  nodes: Node[],
-  edges: Edge[],
-  contentFields: Record<string, number>,
-  outputNodeId?: string,
-  selectedNodeId?: string,
-): Promise<Bounds3DResult | null> {
-  const worker = createVolumeWorkerInstance();
-
-  try {
-    const result = await worker.evaluate({
-      nodes,
-      edges,
-      resolution: 16,
-      rangeMin: -128,
-      rangeMax: 128,
-      yMin: 0,
-      yMax: DEFAULT_WORLD_HEIGHT,
-      ySlices: 64,
-      rootNodeId: selectedNodeId ?? outputNodeId,
-      options: {
-        contentFields: enrichPreviewContentFields(contentFields, -128, 128),
-      },
-    });
-
-    return scanDensityGrid3DBounds(
-      result.densities,
-      result.resolution,
-      result.ySlices,
-      -128, 128, 0, DEFAULT_WORLD_HEIGHT,
-    );
-  } catch {
-    return null;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Feature 3: Graph-Aware Defaults — static analysis of node types
 // ---------------------------------------------------------------------------
@@ -399,6 +580,9 @@ export interface GraphDefaultsResult {
   suggestedYLevel?: number;
   suggestedRangeMin: number;
   suggestedRangeMax: number;
+  /** Optional: terrain graphs can suggest higher voxel fidelity defaults. */
+  suggestedVoxelResolution?: number;
+  suggestedVoxelYSlices?: number;
   confidence: ConfidenceLevel;
   reason: string;
   caveCarvingDetected?: boolean;
@@ -414,7 +598,7 @@ export function analyzeGraphDefaults(
   nodes: Node[],
   edges: Edge[],
   contentFields: Record<string, number>,
-  options?: { useBaseY?: boolean; materialConfig?: BiomeMaterialConfig | null },
+  options?: { useBaseY?: boolean; materialConfig?: BiomeMaterialConfig | null; rootNodeId?: string },
 ): GraphDefaultsResult {
   const features = analyzeGraphPreviewFeatures(
     nodes,
@@ -433,6 +617,7 @@ export function analyzeGraphDefaults(
     undergroundCarving: caveCarving,
     belowPad,
     useBaseY,
+    rootNodeId: options?.rootNodeId,
   });
   if (terrainAutoFit) {
     const yLevel = suggestPreviewYLevel(features, terrainAutoFit.yLevel, terrainAutoFit.yLevel);
@@ -440,8 +625,13 @@ export function analyzeGraphDefaults(
       suggestedYMin: terrainAutoFit.worldYMin,
       suggestedYMax: terrainAutoFit.worldYMax,
       suggestedYLevel: yLevel,
-      suggestedRangeMin: -64,
-      suggestedRangeMax: 64,
+      // Give enough XZ span to actually see hills (cell/warp terrain often reads "flat"
+      // if you only frame a tiny patch).
+      suggestedRangeMin: -128,
+      suggestedRangeMax: 128,
+      // Hill-friendly baseline fidelity (kept conservative for perf).
+      suggestedVoxelResolution: 64,
+      suggestedVoxelYSlices: 64,
       confidence: "high",
       reason: `${terrainAutoFit.reason}${featureSuffix}`,
       caveCarvingDetected: caveCarving,
@@ -466,8 +656,10 @@ export function analyzeGraphDefaults(
       suggestedYMin: terrainRef.suggestedYMin,
       suggestedYMax: terrainRef.suggestedYMax,
       suggestedYLevel: yLevel,
-      suggestedRangeMin: -64,
-      suggestedRangeMax: 64,
+      suggestedRangeMin: -128,
+      suggestedRangeMax: 128,
+      suggestedVoxelResolution: 64,
+      suggestedVoxelYSlices: 64,
       confidence: "high",
       reason: `${terrainRef.reason}${featureSuffix}`,
       caveCarvingDetected: caveCarving,
@@ -568,10 +760,11 @@ export function analyzeGraphDefaults(
   const yLevel = suggestPreviewYLevel(features, baseY);
   return {
     suggestedYMin: Math.max(0, Math.floor(baseY - belowPad)),
-    suggestedYMax: Math.min(DEFAULT_WORLD_HEIGHT, Math.ceil(baseY + 50)),
+    // Give terrain a bit more headroom by default (hills + plateaus).
+    suggestedYMax: Math.min(DEFAULT_WORLD_HEIGHT, Math.ceil(baseY + 90)),
     suggestedYLevel: yLevel,
-    suggestedRangeMin: -64,
-    suggestedRangeMax: 64,
+    suggestedRangeMin: -128,
+    suggestedRangeMax: 128,
     confidence: "low",
     reason: caveCarving
       ? `Fallback: Base height = ${baseY}; underground carving${featureSuffix}`

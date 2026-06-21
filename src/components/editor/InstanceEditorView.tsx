@@ -108,7 +108,7 @@ function GameSettingsSection() {
 
   return (
     <div className="grid grid-cols-2 gap-3">
-      <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+      <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-tn-bg">
         <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
           Game Mode
         </span>
@@ -123,7 +123,7 @@ function GameSettingsSection() {
         </select>
       </div>
 
-      <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+      <div className="flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-tn-bg">
         <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
           Gameplay Config
         </span>
@@ -134,7 +134,7 @@ function GameSettingsSection() {
         />
       </div>
 
-      <div className="col-span-2 flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+      <div className="col-span-2 flex flex-col gap-1 p-3 rounded-lg border border-tn-border bg-tn-bg">
         <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
           Comment
         </span>
@@ -166,7 +166,7 @@ function SpawnPointSection() {
   };
 
   return (
-    <div className="p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+    <div className="p-3 rounded-lg border border-tn-border bg-tn-bg">
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
           Spawn Point
@@ -234,7 +234,7 @@ function TogglesSection() {
   };
 
   return (
-    <div className="p-3 rounded-lg border border-tn-border bg-white/[0.02]">
+    <div className="p-3 rounded-lg border border-tn-border bg-tn-bg">
       <span className="text-[10px] uppercase tracking-wider text-tn-text-muted font-medium">
         Toggles
       </span>

@@ -5,6 +5,7 @@ import { useEvaluationFingerprint } from "@/hooks/useEvaluationFingerprint";
 import { evaluateVolumeInWorker } from "@/utils/volumeWorkerClient";
 import { enrichPreviewContentFields } from "@/utils/densityEvaluator";
 import { useConfigStore } from "@/stores/configStore";
+import { resolvePreviewRootNodeId } from "@/utils/previewRootResolver";
 
 /**
  * Lazily evaluates a low-res volume for vertical cross-section profiles in 2D mode.
@@ -92,7 +93,12 @@ export function useVerticalCrossSection() {
           yMin: store.voxelYMin,
           yMax: store.voxelYMax,
           ySlices: ys,
-          rootNodeId: store.selectedPreviewNodeId ?? outputNodeId ?? undefined,
+          rootNodeId: resolvePreviewRootNodeId({
+            nodes,
+            edges,
+            selectedPreviewNodeId: store.selectedPreviewNodeId,
+            outputNodeId: outputNodeId ?? undefined,
+          }),
           options: {
             contentFields: enrichPreviewContentFields(
               contentFields,

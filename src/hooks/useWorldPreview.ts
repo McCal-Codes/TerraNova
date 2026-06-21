@@ -9,6 +9,10 @@ import {
 } from "@/utils/ipc";
 import { buildWorldMeshes } from "@/utils/worldMeshBuilder";
 import {
+  detectWaterLevel,
+  resolveWorldPaletteAssets,
+} from "@/utils/worldPreviewAssets";
+import {
   applyLivePlayerToPreview,
   livePlayerFromInfo,
 } from "@/utils/livePlayerTracking";
@@ -173,6 +177,7 @@ export function useWorldPreview() {
     store.setWorldLoading(true);
     store.setWorldError(null);
     store.setWorldDataSource(null);
+    store.setWorldBlockColorStats(null);
     store.setWorldProgress(0, totalChunks);
 
     async function loadChunks() {
@@ -268,6 +273,21 @@ export function useWorldPreview() {
           // keep palette from connect
         }
 
+        let blockColors: Record<string, [number, number, number]> = {};
+        try {
+          const assets = await resolveWorldPaletteAssets(paletteForMesh);
+          blockColors = assets.blockColors;
+          usePreviewStore.getState().setWorldBlockColorStats({
+            textured: assets.texturedCount,
+            total: assets.totalBlockTypes,
+          });
+        } catch {
+          usePreviewStore.getState().setWorldBlockColorStats(null);
+        }
+
+        const meshFullColumns =
+          worldYMax - worldYMin > 64 || worldSurfaceDepth >= 32;
+
         const { meshes, sceneYMin, sceneScale, terrainSize, worldMidX, worldMidZ } =
           buildWorldMeshes(
           loadedChunks,
@@ -275,6 +295,7 @@ export function useWorldPreview() {
           worldCenterX,
           worldCenterZ,
           worldSurfaceDepth,
+          { blockColors, meshFullColumns },
         );
         if (cancelled || evalId !== evalIdRef.current) return;
         sceneTransformRef.current = { yMin: sceneYMin, scale: sceneScale, terrainSize };
@@ -286,7 +307,7 @@ export function useWorldPreview() {
         });
         usePreviewStore.getState().setVoxelMeshData(meshes);
 
-        // Set lava config immediately after mesh build to avoid timing race
+        // Fluid overlay: lava slider wins; otherwise auto-detect water from chunk data.
         const ps = usePreviewStore.getState();
         const currentLavaLevel = ps.worldLavaLevel;
         if (currentLavaLevel > 0) {
@@ -294,8 +315,15 @@ export function useWorldPreview() {
           ps.setFluidPlaneConfig({ type: "lava", yPosition: sceneY, size: terrainSize });
           ps.setShowWaterPlane(true);
         } else {
-          ps.setFluidPlaneConfig(null);
-          ps.setShowWaterPlane(false);
+          const waterY = detectWaterLevel(loadedChunks, paletteForMesh);
+          if (waterY != null) {
+            const sceneY = (waterY - sceneYMin) * sceneScale - 25;
+            ps.setFluidPlaneConfig({ type: "water", yPosition: sceneY, size: terrainSize });
+            ps.setShowWaterPlane(true);
+          } else {
+            ps.setFluidPlaneConfig(null);
+            ps.setShowWaterPlane(false);
+          }
         }
 
         // Mark this fetch as cached
@@ -339,7 +367,7 @@ export function useWorldPreview() {
     };
   }, [mode, viewMode, connected, singleplayer, blockPalette, worldCenterX, worldCenterZ, worldRadius, worldYMin, worldYMax, worldSurfaceDepth, worldForceLoad]);
 
-  // Instant lava plane repositioning — no re-fetch, no re-mesh
+  // Instant fluid plane repositioning — no re-fetch, no re-mesh
   useEffect(() => {
     const t = sceneTransformRef.current;
     if (mode !== "world" || !t) return;
@@ -352,9 +380,7 @@ export function useWorldPreview() {
         size: t.terrainSize,
       });
       usePreviewStore.getState().setShowWaterPlane(true);
-    } else {
-      usePreviewStore.getState().setFluidPlaneConfig(null);
-      usePreviewStore.getState().setShowWaterPlane(false);
     }
+    // When lava is off, keep water plane from last mesh build (auto-detected).
   }, [mode, worldLavaLevel]);
 }

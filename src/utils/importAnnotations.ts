@@ -2,6 +2,11 @@ import type { Node, Edge } from "@xyflow/react";
 import { NODE_HEIGHT, NODE_WIDTH } from "@/constants";
 import type { ImportMetadata } from "@/utils/hytaleToInternal";
 import {
+  applySectionAnnotationPositions,
+  type ImportLayoutMode,
+  type LayoutOffset,
+} from "@/utils/applyHytaleImportLayout";
+import {
   annotationNodeSize,
   buildFrameAroundNodes,
   isAnnotationNode,
@@ -9,6 +14,7 @@ import {
   layerCanvasNodes,
   syncAnnotationNodeDimensions,
 } from "@/utils/annotationUtils";
+import { resolveImportLayout, type ResolveImportLayoutOptions } from "@/utils/importLayout";
 
 interface BBox {
   minX: number;
@@ -31,6 +37,13 @@ export interface AutoFrameImportOptions {
   sectionKey: string;
   propComment?: string;
   edges?: Edge[];
+  sectionNodeIds?: Set<string>;
+}
+
+export interface MergeImportGraphResult {
+  nodes: Node[];
+  layoutMode: ImportLayoutMode;
+  layoutOffset: LayoutOffset;
 }
 
 /** Turn a prop-layer $Comment into a short frame title. */
@@ -239,33 +252,51 @@ export function buildAutoFrameNodes(
   return frame ? [frame] : [];
 }
 
+export interface MergeImportGraphOptions extends ResolveImportLayoutOptions {
+  autoFrame?: AutoFrameImportOptions;
+}
+
 /**
- * Auto-layout graph nodes, then append comment/frame nodes near the layouted graph.
- * Annotations are excluded from layout so they are not lost or repositioned by dagre.
+ * Layout graph nodes on import, then append comment/frame nodes.
+ * Respects autoLayoutOnOpen and applies Hytale $Nodes positions when preserving layout.
  */
 export async function mergeImportGraph(
   nodes: Node[],
   edges: Edge[],
   metadata: ImportMetadata | null | undefined,
-  layoutFn: (graphNodes: Node[], graphEdges: Edge[]) => Promise<Node[]>,
-  autoFrame?: AutoFrameImportOptions,
-): Promise<Node[]> {
-  const layouted = await layoutFn(nodes, edges);
+  layoutOptions: MergeImportGraphOptions,
+): Promise<MergeImportGraphResult> {
+  const { autoFrame, ...resolveOptions } = layoutOptions;
+  const { nodes: layouted, layoutMode, layoutOffset } = await resolveImportLayout(
+    nodes,
+    edges,
+    resolveOptions,
+  );
   const imported = buildAnnotationNodesFromImportMetadata(metadata);
 
   if (imported.length > 0) {
-    const positioned = fitAnnotationNodesToGraph(layouted, imported);
-    return layerCanvasNodes(layouted, positioned);
+    const positioned = layoutMode === "hytale"
+      ? applySectionAnnotationPositions(imported, layoutOffset)
+      : fitAnnotationNodesToGraph(layouted, imported);
+    return {
+      nodes: layerCanvasNodes(layouted, positioned),
+      layoutMode,
+      layoutOffset,
+    };
   }
 
   if (autoFrame) {
     const autoFrames = buildAutoFrameNodes(layouted, { ...autoFrame, edges });
     if (autoFrames.length > 0) {
-      return layerCanvasNodes(layouted, autoFrames);
+      return {
+        nodes: layerCanvasNodes(layouted, autoFrames),
+        layoutMode,
+        layoutOffset,
+      };
     }
   }
 
-  return layouted;
+  return { nodes: layouted, layoutMode, layoutOffset };
 }
 
 export { isAnnotationNode };

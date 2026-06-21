@@ -1,6 +1,7 @@
 import { isHytaleNativeFormat, hytaleToInternal, hytaleToInternalBiome, type ImportMetadata } from "@/utils/hytaleToInternal";
 import { internalToHytale, internalToHytaleBiome } from "@/utils/internalToHytale";
 import { hasOldTerraNovaNaming, migrateAssetTree } from "@/utils/migration";
+import { migrateLegacyPropsAndAtmosphere } from "@/utils/migrateLegacyPropsAndAtmosphere";
 import type { PreservedNodeEditorMetadata } from "@/utils/nodeEditorMetadata";
 import type { Node } from "@xyflow/react";
 
@@ -126,17 +127,30 @@ function hasHytaleFieldNames(content: Record<string, unknown>): boolean {
  * Run old-TerraNova migration on content if needed.
  * Logs a console warning listing every conversion that was applied.
  */
-function applyMigrationIfNeeded(content: Record<string, unknown>): Record<string, unknown> {
-  if (!hasOldTerraNovaNaming(content)) return content;
-
-  const { result, conversions } = migrateAssetTree(content);
+function applyLegacyProviderMigration(content: Record<string, unknown>): Record<string, unknown> {
+  const { result, conversions } = migrateLegacyPropsAndAtmosphere(content);
   if (conversions.length > 0) {
     console.warn(
-      `[TerraNova] Migrated old naming in imported file (${conversions.length} node(s)):\n` +
+      `[TerraNova] Migrated legacy prop/atmosphere nodes (${conversions.length}):\n` +
         conversions.map((c) => `  • ${c}`).join("\n"),
     );
   }
   return result;
+}
+
+function applyMigrationIfNeeded(content: Record<string, unknown>): Record<string, unknown> {
+  let current = content;
+  if (hasOldTerraNovaNaming(current)) {
+    const { result, conversions } = migrateAssetTree(current);
+    if (conversions.length > 0) {
+      console.warn(
+        `[TerraNova] Migrated old naming in imported file (${conversions.length} node(s)):\n` +
+          conversions.map((c) => `  • ${c}`).join("\n"),
+      );
+    }
+    current = result;
+  }
+  return applyLegacyProviderMigration(current);
 }
 
 function hasHytaleEditorRootKeys(content: Record<string, unknown>): boolean {
@@ -152,10 +166,10 @@ export function normalizeImport(content: Record<string, unknown>): Record<string
   if (isHytaleNativeFormat(content) || hasHytaleFieldNames(content) || hasHytaleEditorRootKeys(content)) {
     if ("Type" in content) {
       const { asset } = hytaleToInternal(content);
-      return asset;
+      return applyLegacyProviderMigration(asset);
     }
     const { wrapper } = hytaleToInternalBiome(content);
-    return wrapper;
+    return applyLegacyProviderMigration(wrapper);
   }
   // Check for old TerraNova naming and migrate if needed
   return applyMigrationIfNeeded(content);
@@ -172,10 +186,10 @@ export function normalizeImportWithMeta(content: Record<string, unknown>): {
   if (isHytaleNativeFormat(content) || hasHytaleFieldNames(content) || hasHytaleEditorRootKeys(content)) {
     if ("Type" in content) {
       const { asset, metadata } = hytaleToInternal(content);
-      return { content: asset, metadata };
+      return { content: applyLegacyProviderMigration(asset), metadata };
     }
     const { wrapper, metadata } = hytaleToInternalBiome(content);
-    return { content: wrapper, metadata };
+    return { content: applyLegacyProviderMigration(wrapper), metadata };
   }
   // Check for old TerraNova naming and migrate if needed
   const migrated = applyMigrationIfNeeded(content);

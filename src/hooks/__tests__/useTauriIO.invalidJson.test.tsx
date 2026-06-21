@@ -28,6 +28,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 vi.mock("@/utils/autoLayout", () => ({
   autoLayout: async (nodes: unknown[]) => nodes,
+  tidyUp: (nodes: unknown[]) => nodes,
 }));
 
 vi.mock("@/utils/ipc", () => ({

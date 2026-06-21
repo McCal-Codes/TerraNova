@@ -7,6 +7,7 @@ import {
   inferBiomeNameFromFile,
   parseContentFieldsFromWorldStructure,
   resolveTerrainReferenceLevels,
+  expandVoxelYBoundsToIncludeSurface,
   sampleTerrainSurfaceCrossings,
   worldStructureReferencesBiome,
   worldStructuresDirFromBiomePath,
@@ -261,6 +262,35 @@ describe("mergeScanWithTerrainAutoFit", () => {
     );
     expect(merged.worldYMin).toBe(75);
     expect(merged.worldYMax).toBe(155);
+  });
+
+  it("expands a scan window clipped below the terrain surface band", () => {
+    const terrain = {
+      worldYMin: 50,
+      worldYMax: 150,
+      yLevel: 100,
+      reason: "test",
+    };
+    const merged = mergeScanWithTerrainAutoFit(
+      { worldYMin: 0, worldYMax: 88, hasSolids: true },
+      terrain,
+    );
+    expect(merged.worldYMin).toBe(0);
+    expect(merged.worldYMax).toBe(150);
+  });
+});
+
+describe("expandVoxelYBoundsToIncludeSurface", () => {
+  it("raises Y max when it sits below ContentFields Base Y", () => {
+    const levels = resolveTerrainReferenceLevels(
+      [makeNode("bh", "BaseHeight", { BaseHeightName: "Base", Distance: true })],
+      [],
+      { Base: 100, Bedrock: 0 },
+      { useBaseY: true },
+    )!;
+    const expanded = expandVoxelYBoundsToIncludeSurface(0, 88, levels, { anchorY: 100 });
+    expect(expanded.worldYMax).toBeGreaterThan(100);
+    expect(expanded.worldYMin).toBeLessThan(100);
   });
 });
 

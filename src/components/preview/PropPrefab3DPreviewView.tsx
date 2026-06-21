@@ -1,7 +1,9 @@
 import { Suspense, lazy } from "react";
 import { useProjectStore } from "@/stores/projectStore";
 import { usePreviewStore } from "@/stores/previewStore";
+import { useUIStore } from "@/stores/uiStore";
 import { usePrefabPreview } from "@/hooks/usePrefabPreview";
+import { PREFAB_PREVIEW_BLOCK_CAP } from "@/utils/hytaleBlockAssets/buildPrefabPreviewMesh";
 import type { PropPrefabPreviewSource } from "@/utils/propEditingContext";
 import { PrefabPathBrowser } from "./PrefabPathBrowser";
 
@@ -33,7 +35,10 @@ export function PropPrefab3DPreviewView({
 }: PropPrefab3DPreviewViewProps) {
   const projectPath = useProjectStore((s) => s.projectPath);
   const setPropManualPrefabPath = usePreviewStore((s) => s.setPropManualPrefabPath);
-  const preview = usePrefabPreview(effectiveSource?.fields ?? {}, projectPath);
+  const setRequestedSettingsTab = useUIStore((s) => s.setRequestedSettingsTab);
+  const preview = usePrefabPreview(effectiveSource?.fields ?? {}, projectPath, {
+    renderCap: PREFAB_PREVIEW_BLOCK_CAP,
+  });
 
   const handleBrowseSelect = (path: string) => {
     if (graphSource?.path === path) {
@@ -81,11 +86,30 @@ export function PropPrefab3DPreviewView({
                 {effectiveSource.path}
               </p>
               {preview.mesh && (
-                <p className="text-[10px] text-tn-text-muted/80">
-                  {preview.mesh.blockCount.toLocaleString()} blocks
-                  {preview.entityCount > 0 ? ` · ${preview.entityCount} entities` : ""}
-                  {preview.mesh.truncated ? " · capped for preview" : ""}
-                </p>
+                <div className="text-[10px] text-tn-text-muted/80">
+                  <p>
+                    {preview.mesh.blockCount.toLocaleString()} blocks
+                    {preview.entityCount > 0 ? ` · ${preview.entityCount} entities` : ""}
+                    {preview.mesh.truncated ? " · capped for preview" : ""}
+                    {preview.totalBlockTypes > 0 && (
+                      <>
+                        {" · "}
+                        {preview.texturedBlockTypes > 0
+                          ? `${preview.texturedBlockTypes}/${preview.totalBlockTypes} block types textured`
+                          : "sync Hytale assets for block textures"}
+                      </>
+                    )}
+                  </p>
+                  {preview.totalBlockTypes > 0 && preview.texturedBlockTypes === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setRequestedSettingsTab("assets")}
+                      className="mt-1 text-[10px] font-medium text-tn-accent hover:text-tn-accent/80"
+                    >
+                      Sync Hytale assets…
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 

@@ -23,6 +23,8 @@ After the terrain density function has determined *where* solid voxels exist, ma
 
 Material providers only run on voxels where density is positive (i.e. solid). Air voxels are never evaluated.
 
+For the same split in plain language — **densities carve shape** (positive = solid), **material providers paint blocks** on those solids — see Ashley’s [worldgen intro](https://medium.com/@ashleythedev/surprisingly-simple-world-generation-in-hytale-fcdc1e8bff0e). In TerraNova preview: use the **2D cell map** when tuning PCN / `CellNoise2D` masks; on the **Materials** biome tab, use the dedicated **Column** / **Surface** material preview; switch to **Voxel + Material Colors** on Terrain for full 3D verification of `Queue` / `SpaceAndDepth` or `FieldFunction` delimiter bands.
+
 A `MaterialProviderAsset` wraps a single top-level provider. That provider is evaluated independently for every solid voxel and returns a block reference plus optional rotation.
 
 ### Provider types at a glance
@@ -394,6 +396,12 @@ Try a noise-driven variable dirt layer first; if the noise result would be 0 thi
 
 The dirt sublayer is 1–4 blocks depending on noise at that XZ position. Stone fills everything beneath it.
 
+### Example E: Path corridors from a shared density export (DFS pattern)
+
+Community pack **Dragon's Fantasy Scenes** (`DFS_Autumn_Trails`) exports one wide-area density (`DFS_03_WideAreaDensity`) and reuses it for terrain paths, **`FieldFunction` material delimiters**, tint provinces, and prop `Mesh2D` placement. Path bands use a **`Solidity` → `Queue` → `FieldFunction`** stack with tight delimiters (±0.005) mapping to `Soil_Pathway` / `Soil_Dirt_Dry` / `Soil_Mud_Dry` — corridors, not random specks.
+
+Use this when trail paint, tint, and scatter must stay aligned. See [Community Pack Study References](../../reference/community-pack-references.md).
+
 ---
 
 ## Common Mistakes
@@ -429,6 +437,7 @@ The `density` context field gives you the raw density value at a voxel, but this
 
 ## See Also
 
+- [Community Pack Study References](../../reference/community-pack-references.md) — DFS path `FieldFunction` stacks
 - [Reference Index](../../reference/README.md)
 - [Biome System](../world/biome-system.md)
 - [Terrain Math Explained](../terrain/terrain-math-explained.md)

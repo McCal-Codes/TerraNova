@@ -6,6 +6,53 @@ All notable changes to [TerraNova](https://github.com/McCal-Codes/TerraNova) are
 
 _Next alpha cycle — add bullets here as features land._
 
+## [0.1.8-alpha.4] — 2026-06-21 — Closed alpha
+
+Fourth **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.4`.  
+**Updates:** Users on `v0.1.8-alpha.3` receive this build via the in-app updater (~3s after launch when auto-check is on).
+
+### Highlights
+
+- **Atmosphere tab tint editing** — Tune SimplexNoise2D seed/scale/octaves/persistence/lacunarity and delimiter bands from the biome **Atmosphere** tab without opening the Tint graph; Advanced collapse exposes full range editing
+- **Preview fidelity honesty** — Fidelity badge scores only density nodes on the active preview path; approximated nodes (Pipeline, GradientWarp, cave carvers, etc.) show a named callout with a link to Issues
+- **Launch & session polish** — Failed project/file restore shows toasts instead of silent failure; empty project trees no longer block reopening your last file; License and Notice viewers in Settings
+- **Voxel material legend** — Hide or show individual block materials from preview settings; mesh rebuilds instantly without re-evaluating density
+
+### Icons & navigation
+
+- **Semantic file tree icons** — Biomes, weather, environment, materials, world structures, prefabs, and settings JSON show distinct Lucide icons (path-aware under `Server/HytaleGenerator/Biomes`, `Server/Environments`, etc.)
+- **Referenced Assets row icons** — Asset Tools referenced-asset rows show kind icons (weather textures, environment weather) beside the existing status dot
+
+### Onboarding, session & settings
+
+- **Session restore reliability** — `sessionRestoreReady` flag decouples file reopen from directory tree population; invalid saved project clears session with a warning toast; file open failure clears stale `currentFile` and notifies
+- **Onboarding Step 4** — **Getting Started** doc link plus hint that in-editor docs are available via **F1**
+- **License & Notice** — Settings → About opens readable modals for LGPL **LICENSE** and **NOTICE** (no longer “coming soon”)
+- **What’s New sync** — Manually closing What’s New from Settings marks the current version as seen (matches home-screen dismiss behavior)
+
+### Atmosphere & tint
+
+- **TintDensityField** — Simple block on Atmosphere tab for typical `DensityDelimited` + `SimplexNoise2D` biomes
+- **TintDelimitersField** — Shared gradient bar + per-band color/range editor (also used in Properties for Tint nodes)
+- **biomeTintUtils** — `readTintDensity`, `updateTintDensity`, `readTintDelimiters`, `updateTintDelimiters`, `isSimplexNoise2DTint`
+- **Open Tint graph** link when stacks use exotic density patterns (TerrainDensity, SliderDensity, dual-sample slope) that stay graph-only
+
+### Preview fidelity
+
+- **Path-scoped fidelity** — `computePreviewFidelityScore` ignores material/prop nodes and off-path density; wired into live preview evaluation
+- **PreviewApproximatedCallout** — Bottom preview chrome lists up to three approximated node labels/types with “N more” and **Open Issues panel**
+- **GradientWarp** — Marked approximated (finite-difference eval)
+- **Material column preview** — Callout when the material stack uses passthrough nodes (`Material:Surface`, `Exported`, etc.) pointing testers to Voxel preview on Terrain
+
+### Voxel preview QoL
+
+- **Legend visibility toggles** — Per-material checkboxes under Voxel settings → **Legend visibility**; hidden materials filtered in `buildVoxelMeshes` with cached volume rebuild
+- **Smoke test stability** — Hytale Plains1_River voxel smoke test timeout aligned with sibling cases (20s under full CI load)
+
+### Fixes
+
+- **File icon heuristics** — `Env_*` environment JSON and `/Biomes/` path segments resolve correctly; file tree passes full path for icon lookup
+
 ## [0.1.8-alpha.3] — 2026-06-15 — Closed alpha
 
 Third **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.3`.  

@@ -14,7 +14,7 @@ export const ComparisonChrome = memo(function ComparisonChrome({
   settingsButtonRef,
 }: ComparisonChromeProps) {
   return (
-    <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-tn-border bg-tn-surface/95 px-2">
+    <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-tn-border bg-tn-surface px-2">
       <span className="text-[11px] font-medium text-tn-text-muted">Compare previews</span>
       <ChromeIconButton
         ref={settingsButtonRef}

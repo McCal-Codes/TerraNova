@@ -83,6 +83,7 @@ Legacy **CaveDensity** uses a noise-carve approximation; prefer compositional `M
 
 ## Further reading
 
+- [Density Basics Preview](./density-basics-preview.md) — **Min carve** teaching snippet and preview target workflow.
 - [Terrain and Caves walkthrough](../../walkthroughs/terrain-and-caves.md) — graph recipes.
 - [Expert Terrain Techniques](../terrain/terrain-types-expert.md) — preview vs runtime gaps.
 - [Materials Guide](../content/materials-guide.md) — cave floor/ceiling materials (multi-void columns still limited).

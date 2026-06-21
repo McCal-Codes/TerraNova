@@ -6,7 +6,7 @@ import { useEditorStore } from "@/stores/editorStore";
 
 import { evaluateInWorker, cancelEvaluation } from "@/utils/densityWorkerClient";
 
-import { computeFidelityScore } from "@/utils/graphDiagnostics";
+import { computePreviewFidelityScore } from "@/utils/graphDiagnostics";
 
 import { useConfigStore } from "@/stores/configStore";
 
@@ -17,6 +17,7 @@ import { buildDensityEvalOptions } from "@/utils/buildDensityEvalOptions";
 import { isPropEditingContext } from "@/utils/propEditingContext";
 
 import { useEvaluationFingerprint } from "@/hooks/useEvaluationFingerprint";
+import { resolvePreviewRootNodeId } from "@/utils/previewRootResolver";
 
 import {
   buildDensityPreviewEvalSteps,
@@ -55,8 +56,6 @@ export function usePreviewEvaluation() {
   const rangeMax = usePreviewStore((s) => s.rangeMax);
 
   const yLevel = usePreviewStore((s) => s.yLevel);
-
-  const selectedPreviewNodeId = usePreviewStore((s) => s.selectedPreviewNodeId);
 
   const viewMode = usePreviewStore((s) => s.viewMode);
 
@@ -110,8 +109,6 @@ export function usePreviewEvaluation() {
 
       yLevel,
 
-      selectedPreviewNodeId ?? "",
-
     ].join("|");
 
   }, [
@@ -137,8 +134,6 @@ export function usePreviewEvaluation() {
     rangeMax,
 
     yLevel,
-
-    selectedPreviewNodeId,
 
   ]);
 
@@ -186,7 +181,7 @@ export function usePreviewEvaluation() {
 
     timerRef.current = setTimeout(async () => {
 
-      const { nodes, edges, contentFields, outputNodeId } = useEditorStore.getState();
+      const { nodes, edges, contentFields, outputNodeId, biomeSections } = useEditorStore.getState();
 
       const projectPath = useProjectStore.getState().projectPath;
 
@@ -229,6 +224,7 @@ export function usePreviewEvaluation() {
         edges,
         contentFields,
         projectPath,
+        biomeSections,
       });
 
       const params = {
@@ -243,7 +239,12 @@ export function usePreviewEvaluation() {
 
         yLevel: preview.yLevel,
 
-        rootNodeId: preview.selectedPreviewNodeId ?? outputNodeId ?? undefined,
+        rootNodeId: resolvePreviewRootNodeId({
+          nodes,
+          edges,
+          selectedPreviewNodeId: preview.selectedPreviewNodeId,
+          outputNodeId,
+        }),
 
         options: evalOptions,
 
@@ -299,7 +300,7 @@ export function usePreviewEvaluation() {
 
           usePreviewStore.setState({ densityEvalKey: keyForThisRun });
 
-          usePreviewStore.getState().setFidelityScore(computeFidelityScore(nodes));
+          usePreviewStore.getState().setFidelityScore(computePreviewFidelityScore(nodes, edges));
 
         }
 
@@ -359,7 +360,7 @@ export function usePreviewEvaluation() {
 
 export function triggerManualEvaluation() {
   const preview = usePreviewStore.getState();
-  const { nodes, edges, contentFields, outputNodeId, editingContext, activeBiomeSection } = useEditorStore.getState();
+  const { nodes, edges, contentFields, outputNodeId, editingContext, activeBiomeSection, biomeSections } = useEditorStore.getState();
   const projectPath = useProjectStore.getState().projectPath;
 
 
@@ -406,6 +407,7 @@ export function triggerManualEvaluation() {
       edges,
       contentFields,
       projectPath,
+      biomeSections,
     });
 
     evaluateInWorker({
@@ -422,7 +424,12 @@ export function triggerManualEvaluation() {
 
       yLevel: preview.yLevel,
 
-      rootNodeId: preview.selectedPreviewNodeId ?? outputNodeId ?? undefined,
+      rootNodeId: resolvePreviewRootNodeId({
+        nodes,
+        edges,
+        selectedPreviewNodeId: preview.selectedPreviewNodeId,
+        outputNodeId,
+      }),
 
       options: evalOptions,
 

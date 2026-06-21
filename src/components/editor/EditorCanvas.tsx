@@ -697,10 +697,6 @@ export function EditorCanvas({
     setSelectedHandle(null);
     const preview = usePreviewStore.getState();
     const type = getNodeType(node);
-    const isCurveAsset = type === "Manual" || type.startsWith("Curve:");
-    if (!isCurveAsset) {
-      preview.setSelectedPreviewNodeId(node.id);
-    }
     if (supportsShapePreviewCard(type)) {
       preview.setShowShapePreview(true);
       const viewMode = preview.viewMode;

@@ -195,7 +195,10 @@ export function ValidationPanel() {
         return "Set name";
       case "biome-tint-missing-provider":
         return "Add default tint";
+      case "biome-tint-empty-delimiters":
+        return "Add default bands";
       case "biome-tint-missing-ref-name":
+      case "biome-tint-unknown-ref":
         return "Use Default";
       case "field-constraint": {
         const min = diagnostic.meta?.constraintMin;
@@ -299,6 +302,37 @@ export function ValidationPanel() {
         setBiomeConfig({ ...biomeConfig, TintProvider: { Type: "Default" } });
         setDirty(true);
         commitState("Reset TintProvider to Default");
+        return;
+      case "biome-tint-unknown-ref":
+        if (!biomeConfig) return;
+        setBiomeConfig({ ...biomeConfig, TintProvider: { Type: "Default" } });
+        setDirty(true);
+        commitState("Reset unknown TintProvider reference to Default");
+        return;
+      case "biome-tint-empty-delimiters":
+        if (!biomeConfig) return;
+        setBiomeConfig({
+          ...biomeConfig,
+          TintProvider: {
+            Type: "DensityDelimited",
+            ExportAs: "BiomeTint",
+            Delimiters: [
+              { Threshold: 0.33, Tint: { Color: "#5b9e28" } },
+              { Threshold: 0.66, Tint: { Color: "#6ca229" } },
+              { Threshold: 1.0, Tint: { Color: "#7ea629" } },
+            ],
+            Density: {
+              Type: "SimplexNoise2D",
+              Seed: "tints",
+              Scale: 100,
+              Octaves: 2,
+              Persistence: 0.2,
+              Lacunarity: 5,
+            },
+          },
+        });
+        setDirty(true);
+        commitState("Add default DensityDelimited tint bands");
         return;
       case "field-constraint": {
         if (!diagnostic.nodeId || !diagnostic.field) return;

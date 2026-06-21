@@ -43,7 +43,8 @@ templates/hytale-release/
 .claw/
 .playwright-mcp/
 
-# Logs
+# Local smoke captures (Hytale preview gallery screenshots)
+test-results/
 *.log
 .claude/
 docs/plans/

@@ -29,4 +29,7 @@ export {
 } from "./hytaleBlockAssetService";
 export { buildPrefabPreviewMesh, PREFAB_PREVIEW_BLOCK_CAP, PREFAB_PREVIEW_RENDER_CAP } from "./buildPrefabPreviewMesh";
 export type { PrefabPreviewMeshData } from "./buildPrefabPreviewMesh";
+export { loadTexturedPrefabPreview } from "./loadTexturedPrefabPreview";
+export type { TexturedPrefabPreviewResult } from "./loadTexturedPrefabPreview";
+export { resolveAssignmentPrefabPath } from "./resolveAssignmentPrefabPath";
 export { extractPrefabPathFromFields, normalizePrefabRelativePath } from "./extractPrefabPath";

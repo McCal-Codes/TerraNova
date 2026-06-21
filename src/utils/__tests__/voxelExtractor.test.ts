@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fillTerrainColumnBacking, SOLID_THRESHOLD } from "../voxelExtractor";
+import { fillTerrainColumnBacking, volumeDensityHasAir, SOLID_THRESHOLD } from "../voxelExtractor";
 
 function makeVolume(n: number, ys: number, fill = -1): Float32Array {
   const d = new Float32Array(n * n * ys);
@@ -10,6 +10,16 @@ function makeVolume(n: number, ys: number, fill = -1): Float32Array {
 function idx(x: number, y: number, z: number, n: number): number {
   return y * n * n + z * n + x;
 }
+
+describe("volumeDensityHasAir", () => {
+  it("detects all-solid vs mixed volumes", () => {
+    const solid = makeVolume(2, 2, 1);
+    const mixed = makeVolume(2, 2, 1);
+    mixed[0] = -1;
+    expect(volumeDensityHasAir(solid)).toBe(false);
+    expect(volumeDensityHasAir(mixed)).toBe(true);
+  });
+});
 
 describe("fillTerrainColumnBacking", () => {
   it("fills air gaps below connected solids in a column", () => {

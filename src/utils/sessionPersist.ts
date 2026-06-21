@@ -24,6 +24,9 @@ export function saveSession(state: Partial<SessionState>): void {
   }
 }
 
+/** Partial session update (alias for saveSession). */
+export const updateSession = saveSession;
+
 export function loadSession(): SessionState {
   return safeStoredJson<SessionState>(SESSION_KEY, {
     projectPath: null,
@@ -38,4 +41,9 @@ export function clearSession(): void {
   } catch {
     // noop
   }
+}
+
+/** True when a previous project path is saved and should be restored on launch. */
+export function hasPersistedProjectSession(): boolean {
+  return loadSession().projectPath !== null;
 }

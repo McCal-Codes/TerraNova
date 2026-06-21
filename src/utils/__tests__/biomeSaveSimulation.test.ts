@@ -2,12 +2,16 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Edge, Node } from "@xyflow/react";
-import { graphToJson, graphToJsonMulti } from "../graphToJson";
+import { graphToJson } from "../graphToJson";
 import { jsonToGraph } from "../jsonToGraph";
 import { internalToHytaleBiome } from "../internalToHytale";
 import { normalizeMaterialSectionNodeTypes } from "../materialSectionNodes";
 import { hytaleToInternalBiome } from "../hytaleToInternal";
 import { sanitizeGraphNodesAndEdges } from "../sanitizeGraphNodes";
+import {
+  buildPropEntryFromSection,
+  buildPropSectionGraph,
+} from "../propSectionAssets";
 
 const FOREST_HILLS_BIOME = join(
   process.cwd(),
@@ -62,22 +66,8 @@ function buildSectionsFromInternalWrapper(wrapper: Record<string, unknown>) {
   if (Array.isArray(props)) {
     for (let i = 0; i < props.length; i++) {
       const prop = props[i] as Record<string, unknown>;
-      const dist = prop.PropDistribution as Record<string, unknown> | undefined;
-      const positions = (prop.Positions ?? dist?.Positions) as Record<string, unknown> | undefined;
-      const assignments = (prop.Assignments ?? dist?.Prop) as Record<string, unknown> | undefined;
-      const allNodes: Node[] = [];
-      const allEdges: Edge[] = [];
-      if (positions) {
-        const g = graphSection(positions, `pos_${i}`, "Positions");
-        allNodes.push(...g.nodes);
-        allEdges.push(...g.edges);
-      }
-      if (assignments) {
-        const g = graphSection(assignments, `asgn_${i}`, "Assignments");
-        allNodes.push(...g.nodes);
-        allEdges.push(...g.edges);
-      }
-      sections[`Props[${i}]`] = sanitizeGraphNodesAndEdges(allNodes, allEdges);
+      const graph = buildPropSectionGraph(prop, `prop_${i}`);
+      sections[`Props[${i}]`] = sanitizeGraphNodesAndEdges(graph.nodes, graph.edges);
     }
   }
 
@@ -117,16 +107,15 @@ function simulateBiomeSave(wrapper: Record<string, unknown>) {
   if (Array.isArray(props)) {
     output.Props = props.map((prop, i) => {
       const section = sections[`Props[${i}]`];
-      const entry: Record<string, unknown> = {
-        Runtime: (prop as Record<string, unknown>).Runtime ?? 0,
-        Skip: (prop as Record<string, unknown>).Skip ?? false,
+      const raw = prop as Record<string, unknown>;
+      const meta = {
+        Runtime: typeof raw.Runtime === "number" ? raw.Runtime : 0,
+        Skip: typeof raw.Skip === "boolean" ? raw.Skip : false,
       };
-      if (section?.nodes.length) {
-        const assets = graphToJsonMulti(section.nodes, section.edges);
-        if (assets[0]) entry.Positions = assets[0];
-        if (assets[1]) entry.Assignments = assets[1];
+      if (!section?.nodes.length) {
+        return { Runtime: meta.Runtime, Skip: meta.Skip };
       }
-      return entry;
+      return buildPropEntryFromSection(section.nodes, section.edges, meta);
     });
   }
 

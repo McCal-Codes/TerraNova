@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { X } from "lucide-react";
 import { ChromeIconButton } from "@/components/ui/editorChrome";
-import { previewSettingsDrawerClass } from "@/components/preview/previewChromeStyles";
+import { previewSettingsDrawerClass, previewHudPanelHeaderClass } from "@/components/preview/previewChromeStyles";
 
 interface PreviewSettingsDrawerProps {
   open: boolean;
@@ -66,7 +66,7 @@ export function PreviewSettingsDrawer({
     <div className="absolute inset-0 z-30 flex justify-end pointer-events-none">
       <button
         type="button"
-        className="absolute inset-0 bg-black/25 pointer-events-auto"
+        className="absolute inset-0 bg-black/60 pointer-events-auto"
         onClick={close}
         aria-label="Close preview settings"
       />
@@ -77,7 +77,7 @@ export function PreviewSettingsDrawer({
         aria-modal="true"
         aria-label={title}
       >
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-black/35 bg-black/40 px-3 py-2">
+        <div className={`${previewHudPanelHeaderClass} px-3 py-2`}>
           <h2 className="text-[11px] font-medium text-tn-text">{title}</h2>
           <ChromeIconButton
             size="sm"
@@ -86,7 +86,7 @@ export function PreviewSettingsDrawer({
             icon={<X className="h-3.5 w-3.5" strokeWidth={2} />}
           />
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
       </aside>
     </div>
   );

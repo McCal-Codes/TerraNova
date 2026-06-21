@@ -36,8 +36,31 @@ if (!body) {
 }
 
 const isPrerelease = /-(alpha|beta|rc)\./i.test(version);
+
+function previousPrereleaseTag(semver) {
+  const alphaMatch = semver.match(/^(.+-alpha\.)(\d+)$/);
+  if (alphaMatch) {
+    const n = Number(alphaMatch[2]);
+    if (n > 1) return `${alphaMatch[1]}${n - 1}`;
+  }
+  const betaMatch = semver.match(/^(.+-beta\.)(\d+)$/);
+  if (betaMatch) {
+    const n = Number(betaMatch[2]);
+    if (n > 1) return `${betaMatch[1]}${n - 1}`;
+  }
+  const rcMatch = semver.match(/^(.+-rc\.)(\d+)$/);
+  if (rcMatch) {
+    const n = Number(rcMatch[2]);
+    if (n > 1) return `${rcMatch[1]}${n - 1}`;
+  }
+  return null;
+}
+
+const prevTag = previousPrereleaseTag(version);
 const installNote = isPrerelease
-  ? "\n\n> **Closed alpha:** download the installer for your platform below, or update in-app from `v0.1.8-alpha.1`+ (Settings → General → Check for updates; auto-check runs ~3s after launch)."
+  ? prevTag
+    ? `\n\n> **Closed alpha:** download the installer for your platform below, or update in-app from \`v${prevTag}\`+ (Settings → General → Check for updates; auto-check runs ~3s after launch).`
+    : "\n\n> **Closed alpha:** download the installer for your platform below, or update in-app when auto-check is enabled (Settings → General → Check for updates; runs ~3s after launch)."
   : "";
 
 process.stdout.write(`${body}${installNote}\n`);

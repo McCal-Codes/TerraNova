@@ -76,6 +76,8 @@ export interface HistoryEntry {
   label: string;
 }
 
+export type BiomeCanvasMode = "tabs" | "overview";
+
 export interface FileGraphCache {
   nodes: Node[];
   edges: Edge[];
@@ -90,6 +92,9 @@ export interface FileGraphCache {
   editingContext: string | null;
   originalWrapper: Record<string, unknown> | null;
   preservedNodeEditorMetadata: import("@/utils/nodeEditorMetadata").PreservedNodeEditorMetadata | null;
+  importLayoutMode: import("@/utils/applyHytaleImportLayout").ImportLayoutMode | null;
+  hytaleLayoutOffsets: Record<string, import("@/utils/applyHytaleImportLayout").LayoutOffset> | null;
+  biomeCanvasMode: BiomeCanvasMode;
   rawJsonContent: Record<string, unknown> | null;
   outputNodeId: string | null;
   history: HistoryEntry[];
@@ -159,9 +164,23 @@ export interface BiomeSectionsSliceState {
   setBiomeSections: (sections: Record<string, BiomeSectionData> | null) => void;
   setActiveBiomeSection: (section: string | null) => void;
   switchBiomeSection: (target: string) => void;
+  flushActiveBiomeSection: () => void;
   setBiomeConfig: (config: BiomeConfig | null) => void;
   addPropSection: () => void;
+  addPropSectionWithGraph: (
+    nodes: import("@xyflow/react").Node[],
+    edges: import("@xyflow/react").Edge[],
+    meta?: { Runtime: number; Skip: boolean },
+  ) => string | null;
+  replacePropSectionGraph: (
+    propIndex: number,
+    nodes: import("@xyflow/react").Node[],
+    edges: import("@xyflow/react").Edge[],
+    meta?: { Runtime: number; Skip: boolean },
+  ) => void;
   removePropSection: (key: string) => void;
+  duplicatePropSection: (propIndex: number) => string | null;
+  reorderPropSection: (fromIndex: number, toIndex: number) => void;
 }
 
 export interface BiomeRangesSliceState {
@@ -170,6 +189,7 @@ export interface BiomeRangesSliceState {
   selectedBiomeIndex: number | null;
 
   setBiomeRanges: (ranges: BiomeRangeEntry[]) => void;
+  bulkUpdateBiomeRanges: (ranges: BiomeRangeEntry[], label: string) => void;
   setNoiseRangeConfig: (config: NoiseRangeConfig | null) => void;
   updateBiomeRange: (index: number, entry: Partial<BiomeRangeEntry>) => void;
   addBiomeRange: (entry: BiomeRangeEntry) => void;
@@ -201,6 +221,9 @@ export interface ConfigSliceState {
   materialConfig: BiomeMaterialConfig | null;
   originalWrapper: Record<string, unknown> | null;
   preservedNodeEditorMetadata: import("@/utils/nodeEditorMetadata").PreservedNodeEditorMetadata | null;
+  importLayoutMode: import("@/utils/applyHytaleImportLayout").ImportLayoutMode | null;
+  hytaleLayoutOffsets: Record<string, import("@/utils/applyHytaleImportLayout").LayoutOffset> | null;
+  biomeCanvasMode: BiomeCanvasMode;
   editingContext: string | null;
   rawJsonContent: Record<string, unknown> | null;
   jsonViewDraft: string | null;
@@ -214,6 +237,11 @@ export interface ConfigSliceState {
   setPreservedNodeEditorMetadata: (
     metadata: import("@/utils/nodeEditorMetadata").PreservedNodeEditorMetadata | null,
   ) => void;
+  setImportLayoutMode: (mode: import("@/utils/applyHytaleImportLayout").ImportLayoutMode | null) => void;
+  setHytaleLayoutOffsets: (
+    offsets: Record<string, import("@/utils/applyHytaleImportLayout").LayoutOffset> | null,
+  ) => void;
+  setBiomeCanvasMode: (mode: BiomeCanvasMode) => void;
   setEditingContext: (context: string | null) => void;
   setRawJsonContent: (content: Record<string, unknown> | null) => void;
   setJsonViewDraft: (draft: string | null) => void;

@@ -33,7 +33,7 @@ export async function tryBridgeAutoConnect(
   const store = useBridgeStore.getState();
   if (store.connected || store.connecting) return store.connected;
 
-  const token = (store.authToken || discovery.authTokenFromConfig || "").trim();
+  const token = (discovery.authTokenFromConfig || store.authToken || "").trim();
   if (!discovery.portOpen || !token || !discovery.bridgeVersion) {
     return false;
   }
@@ -43,7 +43,7 @@ export async function tryBridgeAutoConnect(
     return false;
   }
 
-  if (!store.authToken && discovery.authTokenFromConfig) {
+  if (discovery.authTokenFromConfig && discovery.authTokenFromConfig !== store.authToken) {
     store.setConnectionConfig(store.host, store.port, discovery.authTokenFromConfig);
   }
 

@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
 import { Lock, LockOpen, HelpCircle, Copy, Search, X } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
+import { usePreviewStore } from "@/stores/previewStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { useFieldChange } from "@/hooks/useFieldChange";
+import { triggerManualEvaluation } from "@/hooks/usePreviewEvaluation";
 import { SliderField } from "./SliderField";
 import { ColorPickerField } from "./ColorPickerField";
 import { VectorField } from "./VectorField";
@@ -47,6 +49,12 @@ import { ImportedRefField } from "./ImportedRefField";
 import { SwitchCasesField } from "./SwitchCasesField";
 import { renderPropertyPanelArrayItem } from "./propertyPanelArrayItem";
 import { supportsShapePreviewCard } from "@/utils/shapePreview/shapePreviewProfile";
+import { supportsDensityPreviewLens } from "@/utils/densityPreviewLens";
+import { getNodeType } from "@/utils/density/evalTypes";
+import {
+  DensityPreviewLensBreadcrumb,
+  DensityPreviewLensCard,
+} from "./DensityPreviewLensCard";
 import { AssetInspectorPanel, resolveAssetInspectorMode } from "./AssetInspectorPanel";
 import { POSITION_TYPE_NAMES } from "@/utils/positionEvaluator";
 import { getCurveEvaluator } from "@/utils/curveEvaluators";
@@ -115,6 +123,7 @@ import {
   isDelimiterEnvironmentProviderType,
   type AdvancedDelimiterTypeDetails,
 } from "./biomeTintUtils";
+import { TintDelimitersField } from "./TintDelimitersField";
 
 /** Field keys whose string value is a Hytale block/material identifier. */
 const MATERIAL_FIELD_KEYS = new Set(["Material", "Solid", "Fluid", "BlockType", "BlockTypes"]);
@@ -196,11 +205,14 @@ export function PropertyPanel() {
   const helpMode = useUIStore((s) => s.helpMode);
   const toggleHelpMode = useUIStore((s) => s.toggleHelpMode);
   const devActive = useDeveloperMode();
+  const livePropertyPreview = usePreviewStore((s) => s.livePropertyPreview);
+  const setLivePropertyPreview = usePreviewStore((s) => s.setLivePropertyPreview);
   const [expandedField, setExpandedField] = useState<string | null>(null);
   const [fieldFilter, setFieldFilter] = useState("");
   const [noteExpanded, setNoteExpanded] = useState(false);
   const [idCopied, setIdCopied] = useState(false);
   const idCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const livePreviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [environmentLookup, setEnvironmentLookup] = useState<EnvironmentNameLookup>({
     status: "idle",
     names: [],
@@ -209,8 +221,6 @@ export function PropertyPanel() {
     workspacePath: null,
     error: null,
   });
-  const noiseRangeConfig = useEditorStore((s) => s.noiseRangeConfig);
-  const setNoiseRangeConfig = useEditorStore((s) => s.setNoiseRangeConfig);
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
   const setBiomeConfig = useEditorStore((s) => s.setBiomeConfig);
   const settingsConfig = useEditorStore((s) => s.settingsConfig);
@@ -319,6 +329,21 @@ export function PropertyPanel() {
     }
   }, [commitState]);
 
+  const queueLivePreviewRefresh = useCallback(() => {
+    const preview = usePreviewStore.getState();
+    if (!preview.livePropertyPreview) return;
+
+    if (livePreviewTimerRef.current) {
+      clearTimeout(livePreviewTimerRef.current);
+    }
+    livePreviewTimerRef.current = setTimeout(() => {
+      const state = usePreviewStore.getState();
+      if (!state.livePropertyPreview) return;
+      triggerManualEvaluation();
+      state.requestManualPreviewRefresh();
+    }, 120);
+  }, []);
+
   /**
    * For discrete changes (toggle clicks): update field then commit.
    */
@@ -331,8 +356,9 @@ export function PropertyPanel() {
       updateNodeField(selectedNodeId, fieldName, value);
       commitState(`Edit ${fieldName} on ${nodeType}`);
       setDirty(true);
+      queueLivePreviewRefresh();
     },
-    [selectedNodeId, commitState, updateNodeField, setDirty, flushPendingSnapshot],
+    [selectedNodeId, commitState, updateNodeField, setDirty, flushPendingSnapshot, queueLivePreviewRefresh],
   );
 
   /**
@@ -351,11 +377,12 @@ export function PropertyPanel() {
 
       updateNodeField(selectedNodeId, fieldName, value);
       setDirty(true);
+      queueLivePreviewRefresh();
 
       // Mark that we have uncommitted changes — commit happens on blur
       hasPendingSnapshotRef.current = true;
     },
-    [selectedNodeId, updateNodeField, setDirty],
+    [selectedNodeId, updateNodeField, setDirty, queueLivePreviewRefresh],
   );
 
   /**
@@ -387,6 +414,7 @@ export function PropertyPanel() {
   useEffect(() => {
     return () => {
       if (idCopiedTimerRef.current) clearTimeout(idCopiedTimerRef.current);
+      if (livePreviewTimerRef.current) clearTimeout(livePreviewTimerRef.current);
     };
   }, []);
 
@@ -395,14 +423,6 @@ export function PropertyPanel() {
   const handleConfigBlur = useCallback(() => {
     flushConfig();
   }, [flushConfig]);
-
-  const handleNoiseRangeConfigChange = useCallback(
-    (field: string, value: unknown) => {
-      if (!noiseRangeConfig) return;
-      debouncedConfigChange(`Edit ${field}`, () => setNoiseRangeConfig({ ...noiseRangeConfig, [field]: value }));
-    },
-    [noiseRangeConfig, setNoiseRangeConfig, debouncedConfigChange],
-  );
 
   const handleBiomeConfigChange = useCallback(
     (field: string, value: unknown) => {
@@ -487,37 +507,12 @@ export function PropertyPanel() {
   }, [commitState, setDirty]);
 
   if (!selectedNode) {
-    if (editingContext === "NoiseRange" && noiseRangeConfig) {
+    if (editingContext === "NoiseRange") {
       return (
-        <div className="flex flex-col p-3 gap-3">
-          <div className="border-b border-tn-border pb-2">
-            <h3 className="text-sm font-semibold">NoiseRange Config</h3>
-            <p className="text-xs text-tn-text-muted">Global biome range settings</p>
-          </div>
-          <TextField
-            label="DefaultBiome"
-            value={noiseRangeConfig.DefaultBiome}
-            onChange={(v) => handleNoiseRangeConfigChange("DefaultBiome", v)}
-            onBlur={handleConfigBlur}
-          />
-          <SliderField
-            label="DefaultTransitionDistance"
-            value={noiseRangeConfig.DefaultTransitionDistance}
-            min={0}
-            max={128}
-            step={1}
-            onChange={(v) => handleNoiseRangeConfigChange("DefaultTransitionDistance", v)}
-            onBlur={handleConfigBlur}
-          />
-          <SliderField
-            label="MaxBiomeEdgeDistance"
-            value={noiseRangeConfig.MaxBiomeEdgeDistance}
-            min={0}
-            max={128}
-            step={1}
-            onChange={(v) => handleNoiseRangeConfigChange("MaxBiomeEdgeDistance", v)}
-            onBlur={handleConfigBlur}
-          />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <p className="text-sm text-tn-text-muted text-center">
+            World biome ranges and transition settings are in the mapper panel above the canvas.
+          </p>
         </div>
       );
     }
@@ -616,6 +611,16 @@ export function PropertyPanel() {
   );
   const showFieldFilter = orderedFieldKeys.length > 6;
   const commentText = typeof fields["_comment"] === "string" ? fields["_comment"] : "";
+  const showDensityPreviewLens =
+    !!selectedNodeId && supportsDensityPreviewLens(typeName);
+  const showLensBreadcrumb =
+    !!selectedNodeId
+    && !showDensityPreviewLens
+    && edges.some((e) => {
+      if (e.source !== selectedNodeId) return false;
+      const parent = nodes.find((n) => n.id === e.target);
+      return parent ? supportsDensityPreviewLens(getNodeType(parent)) : false;
+    });
 
   const resetFieldToDefault = (fieldName: string) => {
     if (!selectedNodeId) return;
@@ -720,6 +725,15 @@ export function PropertyPanel() {
             {idCopied ? "✓" : "⎘"}
           </span>
         </button>
+        <label className="mt-1.5 flex items-center justify-between gap-2 rounded border border-tn-border/30 bg-tn-bg px-2 py-1 text-[11px] text-tn-text-muted">
+          <span>Live preview</span>
+          <input
+            type="checkbox"
+            checked={livePropertyPreview}
+            onChange={(e) => setLivePropertyPreview(e.target.checked)}
+            className="h-3.5 w-3.5 accent-tn-accent"
+          />
+        </label>
       </div>
 
       {devActive && !isAnnotationNode && (
@@ -1160,145 +1174,13 @@ export function PropertyPanel() {
         }
         if (Array.isArray(value) && key === "Delimiters" && isTintDensityDelimitedNode) {
           const delimiters = value as Array<Record<string, unknown>>;
-          const bandColors = delimiters.map((d) => {
-            const t = (d.Tint as Record<string, unknown>) ?? {};
-            return typeof t.Color === "string" ? t.Color : "#5b9e28";
-          });
-          // Build gradient stops — one stop per band color
-          const gradientStops = bandColors.length === 0
-            ? "transparent"
-            : bandColors.length === 1
-              ? bandColors[0]
-              : bandColors.map((c, i) => `${c} ${Math.round((i / (bandColors.length - 1)) * 100)}%`).join(", ");
-
           return (
             <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined} onReset={onResetField}>
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-tn-text-muted uppercase tracking-wider font-semibold">Tint Bands</span>
-                  <span className="text-[10px] text-tn-text-muted/50">{delimiters.length} band{delimiters.length !== 1 ? "s" : ""}</span>
-                </div>
-
-                {/* Gradient preview bar */}
-                <div className="relative h-6 w-full rounded overflow-hidden border border-tn-border/60">
-                  <div
-                    className="absolute inset-0"
-                    style={{ background: `linear-gradient(to right, ${gradientStops})` }}
-                  />
-                  {/* Band boundary markers */}
-                  {bandColors.length > 1 && bandColors.slice(0, -1).map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute top-0 bottom-0 w-px bg-black/30"
-                      style={{ left: `${((i + 1) / bandColors.length) * 100}%` }}
-                    />
-                  ))}
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  {delimiters.map((delimiter, idx) => {
-                    const tint = (delimiter.Tint as Record<string, unknown>) ?? {};
-                    const range = (delimiter.Range as Record<string, unknown>) ?? {};
-                    const color = typeof tint.Color === "string" ? tint.Color : "#5b9e28";
-                    const minVal = typeof range.MinInclusive === "number" ? range.MinInclusive : -1;
-                    const maxVal = typeof range.MaxExclusive === "number" ? range.MaxExclusive : 1;
-                    return (
-                      <div key={idx} className="rounded border border-tn-border bg-tn-bg/40 overflow-hidden">
-                        {/* Band color header strip */}
-                        <div
-                          className="h-1.5 w-full"
-                          style={{ backgroundColor: color }}
-                        />
-                        <div className="px-2 py-1.5 flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-[10px] text-tn-text-muted font-semibold">Band {idx + 1}</span>
-                            <button
-                              onClick={() => handleDiscreteChange("Delimiters", delimiters.filter((_, i) => i !== idx))}
-                              className="text-[10px] text-tn-text-muted hover:text-red-400 transition-colors leading-none px-1"
-                              title="Remove band"
-                            >x</button>
-                          </div>
-
-                          <ColorPickerField
-                            label={`Band ${idx + 1} color`}
-                            hideLabel
-                            value={color}
-                            onChange={(v) => {
-                              const next = delimiters.map((d, i) => i === idx ? {
-                                ...d,
-                                Tint: { Type: "Constant", ...(d.Tint as Record<string, unknown>), Color: v },
-                              } : d);
-                              handleContinuousChange("Delimiters", next);
-                            }}
-                            onBlur={handleBlur}
-                          />
-
-                          {/* Range row */}
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-tn-text-muted w-5 shrink-0">Min</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={minVal}
-                              onChange={(e) => {
-                                const v = parseFloat(e.target.value);
-                                if (Number.isNaN(v)) return;
-                                const next = delimiters.map((d, i) => i === idx ? {
-                                  ...d,
-                                  Range: { ...(d.Range as Record<string, unknown>), MinInclusive: v },
-                                } : d);
-                                handleContinuousChange("Delimiters", next);
-                              }}
-                              onBlur={handleBlur}
-                              className="flex-1 text-[10px] bg-tn-bg border border-tn-border rounded px-1.5 py-0.5 text-tn-text text-right font-mono"
-                            />
-                            <span className="text-[10px] text-tn-text-muted w-6 shrink-0 text-center">Max</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={maxVal}
-                              onChange={(e) => {
-                                const v = parseFloat(e.target.value);
-                                if (Number.isNaN(v)) return;
-                                const next = delimiters.map((d, i) => i === idx ? {
-                                  ...d,
-                                  Range: { ...(d.Range as Record<string, unknown>), MaxExclusive: v },
-                                } : d);
-                                handleContinuousChange("Delimiters", next);
-                              }}
-                              onBlur={handleBlur}
-                              className="flex-1 text-[10px] bg-tn-bg border border-tn-border rounded px-1.5 py-0.5 text-tn-text text-right font-mono"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => {
-                    const last = delimiters[delimiters.length - 1];
-                    const lastMax = typeof (last?.Range as Record<string, unknown>)?.MaxExclusive === "number"
-                      ? Math.min((last.Range as Record<string, unknown>).MaxExclusive as number, 1)
-                      : 1;
-                    handleDiscreteChange("Delimiters", [
-                      ...delimiters,
-                      {
-                        Range: { MinInclusive: lastMax, MaxExclusive: Math.min(lastMax + 0.33, 1) },
-                        Tint: { Type: "Constant", Color: "#7ea629" },
-                      },
-                    ]);
-                  }}
-                  className="text-[10px] text-tn-accent border border-tn-accent/50 rounded px-2 py-1 hover:bg-tn-accent/10 transition-colors w-full"
-                >
-                  + Add band
-                </button>
-
-                <p className="text-[9px] text-tn-text-muted/50 leading-tight">
-                  Gradient interpolation between bands is a planned feature.
-                </p>
-              </div>
+              <TintDelimitersField
+                delimiters={delimiters}
+                onChange={(next) => handleContinuousChange("Delimiters", next)}
+                onBlur={handleBlur}
+              />
             </FieldWrapper>
           );
         }
@@ -1568,6 +1450,23 @@ export function PropertyPanel() {
       {/* Show material layer stack when SpaceAndDepth is selected */}
       {typeName === "SpaceAndDepth" && <MaterialLayerStack />}
 
+      {showDensityPreviewLens && selectedNodeId && (
+        <DensityPreviewLensCard
+          nodeId={selectedNodeId}
+          nodeType={typeName}
+          nodes={nodes}
+          edges={edges}
+        />
+      )}
+
+      {showLensBreadcrumb && selectedNodeId && (
+        <DensityPreviewLensBreadcrumb
+          previewTargetId={selectedNodeId}
+          nodes={nodes}
+          edges={edges}
+        />
+      )}
+
       {selectedNodeId && supportsShapePreviewCard(typeName) && (
         <ShapePreviewCard
           nodeId={selectedNodeId}
@@ -1789,7 +1688,7 @@ function EnvironmentDelimitersField({
                     ? "bg-red-500/10"
                     : hasRowWarning
                       ? "bg-amber-500/5"
-                      : "bg-transparent"
+                      : "bg-tn-bg"
                 }`}
               >
                 <input
@@ -1871,7 +1770,7 @@ function EnvironmentDelimitersField({
                       Advanced provider type is read-only.
                     </span>
                   ) : (
-                    <span className="px-1.5 py-1 text-[10px] text-tn-text-muted border border-tn-border/60 rounded bg-tn-panel/30">
+                    <span className="px-1.5 py-1 text-[10px] text-tn-text-muted border border-tn-border/60 rounded bg-tn-panel">
                       Uses biome default
                     </span>
                   )

@@ -4,6 +4,8 @@ import { useEditorStore } from "@/stores/editorStore";
 import { useDiagnosticsStore } from "@/stores/diagnosticsStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { analyzeGraph, analyzeBiome } from "@/utils/graphDiagnostics";
+import { analyzeNoiseRange } from "@/utils/biomeRangeDiagnostics";
+import { listProjectBiomes } from "@/utils/propSources/listProjectBiomes";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
   buildAssetValidationBadge,
@@ -18,12 +20,14 @@ import {
  */
 export function useGraphDiagnostics() {
   const channel = useSettingsStore((s) => s.hytaleAssetSourceChannel);
-  const { nodes, edges, biomeConfig, editingContext } = useEditorStore(
+  const { nodes, edges, biomeConfig, editingContext, biomeRanges, noiseRangeConfig } = useEditorStore(
     useShallow((s) => ({
       nodes: s.nodes,
       edges: s.edges,
       biomeConfig: s.biomeConfig,
       editingContext: s.editingContext,
+      biomeRanges: s.biomeRanges,
+      noiseRangeConfig: s.noiseRangeConfig,
     })),
   );
   const { currentFile, projectPath } = useProjectStore(
@@ -47,6 +51,25 @@ export function useGraphDiagnostics() {
   );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [knownAssetNames, setKnownAssetNames] = useState<Record<AssetReferenceKind, string[]> | null>(null);
+  const [projectBiomeNames, setProjectBiomeNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (editingContext !== "NoiseRange") {
+      setProjectBiomeNames([]);
+      return;
+    }
+    let cancelled = false;
+    void listProjectBiomes(projectPath, currentFile)
+      .then((entries) => {
+        if (!cancelled) setProjectBiomeNames(entries.map((e) => e.name));
+      })
+      .catch(() => {
+        if (!cancelled) setProjectBiomeNames([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [editingContext, projectPath, currentFile]);
 
   useEffect(() => {
     let disposed = false;
@@ -85,11 +108,19 @@ export function useGraphDiagnostics() {
           knownAssetNames,
         )
         : [];
-      setDiagnostics([...biomeDiags, ...graphDiags]);
+      const noiseRangeDiags =
+        editingContext === "NoiseRange"
+          ? analyzeNoiseRange({
+            biomeRanges,
+            noiseRangeConfig,
+            projectBiomeNames,
+          })
+          : [];
+      setDiagnostics([...noiseRangeDiags, ...biomeDiags, ...graphDiags]);
     }, 300);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [nodes, edges, biomeConfig, editingContext, currentFile, knownAssetNames, channel, setDiagnostics]);
+  }, [nodes, edges, biomeConfig, editingContext, biomeRanges, noiseRangeConfig, projectBiomeNames, currentFile, knownAssetNames, channel, setDiagnostics]);
 }

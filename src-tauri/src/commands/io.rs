@@ -649,6 +649,32 @@ pub fn list_template_biomes(app: tauri::AppHandle) -> Result<Vec<TemplateBiomeEn
     Ok(entries)
 }
 
+/// List biome JSON files synced from Hytale release (templates/hytale-release).
+#[tauri::command]
+pub fn list_hytale_release_biomes(
+    app: tauri::AppHandle,
+) -> Result<Vec<TemplateBiomeEntry>, String> {
+    let resource_dir = app.path().resource_dir().ok();
+    let templates_root =
+        crate::io::template::find_templates_root(resource_dir).map_err(|e| e.to_string())?;
+    let hytale_biomes = templates_root
+        .join("hytale-release")
+        .join("HytaleGenerator")
+        .join("Biomes");
+    if !hytale_biomes.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut entries: Vec<TemplateBiomeEntry> = Vec::new();
+    collect_biome_files(
+        &hytale_biomes,
+        "hytale-release",
+        "Hytale Release",
+        &mut entries,
+    );
+    entries.sort_by(|a, b| a.biome_name.cmp(&b.biome_name));
+    Ok(entries)
+}
+
 fn is_biome_folder(name: &std::ffi::OsStr) -> bool {
     let s = name.to_string_lossy();
     s.eq_ignore_ascii_case("Biomes") || s.eq_ignore_ascii_case("references")

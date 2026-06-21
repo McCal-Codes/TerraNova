@@ -1,29 +1,19 @@
+import { useState } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import { SliderField } from "./SliderField";
 import { ToggleField } from "./ToggleField";
 import { PropPlacementGrid } from "./PropPlacementGrid";
-import type { Node, Edge } from "@xyflow/react";
+import {
+  NewPropSourceDialog,
+  type PropSourceConfirmPayload,
+} from "@/components/dialogs/NewPropSourceDialog";
+import { summarizePropSectionFromGraph } from "@/utils/propSectionSummary";
+import { PropHelpCard } from "./prop/PropHelpCard";
 
 interface PropOverviewPanelProps {
   propIndex: number;
   onPropMetaChange: (index: number, field: string, value: unknown) => void;
   onBlur: () => void;
-}
-
-function getNodeType(node: Node): string {
-  return ((node.data as Record<string, unknown>).type as string) ?? "";
-}
-
-function getFieldSummary(node: Node): string {
-  const data = node.data as Record<string, unknown>;
-  const fields = (data.fields as Record<string, unknown>) ?? {};
-  const parts: string[] = [];
-  for (const [k, v] of Object.entries(fields)) {
-    if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") {
-      parts.push(`${k}=${v}`);
-    }
-  }
-  return parts.join(", ");
 }
 
 export function PropOverviewPanel({
@@ -36,6 +26,10 @@ export function PropOverviewPanel({
   const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
   const liveNodes = useEditorStore((s) => s.nodes);
   const liveEdges = useEditorStore((s) => s.edges);
+  const replacePropSectionGraph = useEditorStore((s) => s.replacePropSectionGraph);
+  const duplicatePropSection = useEditorStore((s) => s.duplicatePropSection);
+
+  const [showReplaceDialog, setShowReplaceDialog] = useState(false);
 
   if (!biomeConfig || !biomeSections) return null;
 
@@ -46,48 +40,64 @@ export function PropOverviewPanel({
   const propMeta = biomeConfig.propMeta[propIndex];
   if (!propMeta) return null;
 
-  // Use live graph state when this section is currently active,
-  // otherwise fall back to the stored section data
   const isActive = activeBiomeSection === sectionKey;
   const nodes = isActive ? liveNodes : section.nodes;
   const edges = isActive ? liveEdges : section.edges;
 
-  // Find tagged root nodes for Positions and Assignments
-  const posRoot = nodes.find(
-    (n) => (n.data as Record<string, unknown>)._biomeField === "Positions",
-  );
-  const asgnRoot = nodes.find(
-    (n) => (n.data as Record<string, unknown>)._biomeField === "Assignments",
-  );
+  const summary = summarizePropSectionFromGraph(nodes, edges);
+  const posType = summary.positionsType ?? "None";
+  const asgnType = summary.assignmentsType ?? "None";
 
-  const posType = posRoot ? getNodeType(posRoot) : "None";
-  const posParams = posRoot ? getFieldSummary(posRoot) : "";
-
-  const asgnType = asgnRoot ? getNodeType(asgnRoot) : "None";
-
-  // Build assignments chain by BFS from assignments root
-  const asgnNodes = asgnRoot ? getReachableNodes(asgnRoot.id, nodes, edges) : [];
-  const asgnChain = asgnNodes
-    .map(getNodeType)
-    .filter(Boolean)
-    .join(" \u2192 ");
+  function handleReplaceConfirm(payload: PropSourceConfirmPayload) {
+    replacePropSectionGraph(propIndex, payload.nodes, payload.edges, payload.meta);
+  }
 
   return (
     <div className="flex flex-col p-3 gap-3">
+      <PropHelpCard />
+
       <div className="border-b border-tn-border pb-2">
-        <h3 className="text-sm font-semibold">Prop {propIndex}</h3>
-        <p className="text-xs text-tn-text-muted">
-          {nodes.length} nodes, {edges.length} edges
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold">Prop {propIndex}</h3>
+            <p className="text-xs text-tn-text-muted">
+              {summary.shortLabel} · {nodes.length} nodes, {edges.length} edges
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-1">
+            <button
+              type="button"
+              onClick={() => duplicatePropSection(propIndex)}
+              className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted hover:text-tn-text hover:bg-white/5"
+            >
+              Duplicate
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowReplaceDialog(true)}
+              className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted hover:text-tn-text hover:bg-white/5"
+            >
+              Replace from Hytale…
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Positions Summary */}
+      {summary.distributionVariant && (
+        <div
+          className="p-2.5 rounded border border-tn-border"
+          style={{ backgroundColor: "rgba(199, 107, 107, 0.08)" }}
+        >
+          <div className="text-xs font-medium text-[#C76B6B] mb-0.5">PropDistribution</div>
+          <div className="text-xs text-tn-text">{summary.distributionVariant}</div>
+        </div>
+      )}
+
       <div
         className="p-2.5 rounded border border-tn-border"
         style={{ backgroundColor: "rgba(107, 158, 90, 0.08)" }}
       >
         <div className="flex items-center gap-1.5 mb-1">
-          {/* Pin icon — represents position/placement */}
           <svg className="w-3.5 h-3.5 shrink-0 text-[#6B9E5A]" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="8" cy="6" r="3" />
             <path d="M8 9v5" />
@@ -95,18 +105,16 @@ export function PropOverviewPanel({
           <span className="text-xs font-medium text-[#6B9E5A]">Positions</span>
         </div>
         <div className="text-xs text-tn-text">{posType}</div>
-        {posParams && (
-          <div className="text-[10px] text-tn-text-muted mt-0.5">{posParams}</div>
+        {summary.positionsParams && (
+          <div className="text-[10px] text-tn-text-muted mt-0.5">{summary.positionsParams}</div>
         )}
       </div>
 
-      {/* Assignments Summary */}
       <div
         className="p-2.5 rounded border border-tn-border"
         style={{ backgroundColor: "rgba(139, 115, 85, 0.08)" }}
       >
         <div className="flex items-center gap-1.5 mb-1">
-          {/* Tag icon — represents assignment/binding */}
           <svg className="w-3.5 h-3.5 shrink-0 text-[#8B7355]" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M1 8.5V2.5a1 1 0 011-1h6l7 7-6 6-7-7z" />
             <circle cx="5" cy="5.5" r="1" fill="currentColor" />
@@ -114,12 +122,11 @@ export function PropOverviewPanel({
           <span className="text-xs font-medium text-[#8B7355]">Assignments</span>
         </div>
         <div className="text-xs text-tn-text">{asgnType}</div>
-        {asgnChain && asgnChain !== asgnType && (
-          <div className="text-[10px] text-tn-text-muted mt-0.5 truncate">{asgnChain}</div>
+        {summary.assignmentsChain && summary.assignmentsChain !== asgnType && (
+          <div className="text-[10px] text-tn-text-muted mt-0.5 truncate">{summary.assignmentsChain}</div>
         )}
       </div>
 
-      {/* Prop Meta Controls */}
       <div className="border-t border-tn-border pt-2 mt-1">
         <h4 className="text-xs font-semibold text-tn-text-muted mb-2">Settings</h4>
         <div className="flex flex-col gap-3">
@@ -140,39 +147,17 @@ export function PropOverviewPanel({
         </div>
       </div>
 
-      {/* Placement Visualizer */}
       <div className="border-t border-tn-border pt-2 mt-1">
         <PropPlacementGrid nodes={nodes} edges={edges} />
       </div>
+
+      <NewPropSourceDialog
+        open={showReplaceDialog}
+        onClose={() => setShowReplaceDialog(false)}
+        title={`Replace Prop ${propIndex}`}
+        confirmLabel="Replace prop layer"
+        onConfirm={handleReplaceConfirm}
+      />
     </div>
   );
 }
-
-/** Walk upstream from a root node, collecting nodes in BFS order. */
-function getReachableNodes(rootId: string, nodes: Node[], edges: Edge[]): Node[] {
-  const nodeById = new Map(nodes.map((n) => [n.id, n]));
-  const upstream = new Map<string, string[]>();
-  for (const e of edges) {
-    const list = upstream.get(e.target) ?? [];
-    list.push(e.source);
-    upstream.set(e.target, list);
-  }
-
-  const visited = new Set<string>();
-  const result: Node[] = [];
-  const queue = [rootId];
-
-  while (queue.length > 0) {
-    const id = queue.shift()!;
-    if (visited.has(id)) continue;
-    visited.add(id);
-    const node = nodeById.get(id);
-    if (node) result.push(node);
-    for (const parent of upstream.get(id) ?? []) {
-      if (!visited.has(parent)) queue.push(parent);
-    }
-  }
-
-  return result;
-}
-

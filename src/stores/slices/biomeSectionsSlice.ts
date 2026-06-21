@@ -3,6 +3,7 @@ import { emit } from "../storeEvents";
 import { saveSession } from "@/utils/sessionPersist";
 import { normalizeDensitySectionNodeTypes } from "@/utils/densitySectionNodes";
 import { normalizeMaterialSectionNodeTypes } from "@/utils/materialSectionNodes";
+import { sortPropSectionKeys } from "@/utils/propSectionKeys";
 import type {
   EditorState,
   SliceCreator,
@@ -10,6 +11,36 @@ import type {
   BiomeSectionData,
   SectionHistoryEntry,
 } from "./types";
+
+type PropSectionBundle = { section: BiomeSectionData; meta: { Runtime: number; Skip: boolean } };
+
+function collectOrderedPropSections(
+  sections: Record<string, BiomeSectionData>,
+  biomeConfig: EditorState["biomeConfig"],
+): PropSectionBundle[] {
+  return sortPropSectionKeys(Object.keys(sections).filter((k) => k.startsWith("Props[")))
+    .map((k) => {
+      const origIdx = parseInt(/\[(\d+)\]/.exec(k)?.[1] ?? "0", 10);
+      return {
+        section: sections[k],
+        meta: biomeConfig?.propMeta[origIdx] ?? { Runtime: 0, Skip: false },
+      };
+    });
+}
+
+function rewritePropSectionKeys(
+  sections: Record<string, BiomeSectionData>,
+  ordered: PropSectionBundle[],
+): Record<string, BiomeSectionData> {
+  const next = { ...sections };
+  for (const key of Object.keys(next)) {
+    if (key.startsWith("Props[")) delete next[key];
+  }
+  for (let i = 0; i < ordered.length; i++) {
+    next[`Props[${i}]`] = ordered[i].section;
+  }
+  return next;
+}
 
 // ---------------------------------------------------------------------------
 // Initial state
@@ -39,6 +70,30 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
       saveSession({ activeBiomeSection: section });
     },
     setBiomeConfig: (config) => set({ biomeConfig: config }),
+
+    flushActiveBiomeSection: () => {
+      const { activeBiomeSection, biomeSections, nodes, edges, outputNodeId } = get();
+      if (!biomeSections || !activeBiomeSection || !biomeSections[activeBiomeSection]) return;
+
+      let sectionNodes = structuredClone(nodes);
+      if (activeBiomeSection === "MaterialProvider") {
+        sectionNodes = normalizeMaterialSectionNodeTypes(sectionNodes);
+      } else if (activeBiomeSection === "Terrain") {
+        sectionNodes = normalizeDensitySectionNodeTypes(sectionNodes);
+      }
+
+      set({
+        biomeSections: {
+          ...biomeSections,
+          [activeBiomeSection]: {
+            ...biomeSections[activeBiomeSection],
+            nodes: sectionNodes,
+            edges: structuredClone(edges),
+            outputNodeId,
+          },
+        },
+      });
+    },
 
     switchBiomeSection: (target) => {
       const { activeBiomeSection, biomeSections, nodes, edges, outputNodeId } = get();
@@ -86,31 +141,91 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
     },
 
     addPropSection: () => {
+      get().addPropSectionWithGraph([], [], { Runtime: 0, Skip: false });
+    },
+
+    addPropSectionWithGraph: (nodes, edges, meta = { Runtime: 0, Skip: false }) => {
       const { biomeSections, biomeConfig } = get();
-      if (!biomeSections) return;
+      if (!biomeSections) return null;
+
       const existingPropKeys = Object.keys(biomeSections).filter((k) => k.startsWith("Props["));
       const nextIndex = existingPropKeys.length;
       const key = `Props[${nextIndex}]`;
+      const sectionNodes = structuredClone(nodes);
+      const sectionEdges = structuredClone(edges);
       const initialEntry: SectionHistoryEntry = {
-        nodes: [],
-        edges: [],
+        nodes: sectionNodes,
+        edges: sectionEdges,
         outputNodeId: null,
         label: "Initial",
       };
       const newSection: BiomeSectionData = {
-        nodes: [],
-        edges: [],
+        nodes: sectionNodes,
+        edges: sectionEdges,
         outputNodeId: null,
         history: [initialEntry],
         historyIndex: 0,
       };
       const updatedMeta = biomeConfig
-        ? [...biomeConfig.propMeta, { Runtime: 0, Skip: false }]
-        : [{ Runtime: 0, Skip: false }];
+        ? [...biomeConfig.propMeta, { ...meta }]
+        : [{ ...meta }];
+
       set({
         biomeSections: { ...biomeSections, [key]: newSection },
         biomeConfig: biomeConfig ? { ...biomeConfig, propMeta: updatedMeta } : null,
+        activeBiomeSection: key,
+        nodes: sectionNodes,
+        edges: sectionEdges,
+        outputNodeId: null,
+        selectedNodeId: null,
       });
+      saveSession({ activeBiomeSection: key });
+      useUIStore.getState().reloadBookmarks(undefined, undefined, key);
+      markDirty();
+      return key;
+    },
+
+    replacePropSectionGraph: (propIndex, nodes, edges, meta) => {
+      const { biomeSections, biomeConfig, activeBiomeSection } = get();
+      if (!biomeSections) return;
+
+      const key = `Props[${propIndex}]`;
+      if (!biomeSections[key]) return;
+
+      const sectionNodes = structuredClone(nodes);
+      const sectionEdges = structuredClone(edges);
+      const initialEntry: SectionHistoryEntry = {
+        nodes: sectionNodes,
+        edges: sectionEdges,
+        outputNodeId: null,
+        label: "Replaced from source",
+      };
+      const updatedSection: BiomeSectionData = {
+        nodes: sectionNodes,
+        edges: sectionEdges,
+        outputNodeId: null,
+        history: [initialEntry],
+        historyIndex: 0,
+      };
+
+      const updatedMeta = biomeConfig ? [...biomeConfig.propMeta] : [];
+      if (meta && updatedMeta[propIndex]) {
+        updatedMeta[propIndex] = { ...updatedMeta[propIndex], ...meta };
+      }
+
+      const patch: Partial<EditorState> = {
+        biomeSections: { ...biomeSections, [key]: updatedSection },
+        biomeConfig: biomeConfig ? { ...biomeConfig, propMeta: updatedMeta } : null,
+      };
+
+      if (activeBiomeSection === key) {
+        patch.nodes = sectionNodes;
+        patch.edges = sectionEdges;
+        patch.outputNodeId = null;
+        patch.selectedNodeId = null;
+      }
+
+      set(patch);
       markDirty();
     },
 
@@ -132,9 +247,9 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
       delete synced[key];
 
       // Collect remaining Props with their ORIGINAL indices (for correct meta mapping)
-      const remainingProps = Object.keys(synced)
-        .filter((k) => k.startsWith("Props["))
-        .sort()
+      const remainingProps = sortPropSectionKeys(
+        Object.keys(synced).filter((k) => k.startsWith("Props[")),
+      )
         .map((k) => {
           const origIdx = parseInt(/\[(\d+)\]/.exec(k)?.[1] ?? "0");
           return { section: synced[k], meta: biomeConfig?.propMeta[origIdx] ?? { Runtime: 0, Skip: false } };
@@ -172,6 +287,124 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
       }
 
       set(result);
+      markDirty();
+    },
+
+    duplicatePropSection: (propIndex: number) => {
+      const { biomeSections, activeBiomeSection, biomeConfig, nodes, edges, outputNodeId } = get();
+      if (!biomeSections) return null;
+
+      const sourceKey = `Props[${propIndex}]`;
+      if (!biomeSections[sourceKey]) return null;
+
+      const synced = { ...biomeSections };
+      if (activeBiomeSection && synced[activeBiomeSection]) {
+        synced[activeBiomeSection] = {
+          ...synced[activeBiomeSection],
+          nodes: structuredClone(nodes),
+          edges: structuredClone(edges),
+          outputNodeId,
+        };
+      }
+
+      const ordered = collectOrderedPropSections(synced, biomeConfig);
+      const source = ordered[propIndex];
+      if (!source) return null;
+
+      const clonedNodes = structuredClone(source.section.nodes);
+      const clonedEdges = structuredClone(source.section.edges);
+      const clone: PropSectionBundle = {
+        section: {
+          nodes: clonedNodes,
+          edges: clonedEdges,
+          outputNodeId: source.section.outputNodeId,
+          history: [{
+            nodes: structuredClone(clonedNodes),
+            edges: structuredClone(clonedEdges),
+            outputNodeId: source.section.outputNodeId ?? null,
+            label: "Duplicated",
+          }],
+          historyIndex: 0,
+        },
+        meta: { ...source.meta },
+      };
+
+      ordered.splice(propIndex + 1, 0, clone);
+      const updatedSections = rewritePropSectionKeys(synced, ordered);
+      const updatedMeta = ordered.map((entry) => entry.meta);
+      const newKey = `Props[${propIndex + 1}]`;
+
+      set({
+        biomeSections: updatedSections,
+        biomeConfig: biomeConfig ? { ...biomeConfig, propMeta: updatedMeta } : null,
+        activeBiomeSection: newKey,
+        nodes: structuredClone(clone.section.nodes),
+        edges: structuredClone(clone.section.edges),
+        outputNodeId: clone.section.outputNodeId ?? null,
+        selectedNodeId: null,
+      });
+      saveSession({ activeBiomeSection: newKey });
+      useUIStore.getState().reloadBookmarks(undefined, undefined, newKey);
+      markDirty();
+      return newKey;
+    },
+
+    reorderPropSection: (fromIndex: number, toIndex: number) => {
+      const { biomeSections, activeBiomeSection, biomeConfig, nodes, edges, outputNodeId } = get();
+      if (!biomeSections || fromIndex === toIndex) return;
+
+      const synced = { ...biomeSections };
+      if (activeBiomeSection && synced[activeBiomeSection]) {
+        synced[activeBiomeSection] = {
+          ...synced[activeBiomeSection],
+          nodes: structuredClone(nodes),
+          edges: structuredClone(edges),
+          outputNodeId,
+        };
+      }
+
+      const ordered = collectOrderedPropSections(synced, biomeConfig);
+      if (fromIndex < 0 || fromIndex >= ordered.length || toIndex < 0 || toIndex >= ordered.length) {
+        return;
+      }
+
+      const [moved] = ordered.splice(fromIndex, 1);
+      ordered.splice(toIndex, 0, moved);
+
+      const updatedSections = rewritePropSectionKeys(synced, ordered);
+      const updatedMeta = ordered.map((entry) => entry.meta);
+
+      let newActive = activeBiomeSection;
+      if (activeBiomeSection?.startsWith("Props[")) {
+        const activeIdx = parseInt(/\[(\d+)\]/.exec(activeBiomeSection)?.[1] ?? "0", 10);
+        if (activeIdx === fromIndex) {
+          newActive = `Props[${toIndex}]`;
+        } else if (fromIndex < activeIdx && toIndex >= activeIdx) {
+          newActive = `Props[${activeIdx - 1}]`;
+        } else if (fromIndex > activeIdx && toIndex <= activeIdx) {
+          newActive = `Props[${activeIdx + 1}]`;
+        }
+      }
+
+      const patch: Partial<EditorState> = {
+        biomeSections: updatedSections,
+        biomeConfig: biomeConfig ? { ...biomeConfig, propMeta: updatedMeta } : null,
+      };
+
+      if (newActive !== activeBiomeSection) {
+        const targetData = newActive ? updatedSections[newActive] : null;
+        patch.activeBiomeSection = newActive;
+        patch.nodes = targetData ? structuredClone(targetData.nodes) : [];
+        patch.edges = targetData ? structuredClone(targetData.edges) : [];
+        patch.outputNodeId = targetData?.outputNodeId ?? null;
+        patch.selectedNodeId = null;
+        saveSession({ activeBiomeSection: newActive });
+        if (newActive) {
+          useUIStore.getState().reloadBookmarks(undefined, undefined, newActive);
+        }
+      }
+
+      set(patch);
       markDirty();
     },
   };

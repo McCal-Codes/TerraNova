@@ -170,6 +170,58 @@ describe("ValidationPanel", () => {
     expect(diagnosticItem).toHaveAttribute("aria-label", expect.stringContaining("click to navigate to node"));
   });
 
+  it("navigates to biome section when issue has biomeSection only", () => {
+    const switchBiomeSection = vi.fn();
+    const setEditingContext = vi.fn();
+    const setSelectedNodeId = vi.fn();
+
+    vi.mocked(useEditorStore).mockImplementation((selector) => {
+      const state = {
+        nodes: [],
+        biomeConfig: { Name: "Test", TintProvider: { Type: "Default" } },
+        biomeSections: {
+          TintProvider: { outputNodeId: "tint-root", nodes: [], edges: [], history: [], historyIndex: 0 },
+        },
+        setBiomeConfig: vi.fn(),
+        setSelectedNodeId,
+        setEditingContext,
+        switchBiomeSection,
+        updateNodeField: vi.fn(),
+        setNodes: vi.fn(),
+        removeNode: vi.fn(),
+        removeNodes: vi.fn(),
+        commitState: vi.fn(),
+      };
+      return selector(state as unknown as Parameters<Parameters<typeof useEditorStore>[0]>[0]);
+    });
+    vi.mocked(useEditorStore).getState = () => ({
+      biomeSections: {
+        TintProvider: { outputNodeId: "tint-root", nodes: [], edges: [], history: [], historyIndex: 0 },
+      },
+    }) as unknown as ReturnType<typeof useEditorStore.getState>;
+
+    vi.mocked(useDiagnosticsStore).mockImplementation((selector) => {
+      const state = {
+        diagnostics: [
+          {
+            code: "biome-tint-missing-ref-name",
+            severity: "warning",
+            message: "TintProvider Imported is missing a Name reference",
+            biomeSection: "TintProvider",
+          },
+        ],
+        assetValidationBadge: { label: "Some issues", detail: "1 warning" },
+        assetPathIndexByKind: {},
+      };
+      return selector(state as unknown as Parameters<Parameters<typeof useDiagnosticsStore>[0]>[0]);
+    });
+
+    render(<ValidationPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /click to navigate to TintProvider/i }));
+    expect(setEditingContext).toHaveBeenCalledWith("Biome");
+    expect(switchBiomeSection).toHaveBeenCalledWith("TintProvider");
+  });
+
   it("copies all issues to the clipboard", async () => {
     vi.mocked(useDiagnosticsStore).mockImplementation((selector) => {
       const state = {

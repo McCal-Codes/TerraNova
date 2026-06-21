@@ -23,6 +23,8 @@ interface ProjectState {
   isDirty: boolean;
   /** Last error message from an IPC operation */
   lastError: string | null;
+  /** Phase-1 session restore finished (success or failure); gates phase-2 file open */
+  sessionRestoreReady: boolean;
 
   // Actions
   setProjectPath: (path: string | null) => void;
@@ -31,6 +33,7 @@ interface ProjectState {
   setCurrentFile: (file: string | null) => void;
   setDirty: (dirty: boolean) => void;
   setLastError: (error: string | null) => void;
+  setSessionRestoreReady: (ready: boolean) => void;
   reset: () => void;
   closeProject: () => void;
 }
@@ -42,6 +45,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   currentFile: null,
   isDirty: false,
   lastError: null,
+  sessionRestoreReady: false,
 
   setProjectPath: (path) => {
     const prev = useProjectStore.getState().projectPath;
@@ -58,6 +62,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   },
   setDirty: (dirty) => set({ isDirty: dirty }),
   setLastError: (error) => set({ lastError: error }),
+  setSessionRestoreReady: (ready) => set({ sessionRestoreReady: ready }),
   reset: () => {
     set({
       projectPath: null,
@@ -66,6 +71,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
       currentFile: null,
       isDirty: false,
       lastError: null,
+      sessionRestoreReady: false,
     });
     clearSession();
   },
@@ -79,6 +85,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
       currentFile: null,
       isDirty: false,
       lastError: null,
+      sessionRestoreReady: false,
     });
     clearSession();
     emit("project:close");

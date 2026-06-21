@@ -63,23 +63,47 @@ export interface WorldMeshResult {
   worldMidZ: number;
 }
 
+export interface BuildWorldMeshesOptions {
+  /** RGB sampled from synced Hytale block textures, keyed by block type name. */
+  blockColors?: Record<string, [number, number, number]>;
+  /** When true, mesh the full chunk Y span instead of a surface column only. */
+  meshFullColumns?: boolean;
+  /** Convert sampled RGB to display hex (defaults to sRGB hex). */
+  rgbToHex?: (rgb: [number, number, number]) => string;
+}
+
 export function buildWorldMeshes(
   chunks: ChunkDataResponse[],
   palette: Record<string, string>,
   centerX: number,
   centerZ: number,
   surfaceDepth = 32,
+  options?: BuildWorldMeshesOptions,
 ): WorldMeshResult {
   if (chunks.length === 0) {
     return { meshes: [], sceneYMin: 0, sceneScale: 1, terrainSize: 0, worldMidX: 0, worldMidZ: 0 };
   }
 
+  const toHex = options?.rgbToHex ?? ((rgb: [number, number, number]) => {
+    const clamp = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255);
+    const r = clamp(rgb[0]).toString(16).padStart(2, "0");
+    const g = clamp(rgb[1]).toString(16).padStart(2, "0");
+    const b = clamp(rgb[2]).toString(16).padStart(2, "0");
+    return `#${r}${g}${b}`;
+  });
+
   // Build block ID → render info lookup from palette
   const blockInfoCache = new Map<number, BlockRenderInfo>();
+  const blockNameById = new Map<number, string>();
   for (const [idStr, name] of Object.entries(palette)) {
     const id = parseInt(idStr, 10);
     if (!isNaN(id) && id !== 0) {
-      blockInfoCache.set(id, resolveBlockColor(name));
+      blockNameById.set(id, name);
+      const sampled = options?.blockColors?.[name];
+      const base = resolveBlockColor(name);
+      blockInfoCache.set(id, sampled
+        ? { ...base, color: toHex(sampled), name }
+        : { ...base, name });
     }
   }
 
@@ -103,8 +127,8 @@ export function buildWorldMeshes(
   const worldMidX = ((minCX + maxCX + 1) / 2 - centerX) * sizeX;
   const worldMidZ = ((minCZ + maxCZ + 1) / 2 - centerZ) * sizeZ;
 
-  // Clamp surface depth to prevent perf issues from stale cached values
-  const clampedDepth = Math.min(surfaceDepth, 40);
+  const meshFullColumns = options?.meshFullColumns ?? false;
+  const clampedDepth = Math.min(surfaceDepth, 128);
 
   const totalBlocksX = (maxCX - minCX + 1) * sizeX;
   const totalBlocksZ = (maxCZ - minCZ + 1) * sizeZ;
@@ -114,6 +138,30 @@ export function buildWorldMeshes(
   const scale = sceneSize / maxExtent;
 
   const rgbCache = new Map<string, [number, number, number]>();
+
+  // Build a lookup from numeric key → chunk for cross-chunk face culling.
+  // Numeric key avoids string allocation in the hot path (millions of face-neighbor checks).
+  // Safe for chunk coords in ±32767 (Hytale worlds never approach this limit).
+  const chunkMap = new Map<number, ChunkDataResponse>();
+  const chunkKey = (cx: number, cz: number) => (cx + 32768) * 65536 + (cz + 32768);
+  for (const chunk of chunks) {
+    chunkMap.set(chunkKey(chunk.chunkX, chunk.chunkZ), chunk);
+  }
+
+  // Cross-chunk block lookup by absolute Hytale world coordinates.
+  // Returns block id (>0 solid, 0 air) or -1 (Y out of range / unloaded chunk → emit face).
+  function getBlockAbsolute(absX: number, y: number, absZ: number): number {
+    const cx = Math.floor(absX / sizeX);
+    const cz = Math.floor(absZ / sizeZ);
+    const c = chunkMap.get(chunkKey(cx, cz));
+    if (!c) return -1; // unloaded neighbor — show world-edge face
+    if (y < c.yMin || y >= c.yMax) return -1;
+    const lx = absX - cx * sizeX;
+    const lz = absZ - cz * sizeZ;
+    const yr = c.yMax - c.yMin;
+    const idx = (lz * sizeX + lx) * yr + (y - c.yMin);
+    return c.blocks[idx] ?? 0;
+  }
 
   // Collect quads per material color
   const materialQuads = new Map<string, {
@@ -125,55 +173,56 @@ export function buildWorldMeshes(
   }>();
 
   for (const chunk of chunks) {
-    const yRange = chunk.yMax - chunk.yMin;
-    const blocks = chunk.blocks;
     const heightmap = chunk.heightmap;
-
-    // Build quick lookup for this chunk
-    function getBlock(lx: number, y: number, lz: number): number {
-      if (lx < 0 || lx >= sizeX || lz < 0 || lz >= sizeZ || y < chunk.yMin || y >= chunk.yMax) return -1;
-      const idx = (lz * sizeX + lx) * yRange + (y - chunk.yMin);
-      return blocks[idx] ?? 0;
-    }
 
     // World-space offset for this chunk (relative to center)
     const worldOffsetX = (chunk.chunkX - centerX) * sizeX;
     const worldOffsetZ = (chunk.chunkZ - centerZ) * sizeZ;
 
+    // Absolute chunk origin in Hytale world coordinates
+    const originX = chunk.chunkX * sizeX;
+    const originZ = chunk.chunkZ * sizeZ;
+
     for (let lz = 0; lz < sizeZ; lz++) {
       for (let lx = 0; lx < sizeX; lx++) {
-        // Use heightmap to skip air above surface and deeply-buried blocks
-        // +4 buffer above surface catches fluids sitting on top of solid ground
         const surfaceY = heightmap[lz * sizeX + lx] || 0;
-        const colYMax = Math.min(chunk.yMax, surfaceY + 4);
-        const colYMin = Math.max(chunk.yMin, surfaceY - clampedDepth);
+        const colYMax = meshFullColumns
+          ? chunk.yMax
+          : Math.min(chunk.yMax, surfaceY + 4);
+        const colYMin = meshFullColumns
+          ? chunk.yMin
+          : Math.max(chunk.yMin, surfaceY - clampedDepth);
         if (colYMin >= colYMax) continue;
 
+        // Absolute Hytale X/Z for this column (used for cross-chunk neighbor checks)
+        const absX = originX + lx;
+        const absZ = originZ + lz;
+
         for (let y = colYMin; y < colYMax; y++) {
-          const blockId = getBlock(lx, y, lz);
+          const blockId = getBlockAbsolute(absX, y, absZ);
           if (blockId <= 0) continue; // air or invalid
 
           const info = blockInfoCache.get(blockId);
           if (!info) continue;
 
-          // World position
+          // Scene-space position (relative to center, scaled)
           const wx = worldOffsetX + lx;
           const wy = y - yMin;
           const wz = worldOffsetZ + lz;
 
-          // Check each face for exposure
+          // Check each face for exposure using cross-chunk neighbor lookup
           for (let fi = 0; fi < 6; fi++) {
             const face = FACES[fi];
-            const nx = lx + face.dir[0];
-            const ny = y + face.dir[1];
-            const nz = lz + face.dir[2];
 
-            // Get neighbor block (out of chunk bounds treated as air for now)
-            const neighborId = getBlock(nx, ny, nz);
+            // Cross-chunk neighbor check: solid neighbors in adjacent chunks are now culled
+            const neighborId = getBlockAbsolute(
+              absX + face.dir[0],
+              y + face.dir[1],
+              absZ + face.dir[2],
+            );
             if (neighborId > 0) continue; // neighbor is solid, face hidden
 
-            // Emit this face
-            const key = info.color;
+            const key = info.name ?? blockNameById.get(blockId) ?? info.color;
             let entry = materialQuads.get(key);
             if (!entry) {
               entry = { info, positions: [], normals: [], colors: [], indices: [] };

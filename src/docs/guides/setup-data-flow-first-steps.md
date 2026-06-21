@@ -47,7 +47,7 @@ The three node roles:
 
 ## The Evaluation Loop
 
-When you click **Generate**, the engine does roughly this for every coordinate:
+When you click **Evaluate now** (or when **Auto-refresh** runs), the engine does roughly this for every coordinate:
 
 ```
 for each (x, z):
@@ -73,7 +73,7 @@ This is why:
 |------|-------------|
 | **Node canvas** (centre) | Build and connect your density/material graph |
 | **Properties panel** (right) | Edit the selected node's parameters |
-| **Toolbar** (top) | Generate, zoom to fit, toggle preview mode |
+| **Toolbar** (top) | Evaluate now, Auto-refresh, zoom to fit, toggle preview mode |
 | **Biome list** (left panel) | Switch between biome configs |
 | **Docs** (this panel) | Reference while you work |
 
@@ -84,7 +84,7 @@ The minimum valid terrain graph is just two nodes:
 1. **BaseHeight** (Terrain category) -- crosses zero at a named height reference and acts as the terrain anchor.
 2. **Terrain Out** -- the required output node, already on canvas.
 
-Connect `BaseHeight -> Terrain Out` and click Generate to see a flat plane at Y=64. Then layer in noise and curve nodes from there.
+Connect `BaseHeight -> Terrain Out` and click **Evaluate now** to see a flat plane at Y=64. Then layer in noise and curve nodes from there.
 
 ## Recommended Next Steps
 

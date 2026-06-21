@@ -1,4 +1,6 @@
+import { ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
+import { useToastStore } from "@/stores/toastStore";
 import {
   getSectionSummary,
   getPropSummaries,
@@ -38,9 +40,32 @@ function CubeIcon({ className }: { className?: string }) {
   );
 }
 
+function AtmosphereIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 11h12" />
+      <path d="M5 9a3 3 0 0 1 6 0" />
+      <path d="M8 3v2" />
+    </svg>
+  );
+}
+
+function TintIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 10h12" />
+      <circle cx="4" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="6" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 function SectionIcon({ sectionKey, className }: { sectionKey: string; className?: string }) {
   if (sectionKey === "Terrain") return <WaveformIcon className={className} />;
   if (sectionKey === "MaterialProvider") return <LayersIcon className={className} />;
+  if (sectionKey === "EnvironmentProvider") return <AtmosphereIcon className={className} />;
+  if (sectionKey === "TintProvider") return <TintIcon className={className} />;
   if (sectionKey.startsWith("Props[")) return <CubeIcon className={className} />;
   return null;
 }
@@ -59,6 +84,9 @@ export function BiomeDashboard({
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
   const biomeSections = useEditorStore((s) => s.biomeSections);
   const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
+  const duplicatePropSection = useEditorStore((s) => s.duplicatePropSection);
+  const reorderPropSection = useEditorStore((s) => s.reorderPropSection);
+  const addToast = useToastStore((s) => s.addToast);
 
   if (!biomeConfig || !biomeSections) return null;
 
@@ -132,20 +160,25 @@ export function BiomeDashboard({
               <thead>
                 <tr className="bg-tn-bg text-tn-text-muted border-b border-tn-border">
                   <th className="text-left px-2 py-1 font-medium">#</th>
+                  <th className="text-left px-2 py-1 font-medium">Label</th>
                   <th className="text-left px-2 py-1 font-medium">Positions</th>
                   <th className="text-left px-2 py-1 font-medium">Assignments</th>
                   <th className="text-center px-2 py-1 font-medium">Rt</th>
                   <th className="text-center px-2 py-1 font-medium">Skip</th>
+                  <th className="text-right px-2 py-1 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {propSummaries.map((p) => (
+                {propSummaries.map((p, rowIndex) => (
                   <tr
                     key={p.index}
                     onClick={() => switchBiomeSection(`Props[${p.index}]`)}
                     className="border-b border-tn-border last:border-b-0 cursor-pointer hover:bg-white/5 transition-colors"
                   >
                     <td className="px-2 py-1 text-tn-text-muted">{p.index}</td>
+                    <td className="px-2 py-1 text-tn-text truncate max-w-[100px]" title={p.shortLabel}>
+                      {p.shortLabel}
+                    </td>
                     <td className="px-2 py-1 text-tn-text truncate max-w-[80px]">{p.positionsType}</td>
                     <td className="px-2 py-1 text-tn-text truncate max-w-[80px]">{p.assignmentsType}</td>
                     <td className="px-2 py-1 text-center text-tn-text">{p.runtime}</td>
@@ -155,6 +188,45 @@ export function BiomeDashboard({
                       ) : (
                         <span className="text-tn-text-muted">No</span>
                       )}
+                    </td>
+                    <td className="px-2 py-1 text-right">
+                      <div className="inline-flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          title="Move up"
+                          disabled={rowIndex === 0}
+                          onClick={() => {
+                            reorderPropSection(p.index, p.index - 1);
+                            addToast("Prop layer moved up.", "info");
+                          }}
+                          className="p-0.5 rounded hover:bg-white/10 disabled:opacity-30 text-tn-text-muted"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Move down"
+                          disabled={rowIndex === propSummaries.length - 1}
+                          onClick={() => {
+                            reorderPropSection(p.index, p.index + 1);
+                            addToast("Prop layer moved down.", "info");
+                          }}
+                          className="p-0.5 rounded hover:bg-white/10 disabled:opacity-30 text-tn-text-muted"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Duplicate prop layer"
+                          onClick={() => {
+                            duplicatePropSection(p.index);
+                            addToast(`Duplicated Prop ${p.index}.`, "success");
+                          }}
+                          className="p-0.5 rounded hover:bg-white/10 text-tn-text-muted"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -1,5 +1,6 @@
 import { SOLID_THRESHOLD, type VoxelMaterial } from "./voxelExtractor";
 import { HASH_PRIME_A, HASH_PRIME_B, HASH_PRIME_E } from "@/constants";
+import { resolveBlockColor } from "./blockColorMap";
 
 /* ── Hytale material color map ───────────────────────────────────── */
 // IDs sourced from actual HytaleGenerator biome/assignment JSON files.
@@ -601,6 +602,11 @@ export function matchMaterialName(name: string): string {
   return "#808080"; // fallback gray
 }
 
+/** Display color for voxel preview — block map first, then Hytale material table. */
+export function resolveVoxelMaterialColor(name: string): string {
+  return resolveBlockColor(name).color || matchMaterialName(name);
+}
+
 /* ── Biome Material Config types ─────────────────────────────────── */
 
 export interface BiomeMaterialConfig {
@@ -632,8 +638,34 @@ export function extractMaterialConfig(wrapper: Record<string, unknown>): BiomeMa
   const matProvider = wrapper.MaterialProvider as Record<string, unknown> | undefined;
   if (!matProvider || typeof matProvider !== "object") return null;
 
-  const layers: MaterialLayer[] = [];
+  const providerType = matProvider.Type as string | undefined;
+  let layers: MaterialLayer[] = [];
 
+  if (providerType === "Solidity") {
+    const solid = matProvider.Solid as Record<string, unknown> | undefined;
+    if (solid && typeof solid === "object") {
+      layers = extractLayersFromProvider(solid);
+    }
+  } else {
+    layers = extractLayersFromProvider(matProvider);
+  }
+
+  if (layers.length === 0) return null;
+
+  const config: BiomeMaterialConfig = { layers };
+
+  if (typeof wrapper.FluidLevel === "number") {
+    config.fluidLevel = wrapper.FluidLevel;
+  }
+  if (typeof wrapper.FluidMaterial === "string") {
+    config.fluidMaterial = wrapper.FluidMaterial;
+  }
+
+  return config;
+}
+
+function extractLayersFromProvider(matProvider: Record<string, unknown>): MaterialLayer[] {
+  const layers: MaterialLayer[] = [];
   const providerType = matProvider.Type as string | undefined;
 
   if (providerType === "Queue") {
@@ -649,19 +681,7 @@ export function extractMaterialConfig(wrapper: Record<string, unknown>): BiomeMa
     if (layer) layers.push(layer);
   }
 
-  if (layers.length === 0) return null;
-
-  const config: BiomeMaterialConfig = { layers };
-
-  // Extract fluid settings from top-level wrapper
-  if (typeof wrapper.FluidLevel === "number") {
-    config.fluidLevel = wrapper.FluidLevel;
-  }
-  if (typeof wrapper.FluidMaterial === "string") {
-    config.fluidMaterial = wrapper.FluidMaterial;
-  }
-
-  return config;
+  return layers;
 }
 
 function parseLayerEntry(entry: Record<string, unknown>): MaterialLayer | null {
@@ -752,6 +772,12 @@ export interface MaterialResolverResult {
   palette: VoxelMaterial[];
 }
 
+export interface MaterialResolverOptions {
+  heightmap?: Float32Array;
+  worldYMin?: number;
+  worldYMax?: number;
+}
+
 /**
  * Resolve materials for each solid voxel based on depth from terrain surface.
  *
@@ -769,11 +795,18 @@ export function resolveMaterials(
   ySlices: number,
   heightmap?: Float32Array,
   materialConfig?: BiomeMaterialConfig,
+  options?: MaterialResolverOptions,
 ): MaterialResolverResult {
   const n = resolution;
   const ys = ySlices;
   const totalSize = n * n * ys;
   const materialIds = new Uint8Array(totalSize);
+  const hm = heightmap ?? options?.heightmap;
+  const worldYMin = options?.worldYMin;
+  const worldYMax = options?.worldYMax;
+  const stepY = worldYMin != null && worldYMax != null
+    ? (worldYMax - worldYMin) / Math.max(1, ys - 1)
+    : 1;
 
   // Build palette from materialConfig if available, otherwise use default
   let palette: VoxelMaterial[];
@@ -794,8 +827,8 @@ export function resolveMaterials(
     for (let x = 0; x < n; x++) {
       let surfaceY: number;
 
-      if (heightmap) {
-        surfaceY = Math.round(heightmap[z * n + x]);
+      if (hm) {
+        surfaceY = Math.round(hm[z * n + x]);
       } else {
         surfaceY = -1;
         for (let y = ys - 1; y >= 0; y--) {
@@ -816,15 +849,16 @@ export function resolveMaterials(
         const idx = y * n * n + z * n + x;
         if (densities[idx] < SOLID_THRESHOLD) continue; // air pocket
 
-        const depth = surfaceY - y;
+        const depthSlices = surfaceY - y;
+        const depthWorld = depthSlices * stepY;
 
         if (materialConfig) {
-          materialIds[idx] = resolveFromConfig(materialConfig.layers, depth, x, z, matIndex);
+          materialIds[idx] = resolveFromConfig(materialConfig.layers, depthWorld, x, z, matIndex);
         } else {
-          // Fallback heuristic: grass / dirt / stone
-          if (depth <= 1) {
+          // Fallback heuristic: grass / dirt / stone (world-block depth)
+          if (depthWorld <= 1) {
             materialIds[idx] = 0; // grass
-          } else if (depth <= 5) {
+          } else if (depthWorld <= 5) {
             materialIds[idx] = 1; // dirt
           } else {
             materialIds[idx] = 2; // stone
@@ -849,7 +883,7 @@ function buildPaletteFromConfig(config: BiomeMaterialConfig): VoxelMaterial[] {
     const pbr = getMaterialProperties(name);
     palette.push({
       name,
-      color: matchMaterialName(name),
+      color: resolveVoxelMaterialColor(name),
       roughness: pbr.roughness,
       metalness: pbr.metalness,
       emissive: pbr.emissive,
@@ -885,7 +919,7 @@ function buildPaletteFromConfig(config: BiomeMaterialConfig): VoxelMaterial[] {
  */
 function resolveFromConfig(
   layers: MaterialLayer[],
-  depth: number,
+  depthWorld: number,
   x: number,
   z: number,
   matIndex: Map<string, number>,
@@ -893,7 +927,7 @@ function resolveFromConfig(
   for (const layer of layers) {
     if (layer.type === "SpaceAndDepth") {
       const threshold = layer.depthThreshold ?? 1;
-      if (depth < threshold) {
+      if (depthWorld < threshold) {
         // Surface voxels — pick from emptyMaterials using weighted hash
         if (layer.emptyMaterials && layer.emptyMaterials.length > 0) {
           const matName = pickWeightedMaterial(layer.emptyMaterials, x, z);

@@ -21,7 +21,7 @@ export function CollapsibleEditorSection({
   children,
 }: CollapsibleEditorSectionProps) {
   return (
-    <section className="rounded-lg border border-tn-border bg-tn-surface/60 shadow-sm overflow-hidden">
+    <section className="rounded-lg border border-tn-border bg-tn-surface shadow-sm overflow-hidden">
       <button
         type="button"
         onClick={onToggle}

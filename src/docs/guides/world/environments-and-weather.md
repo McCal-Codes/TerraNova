@@ -287,3 +287,21 @@ Examples:
 - `Zone1_Rain_Light`
 
 That makes parent inference, search, and weather linking much easier inside TerraNova.
+
+---
+
+## Community pack patterns (DFS)
+
+**Dragon's Fantasy Scenes** (DFS v1.3.0) is the strongest community reference for atmosphere-heavy **instance landscapes** — not survival overworld biomes. Patterns worth importing into your own packs:
+
+| Pattern | Example |
+|---------|---------|
+| **Variant matrix** | Each mood (Gloomy, Advanced Weather, No Foliage) = separate biome JSON + matching `NoiseRange` world structure |
+| **Dual-height environment** | `EnvironmentProvider` `DensityDelimited` at ~Y 60: ground env vs `Env_*_Y160` + matching weather JSON |
+| **Hour-keyed weather** | `SkyTopColors` tracks, moon overrides, particle `SystemId` hooks in `Server/Weathers` |
+| **Weather spawner items** | Placeable Empty blocks with `Particles: [{ SystemId: ... }]` for invisible fog/cloud/storm emitters |
+| **Instance shipping** | Pre-baked `instance.bson` + `Time.json` + spawn suppression per variant |
+
+For McCal.Autmn Forest path paint and autumn mood, study **DFS Autumn Trails** (shared `DFS_03_WideAreaDensity` → materials, tint, props). Full audit: [Community Pack Study References](../../reference/community-pack-references.md).
+
+---

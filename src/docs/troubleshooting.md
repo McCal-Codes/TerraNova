@@ -13,7 +13,7 @@ This page covers common issues and suggested solutions.
 
 ## File Load Errors
 
-- Ensure the `.world` file is not locked by another application.
+- Ensure the project folder (asset pack with `manifest.json`) is not locked by another application.
 - If you see JSON parse errors, check for missing commas or braces in your `World.json`.
 - Ensure all biome names referenced in `"DefaultBiome"` and `"Biomes"` arrays exactly match a defined `BiomeAsset` name.
 - Make sure `"DefaultTransitionDistance"` is greater than 0.

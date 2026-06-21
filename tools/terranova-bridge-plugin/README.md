@@ -32,6 +32,31 @@ The sidecar writes `%APPDATA%\Hytale\UserData\bridge-active-save.txt` so the plu
 
 Results append to `<save>/bridge/command-results.log`.
 
+## In-game commands
+
+Use these from the Hytale console while the save is running:
+
+| Command | Description |
+|---------|-------------|
+| `/tnbridge status` | Polling state, save, queue size, sidecar reachability |
+| `/tnbridge save` | Resolved save root and pointer source |
+| `/tnbridge pause` | Pause executing queued commands |
+| `/tnbridge resume` | Resume queued command execution |
+| `/tnbridge doctor` | Health checks with OK/WARN/FAIL guidance |
+| `/tnbridge notify on` | Enable in-game chat notifications for queued commands |
+| `/tnbridge notify off` | Disable in-game chat notifications |
+| `/tnbridge notify status` | Show notification setting |
+
+When enabled (default), players see one short chat message per poll tick, for example:
+- `[TerraNova] Ran /worldgen reload --clear (2 more queued)`
+- `[TerraNova] Command failed: /worldgen reload --clear`
+
+The `notify on|off` setting is saved in the plugin data folder and survives restarts.
+
+Duplicate messages are throttled to avoid spam during heavy regen loops.
+
+Alias: `/tnb` (same subcommands, e.g. `/tnb status`).
+
 ## Architecture
 
 | Component | Role |

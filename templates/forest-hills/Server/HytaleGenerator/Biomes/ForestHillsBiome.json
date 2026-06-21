@@ -237,72 +237,44 @@
       "Assignments": {
         "Type": "Constant",
         "Prop": {
-          "Type": "Conditional",
-          "Threshold": 0.5,
-          "Condition": {
-            "Type": "SimplexNoise2D",
-            "Frequency": 0.006,
-            "Amplitude": 1.0,
-            "Seed": 11,
-            "Octaves": 1,
-            "Lacunarity": 2.0,
-            "Gain": 0.5
-          },
-          "TrueInput": {
-            "Type": "Prefab",
-            "Path": "props/trees/oak_large",
-            "Directionality": {
-              "Type": "Uniform"
+          "Type": "Weighted",
+          "Seed": "11",
+          "Entries": [
+            {
+              "Weight": 1,
+              "Prop": {
+                "Type": "Prefab",
+                "Path": "props/trees/oak_large",
+                "Directionality": {
+                  "Type": "Random",
+                  "Seed": "A",
+                  "Pattern": { "Type": "Floor" }
+                },
+                "Scanner": {
+                  "Type": "ColumnLinear",
+                  "StepSize": 1,
+                  "Range": { "Min": 40, "Max": 200 }
+                }
+              }
             },
-            "Scanner": {
-              "Type": "ColumnLinear",
-              "StepSize": 1,
-              "Range": { "Min": 40, "Max": 200 }
+            {
+              "Weight": 1,
+              "Prop": {
+                "Type": "Prefab",
+                "Path": "props/trees/birch_small",
+                "Directionality": {
+                  "Type": "Random",
+                  "Seed": "A",
+                  "Pattern": { "Type": "Floor" }
+                },
+                "Scanner": {
+                  "Type": "ColumnLinear",
+                  "StepSize": 1,
+                  "Range": { "Min": 40, "Max": 200 }
+                }
+              }
             }
-          },
-          "FalseInput": {
-            "Type": "Prefab",
-            "Path": "props/trees/birch_small",
-            "Directionality": {
-              "Type": "Uniform"
-            },
-            "Scanner": {
-              "Type": "ColumnLinear",
-              "StepSize": 1,
-              "Range": { "Min": 40, "Max": 200 }
-            }
-          }
-        }
-      }
-    },
-    {
-      "Runtime": 0,
-      "Skip": false,
-      "Positions": {
-        "Type": "Mesh2D",
-        "Resolution": 4,
-        "Jitter": 0.3
-      },
-      "Assignments": {
-        "Type": "Constant",
-        "Prop": {
-          "Type": "Surface",
-          "Pattern": {
-            "Type": "Surface",
-            "Floor": {
-              "Type": "Floor",
-              "Depth": 1
-            },
-            "Ceiling": {
-              "Type": "Ceiling",
-              "Depth": 1
-            }
-          },
-          "Scanner": {
-            "Type": "ColumnLinear",
-            "StepSize": 1,
-            "Range": { "Min": 0, "Max": 256 }
-          }
+          ]
         }
       }
     },
@@ -328,7 +300,9 @@
           "Type": "Prefab",
           "Path": "props/rocks/boulder_mossy",
           "Directionality": {
-            "Type": "Uniform"
+            "Type": "Random",
+              "Seed": "A",
+              "Pattern": { "Type": "Floor" }
           },
           "Scanner": {
             "Type": "ColumnLinear",
@@ -355,7 +329,9 @@
               "Type": "Prefab",
               "Path": "props/flora/wildflower",
               "Directionality": {
-                "Type": "Uniform"
+                "Type": "Random",
+              "Seed": "A",
+              "Pattern": { "Type": "Floor" }
               },
               "Scanner": {
                 "Type": "ColumnLinear",
@@ -367,7 +343,9 @@
               "Type": "Prefab",
               "Path": "props/flora/fern",
               "Directionality": {
-                "Type": "Uniform"
+                "Type": "Random",
+              "Seed": "A",
+              "Pattern": { "Type": "Floor" }
               },
               "Scanner": {
                 "Type": "ColumnLinear",
@@ -393,7 +371,9 @@
           "Type": "Prefab",
           "Path": "props/flora/mushroom_cluster",
           "Directionality": {
-            "Type": "Uniform"
+            "Type": "Random",
+              "Seed": "A",
+              "Pattern": { "Type": "Floor" }
           },
           "Scanner": {
             "Type": "ColumnLinear",

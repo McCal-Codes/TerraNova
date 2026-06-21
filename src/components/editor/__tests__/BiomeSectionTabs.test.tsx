@@ -116,12 +116,12 @@ describe("BiomeSectionTabs", () => {
     expect(terrainBtn.title).toContain("Clamp");
   });
 
-  it("hides environment and tint graph tabs and falls back to a visible section", () => {
+  it("shows atmosphere and tint graph tabs when sections exist", () => {
     setupBiomeSectionsWithDisabledGraphTabs();
     render(<BiomeSectionTabs />);
 
-    expect(screen.queryByText("Atmosphere")).toBeNull();
-    expect(screen.queryByText("Tint")).toBeNull();
-    expect(useEditorStore.getState().activeBiomeSection).toBe("Terrain");
+    expect(screen.getByText("Atmosphere")).toBeTruthy();
+    expect(screen.getByText("Tint")).toBeTruthy();
+    expect(useEditorStore.getState().activeBiomeSection).toBe("EnvironmentProvider");
   });
 });

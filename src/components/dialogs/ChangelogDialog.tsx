@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import { ChevronRight, X } from "lucide-react";
+import { ReleaseNotesList } from "./ReleaseNotesList";
+import { ChromeIconButton } from "@/components/ui/editorChrome";
+import { appNestedCardClass, appPanelClass } from "@/components/ui/surfaceStyles";
 import { fetchReleases, type ReleaseData } from "@/utils/fetchReleases";
 
 interface ChangelogDialogProps {
@@ -43,119 +47,132 @@ export function ChangelogDialog({ open, onClose }: ChangelogDialogProps) {
 
   if (!open) return null;
 
+  const latestVersion = releases[0]?.version;
+
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[560px] max-h-[80vh] flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="changelog-title"
+        className={`${appPanelClass} shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden`}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-tn-border shrink-0">
-          <div>
-            <h2 className="text-sm font-semibold">Changelog</h2>
-            <p className="text-[11px] text-tn-text-muted mt-0.5">All TerraNova releases</p>
+        <header className="flex items-start justify-between gap-3 px-5 py-4 border-b border-tn-border shrink-0">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-tn-accent/90 mb-1">
+              Release history
+            </p>
+            <h2 id="changelog-title" className="text-base font-semibold text-tn-text">
+              Changelog
+            </h2>
+            <p className="text-xs text-tn-text-muted mt-1 leading-relaxed">
+              All published TerraNova releases
+            </p>
           </div>
-          <button
+          <ChromeIconButton
+            size="sm"
+            label="Close"
             onClick={onClose}
-            className="text-tn-text-muted hover:text-tn-text transition-colors text-lg leading-none px-1"
-            aria-label="Close"
-          >
-            x
-          </button>
-        </div>
+            icon={<X className="h-4 w-4" strokeWidth={2} />}
+          />
+        </header>
 
-        <div className="overflow-y-auto flex-1 py-2">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-3">
           {loading && (
-            <div className="flex items-center justify-center py-8">
-              <span className="text-sm text-tn-text-muted animate-pulse">Loading releases...</span>
+            <div className="flex items-center justify-center py-10">
+              <span className="text-sm text-tn-text-muted animate-pulse">Loading releases…</span>
             </div>
           )}
 
           {error && (
-            <div className="flex flex-col items-center justify-center py-8 gap-2">
+            <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
               <p className="text-sm text-tn-text-muted">Could not load releases</p>
-              <p className="text-[11px] text-tn-text-muted/60">{error}</p>
+              <p className="text-xs text-tn-text-muted/70 max-w-sm">{error}</p>
             </div>
           )}
 
           {!loading && !error && releases.length === 0 && (
-            <div className="flex items-center justify-center py-8">
-              <span className="text-sm text-tn-text-muted">No releases found</span>
+            <div className={`${appNestedCardClass} px-3 py-3 text-center`}>
+              <p className="text-sm text-tn-text-muted">No releases found</p>
             </div>
           )}
 
-          {!loading && !error && releases.map((release) => {
-            const isOpen = expanded === release.version;
-            return (
-              <div key={release.version} className="border-b border-tn-border/50 last:border-0">
-                <button
-                  className="w-full flex items-center justify-between px-5 py-3 hover:bg-white/[0.04] transition-colors text-left"
-                  onClick={() => setExpanded(isOpen ? "" : release.version)}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-[13px] font-semibold">v{release.version}</span>
-                    <span className="text-[11px] text-tn-text-muted">{release.date}</span>
-                    {release.version === releases[0].version && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-tn-accent/20 text-tn-accent font-medium">
-                        Latest
-                      </span>
-                    )}
-                  </div>
-                  <svg
-                    className={`w-3 h-3 text-tn-text-muted transition-transform ${isOpen ? "rotate-90" : ""}`}
-                    viewBox="0 0 16 16"
-                    fill="currentColor"
-                  >
-                    <path d="M6 3l5 5-5 5V3z" />
-                  </svg>
-                </button>
+          {!loading && !error && (
+            <div className="space-y-2">
+              {releases.map((release) => {
+                const isOpen = expanded === release.version;
+                const isLatest = release.version === latestVersion;
 
-                {isOpen && (
-                  <div className="px-5 pb-4 space-y-3">
-                    {release.sections.map((section) => (
-                      <div key={section.title}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted mb-1.5">
-                          {section.title}
-                        </p>
-                        <ul className="space-y-1.5">
-                          {section.items.map((item, i) => (
-                            <li key={i} className="flex gap-2.5 text-[12px] text-tn-text leading-snug">
-                              <span className="mt-[5px] shrink-0 w-1 h-1 rounded-full bg-tn-text-muted/60" />
-                              <span>
-                                {item.description ? (
-                                  <>
-                                    <span className="font-medium">{item.label}</span>
-                                    <span className="text-tn-text-muted"> — {item.description}</span>
-                                  </>
-                                ) : (
-                                  item.label
-                                )}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                return (
+                  <section
+                    key={release.version}
+                    className={`${appNestedCardClass} overflow-hidden`}
+                  >
+                    <button
+                      type="button"
+                      className="w-full flex items-start justify-between gap-3 px-3 py-3 hover:bg-tn-surface/40 transition-colors text-left"
+                      aria-expanded={isOpen}
+                      onClick={() => setExpanded(isOpen ? "" : release.version)}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-sm font-semibold text-tn-text">
+                            v{release.version}
+                          </span>
+                          {release.date && (
+                            <span className="text-xs text-tn-text-muted">{release.date}</span>
+                          )}
+                          {isLatest && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-tn-accent/20 text-tn-accent font-medium">
+                              Latest
+                            </span>
+                          )}
+                        </div>
+                        {release.name && release.name !== release.version && (
+                          <p className="text-xs text-tn-text-muted mt-1 leading-relaxed">
+                            {release.name}
+                          </p>
+                        )}
                       </div>
-                    ))}
-                    {release.sections.length === 0 && (
-                      <p className="text-[12px] text-tn-text-muted italic">No release notes available.</p>
+                      <ChevronRight
+                        className={`h-4 w-4 shrink-0 text-tn-text-muted transition-transform mt-0.5 ${isOpen ? "rotate-90" : ""}`}
+                        aria-hidden
+                      />
+                    </button>
+
+                    {isOpen && (
+                      <div className="px-3 pb-3 pt-0 border-t border-tn-border/60">
+                        {release.sections.length > 0 ? (
+                          <div className="pt-3">
+                            <ReleaseNotesList sections={release.sections} />
+                          </div>
+                        ) : (
+                          <p className="pt-3 text-xs text-tn-text-muted italic">
+                            No release notes available.
+                          </p>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  </section>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="flex justify-end px-5 py-3 border-t border-tn-border shrink-0">
+        <footer className="flex justify-end px-5 py-4 border-t border-tn-border shrink-0">
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-1.5 text-xs rounded border border-tn-border hover:bg-tn-surface"
+            className="px-4 py-2 text-xs rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-tn-text"
           >
             Close
           </button>
-        </div>
+        </footer>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
   "Group": "TerraNova",
   "Name": "Bridge",
   "Version": "${version}",
-  "Description": "Executes TerraNova Bridge queued console commands from bridge/pending-commands.log",
+  "Description": "Executes TerraNova Bridge queued console commands and exposes /tnbridge diagnostics",
   "Authors": [
     {
       "Name": "McCal-Codes"

@@ -3,6 +3,7 @@ import { GripVertical } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useDraggableLayoutPicker } from "@/hooks/useDraggableLayoutPicker";
 import { LayoutPresetPicker, shouldShowLayoutPresetPicker } from "./LayoutPresetPicker";
+import { NoiseRangeLayoutPicker } from "./NoiseRangeLayoutPicker";
 
 interface CanvasLayoutPickerProps {
   containerRef: RefObject<HTMLElement | null>;
@@ -61,7 +62,7 @@ export const CanvasLayoutPicker = memo(function CanvasLayoutPicker({
         <GripVertical className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
       </button>
       <div className="rounded-r-lg">
-        <LayoutPresetPicker />
+        {editingContext === "NoiseRange" ? <NoiseRangeLayoutPicker /> : <LayoutPresetPicker />}
       </div>
     </div>
   );

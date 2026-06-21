@@ -16,6 +16,12 @@ export function extractPrefabPathFromFields(fields: Record<string, unknown>): st
     }
   }
 
+  const prop = fields.Prop;
+  if (prop && typeof prop === "object" && !Array.isArray(prop)) {
+    const nested = extractPrefabPathFromFields(prop as Record<string, unknown>);
+    if (nested) return nested;
+  }
+
   return null;
 }
 

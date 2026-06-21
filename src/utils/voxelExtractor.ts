@@ -35,6 +35,14 @@ const DEFAULT_PALETTE: VoxelMaterial[] = [
  */
 export const SOLID_THRESHOLD = 0;
 
+/** True when at least one voxel in the volume is air (density below solid threshold). */
+export function volumeDensityHasAir(densities: Float32Array): boolean {
+  for (let i = 0; i < densities.length; i++) {
+    if (densities[i] < SOLID_THRESHOLD) return true;
+  }
+  return false;
+}
+
 /* ── Heightmap-smoothed terrain fill ─────────────────────────────── */
 
 /** Number of consecutive air voxels that terminates the bottom-up scan. */

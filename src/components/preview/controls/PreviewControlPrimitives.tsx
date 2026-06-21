@@ -8,13 +8,14 @@ import {
   previewHudSelectClass,
   previewModeToggleTrackClass,
 } from "@/components/preview/previewChromeStyles";
+import { previewCalloutClasses } from "@/components/ui/surfaceStyles";
 
 export const previewChipClass = previewHudChipClass;
 
 export const previewChipActiveClass = previewHudChipActiveClass;
 
 export const previewCheckboxLabelClass =
-  "flex items-center gap-2 min-h-[28px] text-[11px] text-tn-text-muted cursor-pointer rounded px-1 -mx-1 hover:bg-black/40";
+  "flex items-center gap-2 min-h-[28px] text-[11px] text-tn-text-muted cursor-pointer rounded px-1 -mx-1 hover:bg-tn-surface";
 
 export const previewSelectClass = previewHudSelectClass;
 
@@ -95,11 +96,7 @@ export function PreviewCheckbox({ checked, onChange, label, description }: Previ
 
 type CalloutTone = "info" | "warning" | "error";
 
-const calloutToneClass: Record<CalloutTone, string> = {
-  info: "border-tn-border/60 bg-tn-panel/30 text-tn-text-muted",
-  warning: "border-amber-500/25 bg-amber-950/40 text-amber-200/90",
-  error: "border-red-500/30 bg-red-950/40 text-red-300/90",
-};
+const calloutToneClass = previewCalloutClasses;
 
 interface PreviewCalloutProps {
   tone: CalloutTone;
@@ -137,8 +134,8 @@ export function PreviewHintList({ hints }: { hints: ShapePreviewHint[] }) {
           key={i}
           className={`text-[10px] leading-relaxed rounded px-2 py-1 ${
             hint.tone === "warning"
-              ? "bg-amber-950/30 text-amber-200/90 border border-amber-500/20"
-              : "text-tn-text-muted bg-tn-panel/20"
+              ? "bg-amber-950 text-amber-100 border border-amber-500/30"
+              : "text-tn-text-muted bg-tn-bg border border-tn-border"
           }`}
         >
           {hint.message}
@@ -163,6 +160,11 @@ const PREVIEW_MODES: { id: PreviewMode; label: string; title?: string }[] = [
     id: "world",
     label: "World",
     title: "Server world preview (requires Bridge)",
+  },
+  {
+    id: "prefab",
+    label: "Prefab",
+    title: "Load and preview a .prefab.json file 1:1",
   },
 ];
 
@@ -193,7 +195,7 @@ export function PreviewModeToggleGroup({
               className={`px-2.5 py-1 text-[11px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent ${
                 active
                   ? "rounded bg-tn-accent/25 font-medium text-tn-text"
-                  : "text-tn-text-muted hover:bg-black/55 hover:text-tn-text disabled:opacity-40"
+                  : "text-tn-text-muted hover:bg-tn-panel hover:text-tn-text disabled:opacity-40"
               }`}
             >
               {m.label}

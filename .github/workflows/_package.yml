@@ -111,7 +111,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          includeUpdaterJson: true
+          includeUpdaterJson: false
           updaterJsonPreferNsis: true
           tagName: ${{ inputs.tag }}
           releaseName: 'TerraNova ${{ inputs.tag }}'
@@ -191,27 +191,43 @@ jobs:
           if [ -f "${APPIMAGE}.sig" ]; then
             gh release upload "${{ inputs.tag }}" "${APPIMAGE}.sig" --clobber
           fi
-          if [ -f "${APPIMAGE}.sig" ]; then
-            LATEST_JSON=$(mktemp)
-            gh release download "${{ inputs.tag }}" -p 'latest.json' -D "$(dirname "$LATEST_JSON")" -O "$LATEST_JSON" || true
-            if [ -f "$LATEST_JSON" ] && [ -s "$LATEST_JSON" ]; then
-              NEW_SIG=$(cat "${APPIMAGE}.sig")
-              node -e "
-                const fs = require('fs');
-                const latest = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-                const sig = process.argv[2];
-                for (const [key, val] of Object.entries(latest.platforms || {})) {
-                  if (val.url && val.url.includes('.AppImage')) {
-                    val.signature = sig;
-                  }
+          LATEST=$(find src-tauri/target -name latest.json -type f | head -1)
+          if [ -f "${APPIMAGE}.sig" ] && [ -n "$LATEST" ] && [ -f "$LATEST" ]; then
+            NEW_SIG=$(cat "${APPIMAGE}.sig")
+            node -e "
+              const fs = require('fs');
+              const latest = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+              const sig = process.argv[2];
+              for (const [key, val] of Object.entries(latest.platforms || {})) {
+                if (val.url && val.url.includes('.AppImage')) {
+                  val.signature = sig;
                 }
-                fs.writeFileSync(process.argv[1], JSON.stringify(latest, null, 2) + '\n');
-              " "$LATEST_JSON" "$NEW_SIG"
-              gh release upload "${{ inputs.tag }}" "$LATEST_JSON#latest.json" --clobber
-            fi
-            rm -f "$LATEST_JSON"
+              }
+              fs.writeFileSync(process.argv[1], JSON.stringify(latest, null, 2) + '\n');
+            " "$LATEST" "$NEW_SIG"
           fi
           rm -rf squashfs-root appimagetool
+
+      - name: Stage updater manifest artifact
+        if: inputs.publish && inputs.sign
+        shell: bash
+        run: |
+          LATEST=$(find src-tauri/target -name latest.json -type f | head -1)
+          if [ -z "$LATEST" ]; then
+            echo "No latest.json under src-tauri/target"
+            exit 1
+          fi
+          mkdir -p updater-manifest
+          cp "$LATEST" updater-manifest/latest.json
+
+      - name: Upload updater manifest artifact
+        if: inputs.publish && inputs.sign
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: updater-json-${{ matrix.platform }}-${{ matrix.rust_target || 'default' }}
+          path: updater-manifest/latest.json
+          if-no-files-found: error
+          retention-days: 2
 
       - name: Verify macOS bundle artifacts
         if: runner.os == 'macOS'
@@ -234,9 +250,36 @@ jobs:
             codesign --verify --deep --strict "$APP_PATH" 2>&1 || echo "Note: strict verify skipped for unsigned CI builds"
           fi
 
-  finalize:
-    if: inputs.publish
+  merge-updater:
+    if: inputs.publish && inputs.sign
     needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - uses: actions/download-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          path: updater-json
+          pattern: updater-json-*
+          merge-multiple: true
+
+      - name: Merge and upload latest.json
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/merge-updater-latest-json.mjs > /tmp/latest.json
+          test -s /tmp/latest.json
+          gh release upload "${{ inputs.tag }}" /tmp/latest.json#latest.json --clobber
+
+  finalize:
+    if: |
+      inputs.publish &&
+      needs.build.result == 'success' &&
+      (needs.merge-updater.result == 'success' || needs.merge-updater.result == 'skipped')
+    needs: [build, merge-updater]
     runs-on: ubuntu-22.04
     permissions:
       contents: write

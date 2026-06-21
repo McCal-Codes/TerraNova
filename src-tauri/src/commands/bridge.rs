@@ -7,7 +7,6 @@ use crate::bridge::plugin_deploy::{self, PluginStatus};
 use crate::bridge::types::*;
 use crate::io::path_scope;
 use bridge_save::{self, BridgeDebugSnapshot};
-#[cfg(target_os = "windows")]
 use serde::Serialize;
 #[cfg(target_os = "windows")]
 use std::path::Path;
@@ -50,13 +49,13 @@ pub async fn bridge_debug_snapshot(
 
 #[tauri::command]
 pub async fn bridge_start_sidecar(
-    force_restart_if_listening: Option<bool>,
-    save_root: Option<String>,
-    save_name: Option<String>,
+    _force_restart_if_listening: Option<bool>,
+    _save_root: Option<String>,
+    _save_name: Option<String>,
 ) -> Result<BridgeStartSidecarResult, String> {
     #[cfg(target_os = "windows")]
     {
-        let force_restart = force_restart_if_listening.unwrap_or(true);
+        let force_restart = _force_restart_if_listening.unwrap_or(true);
         if discover::is_port_open("127.0.0.1", 7854) {
             if !force_restart {
                 return Ok(BridgeStartSidecarResult {
@@ -68,7 +67,8 @@ pub async fn bridge_start_sidecar(
             stop_existing_bridge_processes();
         }
 
-        let resolved_save = resolve_sidecar_save_root(save_root.as_deref(), save_name.as_deref())?;
+        let resolved_save =
+            resolve_sidecar_save_root(_save_root.as_deref(), _save_name.as_deref())?;
         let save_label = resolved_save
             .file_name()
             .and_then(|s| s.to_str())

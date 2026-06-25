@@ -114,6 +114,21 @@ describe("biomeRangeDomain", () => {
     expect(normalized[1].Max).toBe(1);
   });
 
+  it("normalizeRanges uses clamped min for minGap — produces valid range when Max is recoverable", () => {
+    // Bug scenario: Min is below axis min but Max could be a valid range
+    // after clamping. Previously, unclamped Min was used in the minGap
+    // computation, causing the clamped Max to equal the clamped Min
+    // (a degenerate zero-width range).
+    const normalized = normalizeRanges([
+      { Biome: "X", Min: -1.5, Max: -1.1 },
+    ]);
+    expect(normalized[0].Min).toBe(-1);
+    // Max must be strictly greater than Min (non-degenerate range)
+    expect(normalized[0].Max).toBeGreaterThan(-1);
+    // Max should be at least clampedMin + DEFAULT_MIN_GAP = -1 + 0.02 = -0.98
+    expect(normalized[0].Max).toBeCloseTo(-0.98);
+  });
+
   it("estimateCoveragePercent", () => {
     expect(estimateCoveragePercent({ Min: -1, Max: 1 })).toBeCloseTo(100);
     expect(estimateCoveragePercent({ Min: -1, Max: 0 })).toBeCloseTo(50);

@@ -57,11 +57,14 @@ export function normalizeRanges(
   minGap = DEFAULT_MIN_GAP,
 ): BiomeRangeEntry[] {
   return [...ranges]
-    .map((r) => ({
-      Biome: r.Biome,
-      Min: clampAxis(r.Min),
-      Max: clampAxis(Math.max(r.Min + minGap, r.Max)),
-    }))
+    .map((r) => {
+      const clampedMin = clampAxis(r.Min);
+      return {
+        Biome: r.Biome,
+        Min: clampedMin,
+        Max: clampAxis(Math.max(clampedMin + minGap, r.Max)),
+      };
+    })
     .sort((a, b) => a.Min - b.Min || a.Max - b.Max);
 }
 

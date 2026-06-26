@@ -145,10 +145,29 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
     },
 
     addPropSectionWithGraph: (nodes, edges, meta = { Runtime: 0, Skip: false }) => {
-      const { biomeSections, biomeConfig } = get();
+      const {
+        biomeSections,
+        biomeConfig,
+        activeBiomeSection,
+        nodes: liveNodes,
+        edges: liveEdges,
+        outputNodeId: liveOutputNodeId,
+      } = get();
       if (!biomeSections) return null;
 
-      const existingPropKeys = Object.keys(biomeSections).filter((k) => k.startsWith("Props["));
+      // Flush the currently active section's live canvas state (position-only changes
+      // from node drags go through setNodes and are not yet in biomeSections).
+      const syncedBiomeSections = { ...biomeSections };
+      if (activeBiomeSection && syncedBiomeSections[activeBiomeSection]) {
+        syncedBiomeSections[activeBiomeSection] = {
+          ...syncedBiomeSections[activeBiomeSection],
+          nodes: structuredClone(liveNodes),
+          edges: structuredClone(liveEdges),
+          outputNodeId: liveOutputNodeId,
+        };
+      }
+
+      const existingPropKeys = Object.keys(syncedBiomeSections).filter((k) => k.startsWith("Props["));
       const nextIndex = existingPropKeys.length;
       const key = `Props[${nextIndex}]`;
       const sectionNodes = structuredClone(nodes);
@@ -171,7 +190,7 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
         : [{ ...meta }];
 
       set({
-        biomeSections: { ...biomeSections, [key]: newSection },
+        biomeSections: { ...syncedBiomeSections, [key]: newSection },
         biomeConfig: biomeConfig ? { ...biomeConfig, propMeta: updatedMeta } : null,
         activeBiomeSection: key,
         nodes: sectionNodes,

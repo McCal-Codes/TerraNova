@@ -56,7 +56,10 @@ pub async fn bridge_start_sidecar(
     #[cfg(target_os = "windows")]
     {
         let force_restart = _force_restart_if_listening.unwrap_or(true);
-        if discover::is_port_open("127.0.0.1", 7854) {
+        if tokio::task::spawn_blocking(|| discover::is_port_open("127.0.0.1", 7854))
+            .await
+            .unwrap_or(false)
+        {
             if !force_restart {
                 return Ok(BridgeStartSidecarResult {
                     started: false,
@@ -118,7 +121,10 @@ pub async fn bridge_start_sidecar(
         };
         let startup_deadline = Instant::now() + Duration::from_secs(8);
         loop {
-            if discover::is_port_open("127.0.0.1", 7854) {
+            let port_open = tokio::task::spawn_blocking(|| discover::is_port_open("127.0.0.1", 7854))
+                .await
+                .unwrap_or(false);
+            if port_open {
                 break;
             }
             if let Some(status) = child
@@ -139,7 +145,7 @@ pub async fn bridge_start_sidecar(
                         .into(),
                 );
             }
-            std::thread::sleep(Duration::from_millis(100));
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
 
         Ok(BridgeStartSidecarResult {

@@ -263,7 +263,6 @@ jobs:
         with:
           path: updater-json
           pattern: updater-json-*
-          merge-multiple: true
 
       - name: Merge and upload latest.json
         shell: bash

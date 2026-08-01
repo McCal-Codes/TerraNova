@@ -14,6 +14,7 @@ import { ALPHA_WHAT_TO_TEST_VERSION } from "@/constants/alphaTestFocus";
 import { attachmentPathsForIssueBody } from "@/utils/bugReportAttachments";
 import type { GraphDiagnostic } from "@/utils/graphDiagnostics";
 import { isMac, isTauriRuntime } from "@/utils/platform";
+import { readCrashLog, type PersistedCrash } from "@/components/ErrorBoundary";
 
 export const BUG_REPORT_SCHEMA_VERSION = 2;
 export const BUILD_CHANNEL = "closed-alpha" as const;
@@ -134,6 +135,12 @@ export interface BugReportBundle {
     };
   };
   error?: BugReportErrorContext;
+  /**
+   * Crashes recorded by the ErrorBoundary, newest first. A React crash blanks
+   * the window and a reload clears the console, so without this the report of
+   * a crash carries no trace of the crash that preceded it.
+   */
+  recentCrashes?: PersistedCrash[];
 }
 
 /** Redact Windows user folder and Unix home segments from paths in public reports. */
@@ -364,6 +371,7 @@ export async function buildBugReportBundle(options?: {
       },
     },
     error: options?.error,
+    recentCrashes: readCrashLog(),
   };
 }
 

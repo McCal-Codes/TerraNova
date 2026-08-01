@@ -299,8 +299,6 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
     }
   }
 
-  if (!open) return null;
-
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -313,6 +311,8 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
+
+  if (!open) return null;
 
   function handleNavigate(target: SettingDeepLink) {
     setQuery("");

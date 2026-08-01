@@ -45,6 +45,11 @@ export default [
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       "no-undef": "off",
+      // Catches hooks called conditionally or after an early return. Without
+      // this, a useEffect placed below `if (!open) return null` lints clean and
+      // then crashes at runtime with "Rendered more hooks than during the
+      // previous render", taking the whole window blank.
+      "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },
   },

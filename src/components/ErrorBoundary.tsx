@@ -73,9 +73,23 @@ function persistCrash(error: Error, componentStack: string | null): void {
     };
     const next = [entry, ...readCrashLog()].slice(0, CRASH_LOG_LIMIT);
     localStorage.setItem(CRASH_LOG_KEY, JSON.stringify(next));
+    mirrorToDisk(next);
   } catch {
     // Storage full or unavailable — the on-screen report is still shown.
   }
+}
+
+/**
+ * Also write to ~/Library/Logs/<app>/crash.log. localStorage alone is not
+ * enough: a force quit can lose buffered writes, and reading it back means
+ * devtools or spelunking WebKit's sqlite. Imported lazily so a crash during
+ * startup is not made worse by pulling in the Tauri path/IPC modules, and
+ * deliberately not awaited — the on-screen report must not wait on disk.
+ */
+function mirrorToDisk(history: PersistedCrash[]): void {
+  void import("@/utils/crashLogFile")
+    .then(({ writeCrashLogFile }) => writeCrashLogFile(history))
+    .catch(() => {});
 }
 
 export class ErrorBoundary extends Component<Props, State> {

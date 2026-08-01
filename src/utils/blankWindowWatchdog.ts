@@ -14,12 +14,28 @@ import { readCrashLog, recordExternalCrash } from "@/components/ErrorBoundary";
  */
 
 const WATCHDOG_DELAY_MS = 8_000;
+/** Past main.tsx's own 15s force-removal, so this only fires on a real fault. */
+const SPLASH_STUCK_MS = 20_000;
 const PANEL_ID = "tn-blank-watchdog";
 
 function rootLooksEmpty(root: HTMLElement): boolean {
   if (root.childElementCount === 0) return true;
   // A root containing only empty wrappers still reads as blank to the user.
   return root.textContent?.trim().length === 0;
+}
+
+/**
+ * The splash is a full-window overlay from index.html. If React never calls
+ * removeSplash(), the window looks blank even though the DOM is populated —
+ * indistinguishable to the user from a crash, and invisible to an
+ * emptiness check. main.tsx force-removes it at 15s, so anything still
+ * covering the window past that is a genuine fault worth naming.
+ */
+function splashStillCovering(): boolean {
+  const splash = document.getElementById("initial-splash");
+  if (!splash) return false;
+  const style = getComputedStyle(splash);
+  return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
 }
 
 function escapeHtml(value: string): string {
@@ -60,8 +76,19 @@ function renderPanel(root: HTMLElement): void {
     </p>
     ${detail}
     <p style="margin:16px 0 0;opacity:.6">
-      Crash history is kept in localStorage under <code>tn-crash-log</code>.
+      Full crash log: <code id="tn-crash-path">~/Library/Logs/TerraNova/crash.log</code>
+      (also in localStorage under <code>tn-crash-log</code>).
     </p>`;
+
+  // Resolve the real path asynchronously; the placeholder above is already
+  // correct on macOS, so the panel is useful even if this never resolves.
+  void import("@/utils/crashLogFile")
+    .then(({ crashLogPath }) => crashLogPath())
+    .then((path) => {
+      const el = document.getElementById("tn-crash-path");
+      if (el) el.textContent = path;
+    })
+    .catch(() => {});
 
   root.appendChild(panel);
 }
@@ -120,9 +147,28 @@ export function installBlankWindowWatchdog(): void {
     }
   };
 
+  // A populated DOM hidden behind a stuck splash reads as blank too.
+  const checkSplash = () => {
+    try {
+      if (performance.now() > SPLASH_STUCK_MS && splashStillCovering()) {
+        recordExternalCrash(
+          "Splash overlay never lifted — the interface is behind it. " +
+            "removeSplash() was not reached, so startup stalled before App mounted.",
+        );
+        document.getElementById("initial-splash")?.remove();
+        renderPanel(root);
+      }
+    } catch {
+      // A diagnostic must never be the thing that breaks startup.
+    }
+  };
+
   // Reacts immediately when React tears the tree down.
   new MutationObserver(check).observe(root, { childList: true, subtree: true });
   // Backstop for a blank that never mutates the DOM (nothing ever mounted).
-  window.setInterval(check, 2_000);
+  window.setInterval(() => {
+    check();
+    checkSplash();
+  }, 2_000);
   window.setTimeout(check, WATCHDOG_DELAY_MS);
 }

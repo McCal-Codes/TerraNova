@@ -1,4 +1,4 @@
-import { readCrashLog } from "@/components/ErrorBoundary";
+import { readCrashLog, recordExternalCrash } from "@/components/ErrorBoundary";
 
 /**
  * Last-resort diagnostics for a blank window.
@@ -66,13 +66,63 @@ function renderPanel(root: HTMLElement): void {
   root.appendChild(panel);
 }
 
+/**
+ * WebGL context loss blanks the view without throwing anything JavaScript can
+ * catch — no error event, no rejected promise, no React error boundary. On a
+ * 3D-heavy app that is a prime suspect for "it loaded, then went blank", so it
+ * is recorded explicitly rather than left invisible.
+ */
+function installWebglContextLossCapture(): void {
+  // contextlost does not bubble, so listen in the capture phase at the document.
+  document.addEventListener(
+    "webglcontextlost",
+    (event) => {
+      const target = event.target as HTMLCanvasElement | null;
+      recordExternalCrash(
+        `WebGL context lost (canvas ${target?.width ?? "?"}x${target?.height ?? "?"}). ` +
+          "The view goes blank without throwing; usually GPU memory pressure or a driver reset.",
+      );
+    },
+    true,
+  );
+
+  document.addEventListener(
+    "webglcontextrestored",
+    () => console.info("[TerraNova] WebGL context restored"),
+    true,
+  );
+}
+
 export function installBlankWindowWatchdog(): void {
-  window.setTimeout(() => {
+  installWebglContextLossCapture();
+
+  const root = document.getElementById("root");
+  if (!root) return;
+
+  let sawContent = false;
+
+  /**
+   * Checked continuously, not once. The original one-shot check at 8s passed
+   * for any app that renders and only blanks later — which is exactly the
+   * failure being chased.
+   */
+  const check = () => {
     try {
-      const root = document.getElementById("root");
-      if (root && rootLooksEmpty(root)) renderPanel(root);
+      const empty = rootLooksEmpty(root);
+      if (!empty) {
+        sawContent = true;
+        return;
+      }
+      // Empty at startup, or empty after having rendered: both are blank windows.
+      if (sawContent || performance.now() > WATCHDOG_DELAY_MS) renderPanel(root);
     } catch {
       // A diagnostic must never be the thing that breaks startup.
     }
-  }, WATCHDOG_DELAY_MS);
+  };
+
+  // Reacts immediately when React tears the tree down.
+  new MutationObserver(check).observe(root, { childList: true, subtree: true });
+  // Backstop for a blank that never mutates the DOM (nothing ever mounted).
+  window.setInterval(check, 2_000);
+  window.setTimeout(check, WATCHDOG_DELAY_MS);
 }

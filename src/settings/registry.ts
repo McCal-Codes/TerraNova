@@ -228,8 +228,15 @@ export function searchSettings(
     .map((entry) => entry.def);
 }
 
-/** Test-only: clears the registry so modules can be re-imported in isolation. */
-export function __resetRegistryForTests(): void {
+/**
+ * Empties the registry.
+ *
+ * Used by `registerAllSettings` to stay idempotent — Vite re-evaluates the
+ * definitions module on every HMR update under src/settings, and a second
+ * registration pass would otherwise throw on the first duplicate id and take
+ * the running app down. Also used by tests that register in isolation.
+ */
+export function clearRegistry(): void {
   registry.clear();
   index = null;
 }

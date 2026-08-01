@@ -4,7 +4,70 @@ All notable changes to [TerraNova](https://github.com/McCal-Codes/TerraNova) are
 
 ## Unreleased
 
-_Next alpha cycle — add bullets here as features land._
+_Next build's changes go here._
+
+## [0.1.8-alpha.5] — 2026-08-01 — Closed alpha
+
+Fifth **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.5`.  
+**Updates:** Users on `v0.1.8-alpha.4` receive this build via the in-app updater (~3s after launch when auto-check is on).
+
+### Highlights
+
+- **Terrain now matches Hytale's generator** — Noise, fBm and seed derivation reimplemented against Java's RNG, so previews line up with what the game actually generates.
+- **World seed** — Set a seed in preview settings and see the same terrain the game would produce for it.
+- **Cave and void view** — Classify enclosed caves against voids that breach the surface, with counts and a dedicated preview colouring.
+- **Cutaway presets** — Slice terrain by preset instead of hand-tuning a plane, with the fluid config preserved across re-extraction.
+- **Settings search** — Find any setting by name, description or synonym, with `@modified` and other filters. `Ctrl`/`Cmd`+`F` to focus.
+- **Modified indicators and reset** — See at a glance which settings you've changed, and put any one of them back to its default.
+
+### Worldgen accuracy
+
+- Noise, fBm, combinators and overrides reimplemented against Java semantics, with a `JavaRandom` port (`javaStringHashCode`, `deriveNodeSeed`, per-octave offset draws) so seeds derive the same way Hytale derives them.
+- Parity harnesses added for fBm, cell noise, noise defaults and seed chaining, run against fixtures captured from the real generator.
+- **World seed** — new field in preview settings, threaded through the density and voxel evaluation paths and into the evaluation fingerprint, so changing it re-evaluates rather than reusing a cached result.
+
+### Preview
+
+- **Void classification** — `classifyVoids` separates enclosed caves from voids that breach the surface; the preview reports enclosed and breaching counts and can colour by class.
+- **Cutaway presets** — pick a preset rather than positioning a plane by hand. The fluid config from the last extraction is retained so a cutaway re-extract stays faithful.
+- Voxel extraction, mesh building, material resolution and auto-fit updated to match.
+
+### Bridge
+
+- Live player resolution prefers a signed-in player's UUID, falling back to the newest save file, and reports which path it took.
+- Improved bridge discovery and connection handling.
+
+### Account
+
+- Sign in with a Hytale account from Settings → Account, with the signed-in player used as the bridge target by default.
+
+### Developer
+
+- **Dev Lab** — developer-only workspace at `?dev-lab=1` (dev builds only) for running density cases against the evaluator and inspecting the results.
+- Evaluation fingerprint coverage guard: adding a field to the fingerprint input without accounting for it now fails to compile, catching the class of bug where new state reaches the evaluator but not the cache key and the feature silently does nothing.
+
+### Settings
+
+- **Settings search** — Filter every setting by name, description, or synonym (`autosave` finds Instant save). Supports `@modified`, `@developer`, `@experimental`, `@advanced`, `@restart`, `@user` and `@project` filters, which combine with free text (`@modified asset`). Focus with `Ctrl`/`Cmd`+`F`.
+- **Modified indicators and per-setting reset** — Changed settings show a `Modified` badge and a reset button; each category offers "Reset section", and the sidebar shows how many settings differ from their defaults.
+- **Reorganised categories** — General, Editor, Preview & performance, Files & backups, Hytale assets, Shortcuts, Account, Developer, Updates, About. Old deep links to the `system` tab still resolve.
+- **Compact setting rows** — Boolean settings are toggles rather than full-width cards, flow direction is a radio group, and save delay is a number field, replacing card grids that read like navigation.
+- **Operations separated from preferences** — Back up project, reset the "don't ask again" list, and clear recent projects moved out of the settings body; Settings now only configures backup behaviour.
+- Settings sidebar follows the WAI-ARIA tabs pattern: one Tab stop with arrow-key navigation, and arrows move focus without activating (previously, arrowing past a category triggered its hardware detection and asset staleness checks).
+- Fixed deep links to the Account settings tab, which were silently ignored.
+
+### Performance
+
+- Settings are parsed once at startup instead of 23 times, and changing a setting no longer re-serialises the entire store on every keystroke. Pending writes flush on quit.
+
+### Developer workflow
+
+- One-command startup: `pnpm start` launches the desktop dev build after checking Node, pnpm, Rust and Cargo, installing dependencies only when stale, and verifying port 1420 is free.
+- Added `pnpm dev:web`, `pnpm dev:desktop`, `pnpm dev:lab`, and `pnpm dev:doctor`.
+- Fixed duplicate Vite dev servers: `dev.bat` started Vite and then ran `pnpm tauri dev`, whose `beforeDevCommand` started a second one. Tauri is now the only owner, and the launcher refuses to start when port 1420 is already serving.
+- Removed the `predev` hook that ran a full `pnpm install` on every dev start. Installs now happen only when `node_modules` is missing, the lockfile/package.json/Node/pnpm fingerprint changes, or `--install` is passed.
+- Double-click wrappers for all three platforms (`dev.bat`, `dev.command`, `dev.sh`), each delegating to `pnpm start`.
+- `pnpm sync:hytale` accepts `--channel release|pre-release`, and records the channel and sync time in the cache manifest.
 
 ## [0.1.8-alpha.4] — 2026-06-21 — Closed alpha
 

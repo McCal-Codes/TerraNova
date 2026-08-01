@@ -53,6 +53,15 @@ export function clearCrashLog(): void {
  * record of what happened. Persisting first means the crash is still
  * recoverable after a restart, via readCrashLog() or the debug bundle.
  */
+/**
+ * Records a crash that React's error boundary cannot see — an uncaught sync
+ * error or an unhandled promise rejection. Those escape boundaries entirely,
+ * so without this they leave no trace once the console is cleared by a reload.
+ */
+export function recordExternalCrash(message: string, stack?: string): void {
+  persistCrash(Object.assign(new Error(message), { stack }), null);
+}
+
 function persistCrash(error: Error, componentStack: string | null): void {
   try {
     const entry: PersistedCrash = {

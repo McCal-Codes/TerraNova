@@ -5,7 +5,6 @@ import {
   getByCategory,
   getSections,
   isAvailable,
-  isModified,
   resetCategory,
   type CategoryId,
   type SettingDeepLink,
@@ -95,14 +94,3 @@ export function CategoryPanel({ category, developerMode, onNavigate, children }:
     </div>
   );
 }
-
-/** Count of modified settings in a category, for the rail badge. */
-export function useCategoryModifiedCount(category: CategoryId, developerMode: boolean): number {
-  const defs = useMemo(
-    () => getByCategory(category).filter((d) => isAvailable(d, developerMode)),
-    [category, developerMode],
-  );
-  return useModifiedCount(defs);
-}
-
-export { isModified };

@@ -1,15 +1,12 @@
-import { useEffect, useState } from "react";
-import {
-  Settings as SettingsIcon,
-  Cpu,
-  Image,
-  Keyboard,
-  Code2,
-  Info,
-  type LucideIcon,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { SettingsNestedCard } from "@/components/ui/settingsPrimitives";
+import { CATEGORY_META, type CategoryId, type SettingDeepLink } from "@/settings/registry";
+import "@/settings/index";
+import { CategoryRail } from "./settings/CategoryRail";
+import { CategoryPanel } from "./settings/CategoryPanel";
+import { FilesOperations } from "./settings/FilesOperations";
+import { SettingsSearchInput, SettingsSearchResults } from "./settings/SettingsSearch";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
   resolveDefaultPreReleaseAssetsPath,
@@ -19,25 +16,23 @@ import {
 import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { FlowDirection } from "@/constants";
-import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, backupPackDirectory, showInFolder, type AssetStalenessInfo } from "@/utils/ipc";
+import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, type AssetStalenessInfo } from "@/utils/ipc";
 import { formatHytaleSyncToast, runHytaleAssetSync } from "@/utils/hytaleAssetSyncAction";
 import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolders";
 import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
 import { useBugReportStore } from "@/stores/bugReportStore";
 import { useToastStore } from "@/stores/toastStore";
-import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { WhatsNewDialog } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
 import { LegalTextDialog } from "./LegalTextDialog";
 import licenseText from "../../../LICENSE?raw";
 import noticeText from "../../../NOTICE?raw";
 import {
-  getWhatsNewSuppressed,
   markWhatsNewSeen,
   setWhatsNewSuppressed,
 } from "@/utils/whatsNewPrefs";
 import { SystemSettingsPanel, type SystemTab } from "./ConfigurationDialog";
+import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { KeyboardShortcutsPanel } from "./KeyboardShortcutsDialog";
 import { clearHardwareDetectionCache, detectHardware, type HardwareInfo } from "@/utils/hardwareDetect";
 import { isTauriRuntime } from "@/utils/platform";
@@ -48,30 +43,25 @@ import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { useDevMetricsStore } from "@/stores/devMetricsStore";
 import { DevSettingRow } from "@/components/dev/devUi";
 import { AlertTriangle } from "lucide-react";
-import { useProjectStore } from "@/stores/projectStore";
-import {
-  CLOSED_ALPHA_PACK_BACKUP_ENABLED,
-  clearAllPackBackupSkips,
-  formatPackBackupTimestamp,
-  formatPackPathLabel,
-  suggestPackBackupPath,
-} from "@/utils/alphaPackBackup";
 
-const FLOW_DIRECTIONS: { id: FlowDirection; label: string; description: string }[] = [
-  { id: "LR", label: "Left to Right", description: "Inputs on left, output on right (TerraNova default)" },
-  { id: "RL", label: "Right to Left", description: "Output on left, inputs on right (Hytale native)" },
-];
+/**
+ * Settings categories now come from the registry (CATEGORY_META). This alias
+ * remains so existing callers — App.tsx, HomeScreen, uiStore deep links — keep
+ * compiling; the legacy ids are mapped in LEGACY_TAB_ALIASES below.
+ */
+export type SettingsTab = CategoryId;
 
-export type SettingsTab = "general" | "system" | "assets" | "shortcuts" | "developer" | "about";
+/** Old tab ids that may still arrive from persisted deep links. */
+const LEGACY_TAB_ALIASES: Record<string, CategoryId> = {
+  system: "performance",
+  assets: "assets",
+};
 
-const TABS: { id: SettingsTab; label: string; icon: LucideIcon }[] = [
-  { id: "general", label: "General", icon: SettingsIcon },
-  { id: "system", label: "System", icon: Cpu },
-  { id: "assets", label: "Assets", icon: Image },
-  { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
-  { id: "developer", label: "Developer", icon: Code2 },
-  { id: "about", label: "About", icon: Info },
-];
+function resolveTab(tab: string | undefined): CategoryId {
+  if (!tab) return "general";
+  if (LEGACY_TAB_ALIASES[tab]) return LEGACY_TAB_ALIASES[tab]!;
+  return CATEGORY_META.some((c) => c.id === tab) ? (tab as CategoryId) : "general";
+}
 
 interface SettingsDialogProps {
   open: boolean;
@@ -94,20 +84,8 @@ function formatSyncedAt(syncedAt: string): string {
 }
 
 export function SettingsDialog({ open, onClose, initialTab = "general", initialSystemTab = "cpu", onOpenAlphaChecklist }: SettingsDialogProps) {
-  const flowDirection = useSettingsStore((s) => s.flowDirection);
-  const setFlowDirection = useSettingsStore((s) => s.setFlowDirection);
-  const autoLayoutOnOpen = useSettingsStore((s) => s.autoLayoutOnOpen);
-  const setAutoLayoutOnOpen = useSettingsStore((s) => s.setAutoLayoutOnOpen);
-  const confirmOnNodeDelete = useSettingsStore((s) => s.confirmOnNodeDelete);
-  const setConfirmOnNodeDelete = useSettingsStore((s) => s.setConfirmOnNodeDelete);
   const exportPath = useSettingsStore((s) => s.exportPath);
   const setExportPath = useSettingsStore((s) => s.setExportPath);
-  const instantSaveEnabled = useSettingsStore((s) => s.instantSaveEnabled);
-  const setInstantSaveEnabled = useSettingsStore((s) => s.setInstantSaveEnabled);
-  const instantSaveDebounceMs = useSettingsStore((s) => s.instantSaveDebounceMs);
-  const setInstantSaveDebounceMs = useSettingsStore((s) => s.setInstantSaveDebounceMs);
-  const autoCheckUpdates = useSettingsStore((s) => s.autoCheckUpdates);
-  const setAutoCheckUpdates = useSettingsStore((s) => s.setAutoCheckUpdates);
   const hytaleAssetSyncEnabled = useSettingsStore((s) => s.hytaleAssetSyncEnabled);
   const setHytaleAssetSyncEnabled = useSettingsStore((s) => s.setHytaleAssetSyncEnabled);
   const hytaleAssetSourceChannel = useSettingsStore((s) => s.hytaleAssetSourceChannel);
@@ -130,25 +108,20 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const setDebugWorkerLogging = useSettingsStore((s) => s.setDebugWorkerLogging);
   const showNodeIdsOnCanvas = useSettingsStore((s) => s.showNodeIdsOnCanvas);
   const setShowNodeIdsOnCanvas = useSettingsStore((s) => s.setShowNodeIdsOnCanvas);
-  const packBackupPromptEnabled = useSettingsStore((s) => s.packBackupPromptEnabled);
-  const setPackBackupPromptEnabled = useSettingsStore((s) => s.setPackBackupPromptEnabled);
-  const packBackupParentFolder = useSettingsStore((s) => s.packBackupParentFolder);
-  const setPackBackupParentFolder = useSettingsStore((s) => s.setPackBackupParentFolder);
-  const projectPath = useProjectStore((s) => s.projectPath);
   const showPerformanceOverlay = useDevMetricsStore((s) => s.showPerformanceOverlay);
   const setShowPerformanceOverlay = useDevMetricsStore((s) => s.setShowPerformanceOverlay);
   const devActive = useDeveloperMode();
   const addToast = useToastStore((s) => s.addToast);
-  const recentProjects = useRecentProjectsStore((s) => s.projects);
-  const clearRecentProjects = useRecentProjectsStore((s) => s.clearAll);
 
   const updateStatus = useUpdateStore((s) => s.status);
   const updateVersion = useUpdateStore((s) => s.version);
   const updateProgress = useUpdateStore((s) => s.progress);
 
-  const [tab, setTab] = useState<SettingsTab>(initialTab);
+  const [tab, setTab] = useState<CategoryId>(resolveTab(initialTab));
+  const [query, setQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searching = query.trim().length > 0;
   const [appVersion, setAppVersion] = useState("");
-  const [whatsNewSuppressed, setWhatsNewSuppressedState] = useState(getWhatsNewSuppressed);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [legalDialog, setLegalDialog] = useState<"license" | "notice" | null>(null);
@@ -160,7 +133,6 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const [exampleReleasePath, setExampleReleasePath] = useState("");
   const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
   const [refreshingHardware, setRefreshingHardware] = useState(false);
-  const [packBackupBusy, setPackBackupBusy] = useState(false);
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -175,7 +147,8 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
 
   useEffect(() => {
     if (!open) return;
-    setTab(initialTab);
+    setTab(resolveTab(initialTab));
+    setQuery("");
   }, [open, initialTab]);
 
   useEffect(() => {
@@ -186,16 +159,12 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   }, [open]);
 
   useEffect(() => {
-    if (!open || (tab !== "system" && tab !== "developer")) return;
+    if (!open || (tab !== "performance" && tab !== "developer")) return;
     void detectHardware()
       .then(setHardwareInfo)
       .catch(() => setHardwareInfo(null));
   }, [open, tab]);
 
-  function handleToggleWhatsNew(value: boolean) {
-    setWhatsNewSuppressedState(value);
-    setWhatsNewSuppressed(value);
-  }
 
   async function handleBrowseExportPath() {
     if (!isTauriRuntime()) {
@@ -206,53 +175,8 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
     if (typeof selected === "string") setExportPath(selected);
   }
 
-  async function handleBrowsePackBackupParent() {
-    if (!isTauriRuntime()) {
-      addToast("Folder browsing is available in the TerraNova desktop app.", "warning");
-      return;
-    }
-    const selected = await openDialog({
-      directory: true,
-      title: "Default pack backup folder",
-      defaultPath: packBackupParentFolder || projectPath || undefined,
-    });
-    if (typeof selected === "string") setPackBackupParentFolder(selected);
-  }
 
-  async function handleBackupCurrentProject() {
-    if (!projectPath?.trim()) {
-      addToast("Open a project first to back up its pack folder.", "warning");
-      return;
-    }
-    if (!isTauriRuntime()) {
-      addToast("Pack backup is available in the TerraNova desktop app.", "warning");
-      return;
-    }
-    setPackBackupBusy(true);
-    try {
-      const parent = packBackupParentFolder.trim() || undefined;
-      const destination = suggestPackBackupPath(projectPath, formatPackBackupTimestamp(), parent);
-      const result = await backupPackDirectory(projectPath, destination);
-      addToast(`Pack backed up (${result.filesCopied} files)`, "success", {
-        label: "Show backup",
-        onClick: () => {
-          void showInFolder(result.backupPath);
-        },
-      });
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : String(err), "error");
-    } finally {
-      setPackBackupBusy(false);
-    }
-  }
 
-  function handleClearPackBackupSkips() {
-    const removed = clearAllPackBackupSkips();
-    addToast(
-      removed > 0 ? `Cleared ${removed} pack skip flag${removed === 1 ? "" : "s"}` : "No skip flags to clear",
-      removed > 0 ? "success" : "info",
-    );
-  }
 
   const activeHytaleSourcePath = hytaleAssetSourceChannel === "pre-release"
     ? hytalePreReleaseAssetsPath
@@ -377,45 +301,26 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
 
   if (!open) return null;
 
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  function handleNavigate(target: SettingDeepLink) {
+    setQuery("");
+    setTab(target.category);
+  }
+
   const sidebarNav = (
-    <div role="tablist" aria-label="Settings sections" className="flex flex-col gap-0.5 px-2">
-      {TABS.map(({ id, label, icon: Icon }) => {
-        const selected = tab === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            id={`settings-tab-${id}`}
-            aria-controls={`settings-panel-${id}`}
-            onClick={() => setTab(id)}
-            onKeyDown={(e) => {
-              const idx = TABS.findIndex((t) => t.id === id);
-              if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-                e.preventDefault();
-                const next = TABS[(idx + 1) % TABS.length]!;
-                setTab(next.id);
-                document.getElementById(`settings-tab-${next.id}`)?.focus();
-              } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-                e.preventDefault();
-                const prev = TABS[(idx - 1 + TABS.length) % TABS.length]!;
-                setTab(prev.id);
-                document.getElementById(`settings-tab-${prev.id}`)?.focus();
-              }
-            }}
-            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent ${
-              selected
-                ? "bg-tn-accent/12 text-tn-accent"
-                : "text-tn-text-muted hover:bg-tn-surface hover:text-tn-text"
-            }`}
-          >
-            <Icon className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-            {label}
-          </button>
-        );
-      })}
-    </div>
+    <CategoryRail active={tab} onSelect={setTab} developerMode={devActive} />
   );
 
   return (
@@ -425,6 +330,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
         onClose={onClose}
         title="Settings"
         layout="sidebar"
+        widthClass="w-[1040px] max-w-[95vw]"
         sidebar={sidebarNav}
         footer={
           <button
@@ -436,202 +342,93 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
           </button>
         }
       >
+        <div className="mb-4 flex items-center gap-2">
+          <SettingsSearchInput value={query} onChange={setQuery} inputRef={searchInputRef} />
+        </div>
+
+        {searching ? (
+          <SettingsSearchResults
+            query={query}
+            developerMode={devActive}
+            onNavigate={handleNavigate}
+          />
+        ) : (
         <div
           role="tabpanel"
           id={`settings-panel-${tab}`}
           aria-labelledby={`settings-tab-${tab}`}
         >
             {tab === "general" && (
-              <>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Graph Flow Direction</label>
-                  <div className="flex flex-col gap-2">
-                    {FLOW_DIRECTIONS.map(({ id, label, description }) => (
+              <CategoryPanel category="general" developerMode={devActive} onNavigate={handleNavigate} />
+            )}
+
+            {tab === "editor" && (
+              <CategoryPanel category="editor" developerMode={devActive} onNavigate={handleNavigate} />
+            )}
+
+            {tab === "files" && (
+              <CategoryPanel category="files" developerMode={devActive} onNavigate={handleNavigate}>
+                <FilesOperations />
+              </CategoryPanel>
+            )}
+
+            {tab === "updates" && (
+              <CategoryPanel category="updates" developerMode={devActive} onNavigate={handleNavigate}>
+                <section aria-labelledby="settings-updates-actions" className="flex flex-col gap-2">
+                  <h3 id="settings-updates-actions" className="text-sm font-medium text-tn-text">
+                    Version
+                  </h3>
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-tn-border bg-tn-bg px-3 py-2">
+                    <span className="text-sm text-tn-text-muted">
+                      TerraNova {appVersion || "—"}
+                    </span>
+                    {updateStatus === "available" ? (
                       <button
-                        key={id}
-                        onClick={() => setFlowDirection(id)}
-                        className={`text-left px-3 py-2 rounded border text-sm ${
-                          flowDirection === id
-                            ? "border-tn-accent bg-tn-accent/10"
-                            : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                        }`}
+                        type="button"
+                        onClick={downloadAndInstall}
+                        className="min-h-8 rounded border border-tn-accent px-3 text-sm text-tn-accent hover:bg-tn-accent/10"
                       >
-                        <span className="font-medium">{label}</span>
-                        {id === "LR" && <span className="ml-2 text-[10px] text-tn-accent font-medium">Default</span>}
-                        <p className="text-xs text-tn-text-muted mt-0.5">{description}</p>
+                        Download {updateVersion}
                       </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Auto-Layout on File Open</label>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => setAutoLayoutOnOpen(true)}
-                      className={`text-left px-3 py-2 rounded border text-sm ${
-                        autoLayoutOnOpen
-                          ? "border-tn-accent bg-tn-accent/10"
-                          : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                      }`}
-                    >
-                      <span className="font-medium">Enabled</span>
-                      <p className="text-xs text-tn-text-muted mt-0.5">Automatically arrange nodes when opening a file</p>
-                    </button>
-                    <button
-                      onClick={() => setAutoLayoutOnOpen(false)}
-                      className={`text-left px-3 py-2 rounded border text-sm ${
-                        !autoLayoutOnOpen
-                          ? "border-tn-accent bg-tn-accent/10"
-                          : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                      }`}
-                    >
-                      <span className="font-medium">Disabled</span>
-                      <span className="ml-2 text-[10px] text-tn-accent font-medium">Default</span>
-                      <p className="text-xs text-tn-text-muted mt-0.5">Preserve original node positions from the JSON file</p>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Node Deletion</label>
-                  <button
-                    onClick={() => setConfirmOnNodeDelete(!confirmOnNodeDelete)}
-                    className={`text-left px-3 py-2 rounded border text-sm ${
-                      confirmOnNodeDelete
-                        ? "border-tn-accent bg-tn-accent/10"
-                        : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                    }`}
-                  >
-                    <span className="font-medium">Confirm before deleting nodes</span>
-                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{confirmOnNodeDelete ? "On" : "Off"}</span>
-                    <p className="text-xs text-tn-text-muted mt-0.5">Show a confirmation prompt when deleting nodes via the context menu</p>
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Instant Save</label>
-                  <button
-                    onClick={() => setInstantSaveEnabled(!instantSaveEnabled)}
-                    className={`text-left px-3 py-2 rounded border text-sm ${
-                      instantSaveEnabled
-                        ? "border-tn-accent bg-tn-accent/10"
-                        : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                    }`}
-                  >
-                    <span className="font-medium">Auto-save on every edit</span>
-                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{instantSaveEnabled ? "On" : "Off"}</span>
-                    <p className="text-xs text-tn-text-muted mt-0.5">Automatically write changes to disk after each edit. Toggle with Ctrl+Shift+I.</p>
-                  </button>
-                  {instantSaveEnabled && (
-                    <div className="flex items-center gap-3 px-3 py-2 rounded border border-tn-border bg-tn-bg">
-                      <label className="text-sm text-tn-text-muted whitespace-nowrap">Debounce</label>
-                      <input
-                        type="number"
-                        min={100}
-                        step={50}
-                        value={instantSaveDebounceMs}
-                        onChange={(e) => {
-                          const v = parseInt(e.target.value, 10);
-                          if (!Number.isNaN(v)) setInstantSaveDebounceMs(v);
-                        }}
-                        className="w-20 px-2 py-1 rounded border border-tn-border bg-tn-panel text-sm text-tn-text text-center"
-                      />
-                      <span className="text-xs text-tn-text-muted">ms (min 100)</span>
-                    </div>
-                  )}
-                </div>
-
-                {CLOSED_ALPHA_PACK_BACKUP_ENABLED && (
-                  <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
-                    <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Pack backup (alpha)</label>
-                    <button
-                      onClick={() => setPackBackupPromptEnabled(!packBackupPromptEnabled)}
-                      className={`text-left px-3 py-2 rounded border text-sm ${
-                        packBackupPromptEnabled
-                          ? "border-tn-accent bg-tn-accent/10"
-                          : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                      }`}
-                    >
-                      <span className="font-medium">Prompt before opening packs</span>
-                      <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{packBackupPromptEnabled ? "On" : "Off"}</span>
-                      <p className="text-xs text-tn-text-muted mt-0.5">
-                        Offer a full folder copy when opening an existing pack via Open or Recent.
-                      </p>
-                    </button>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[11px] text-tn-text-muted">Default backup parent folder</span>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          readOnly
-                          value={packBackupParentFolder.trim() || "Beside pack (.terranova-backups)"}
-                          className="flex-1 px-3 py-1.5 rounded border border-tn-border bg-tn-bg text-sm text-tn-text-muted truncate font-mono text-[11px]"
-                        />
-                        <button
-                          onClick={() => void handleBrowsePackBackupParent()}
-                          className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap"
-                        >
-                          Browse…
-                        </button>
-                        <button
-                          onClick={() => setPackBackupParentFolder("")}
-                          className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted"
-                          disabled={!packBackupParentFolder.trim()}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                      <p className="text-xs text-tn-text-muted">
-                        Leave empty to store backups in <span className="font-mono">.terranova-backups</span> next to each pack.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    ) : updateStatus === "downloading" ? (
+                      <span className="text-sm text-amber-400">Downloading… {updateProgress}%</span>
+                    ) : updateStatus === "restarting" ? (
+                      <span className="text-sm text-amber-400">Restarting…</span>
+                    ) : updateStatus === "ready" ? (
                       <button
-                        onClick={() => void handleBackupCurrentProject()}
-                        disabled={!projectPath || packBackupBusy}
-                        className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface disabled:opacity-40 disabled:cursor-not-allowed"
+                        type="button"
+                        onClick={restartToUpdate}
+                        className="min-h-8 rounded border border-emerald-400 px-3 text-sm text-emerald-400 hover:bg-emerald-400/10"
                       >
-                        {packBackupBusy ? "Backing up…" : "Back up open project now"}
+                        Restart to update
                       </button>
+                    ) : updateStatus === "checking" ? (
+                      <span className="text-sm text-tn-text-muted">Checking…</span>
+                    ) : (
                       <button
-                        onClick={handleClearPackBackupSkips}
-                        className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted"
+                        type="button"
+                        onClick={() => checkForUpdates(true)}
+                        className="min-h-8 rounded border border-tn-border px-3 text-sm hover:bg-tn-surface"
                       >
-                        Reset &quot;don&apos;t ask again&quot; list
+                        Check now
                       </button>
-                    </div>
-                    {projectPath && (
-                      <p className="text-[11px] text-tn-text-muted font-mono truncate">
-                        Open pack: {formatPackPathLabel(projectPath)}
-                      </p>
                     )}
                   </div>
-                )}
-
-                <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Recent Projects</label>
-                  <div className="flex items-center justify-between px-3 py-2 rounded border border-tn-border bg-tn-bg">
-                    <span className="text-sm text-tn-text-muted">{recentProjects.length} project{recentProjects.length === 1 ? "" : "s"} in history</span>
-                    <button
-                      onClick={() => { clearRecentProjects(); addToast("Recent projects cleared", "success"); }}
-                      disabled={recentProjects.length === 0}
-                      className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Clear History
-                    </button>
-                  </div>
-                </div>
-              </>
+                </section>
+              </CategoryPanel>
             )}
 
             {/* ── Assets ── */}
-            {tab === "system" && (
+            {tab === "performance" && (
               <SystemSettingsPanel initialTab={initialSystemTab} />
             )}
 
             {tab === "shortcuts" && (
               <KeyboardShortcutsPanel />
+            )}
+
+            {tab === "account" && (
+              <AccountSettingsPanel />
             )}
 
             {tab === "assets" && (
@@ -1057,46 +854,6 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                   </div>
                 </div>
 
-                {/* Updates */}
-                <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Updates</label>
-                  <div className="flex items-center justify-between px-3 py-2 rounded border border-tn-border bg-tn-bg">
-                    <div>
-                      <span className="text-sm font-medium">Current version</span>
-                      <p className="text-xs text-tn-text-muted">v{appVersion}</p>
-                    </div>
-                    {updateStatus === "available" ? (
-                      <button onClick={downloadAndInstall} className="px-3 py-1.5 text-sm rounded border border-tn-accent text-tn-accent hover:bg-tn-accent/10">
-                        Download v{updateVersion}
-                      </button>
-                    ) : updateStatus === "downloading" ? (
-                      <span className="text-sm text-amber-400">Downloading {updateProgress}%</span>
-                    ) : updateStatus === "restarting" ? (
-                      <span className="text-sm text-amber-400">Restarting...</span>
-                    ) : updateStatus === "ready" ? (
-                      <button onClick={restartToUpdate} className="px-3 py-1.5 text-sm rounded border border-emerald-400 text-emerald-400 hover:bg-emerald-400/10">
-                        Restart to update
-                      </button>
-                    ) : updateStatus === "checking" ? (
-                      <span className="text-sm text-tn-text-muted">Checking...</span>
-                    ) : (
-                      <button onClick={() => checkForUpdates(true)} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface">
-                        Check for updates
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setAutoCheckUpdates(!autoCheckUpdates)}
-                    className={`text-left px-3 py-2 rounded border text-sm ${
-                      autoCheckUpdates ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                    }`}
-                  >
-                    <span className="font-medium">Auto-check for updates</span>
-                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{autoCheckUpdates ? "On" : "Off"}</span>
-                    <p className="text-xs text-tn-text-muted mt-0.5">Automatically check for new versions on launch</p>
-                  </button>
-                </div>
-
                 {/* Support */}
                 <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
                   <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Support</label>
@@ -1113,16 +870,6 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                 {/* Release notes */}
                 <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
                   <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Release Notes</label>
-                  <button
-                    onClick={() => handleToggleWhatsNew(!whatsNewSuppressed)}
-                    className={`text-left px-3 py-2 rounded border text-sm ${
-                      !whatsNewSuppressed ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                    }`}
-                  >
-                    <span className="font-medium">Show What's New on startup</span>
-                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{whatsNewSuppressed ? "Off" : "On"}</span>
-                    <p className="text-xs text-tn-text-muted mt-0.5">Show the changelog dialog when a new version is first launched</p>
-                  </button>
                   <div className="flex gap-2">
                     <button onClick={() => setShowWhatsNew(true)} className="flex-1 px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm">
                       View What's New
@@ -1149,12 +896,15 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
             )}
 
         </div>
+        )}
       </ModalShell>
       <WhatsNewDialog
         open={showWhatsNew}
         onClose={(suppress) => {
           void markWhatsNewSeen(suppress);
-          if (suppress) handleToggleWhatsNew(true);
+          // Writes straight to whatsNewPrefs, which is what the
+          // general.showWhatsNewOnStartup setting reads from.
+          if (suppress) setWhatsNewSuppressed(true);
           setShowWhatsNew(false);
         }}
       />

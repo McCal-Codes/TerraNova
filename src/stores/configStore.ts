@@ -7,7 +7,8 @@ const STORAGE_KEY = "tn-config";
 
 export type GpuPowerPreference = "high-performance" | "default" | "low-power";
 
-const DEFAULTS = {
+/** Exported so the settings registry can report defaults and offer resets. */
+export const DEFAULTS = {
   // CPU
   cpuCoresAllocated: navigator.hardwareConcurrency || 4,
   debounceMs: 500,

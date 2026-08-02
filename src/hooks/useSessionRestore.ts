@@ -14,6 +14,7 @@ import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { listDirectory } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
+import { getRestoreLastProject } from "@/utils/startupPrefs";
 
 interface UseSessionRestoreOptions {
   /** Called when phase-1 restore finishes (success or failure). */
@@ -42,6 +43,14 @@ export function useSessionRestore(options?: UseSessionRestoreOptions): void {
 
     // Only attempt restore when starting fresh (no project already loaded)
     if (useProjectStore.getState().projectPath !== null) {
+      finishBoot();
+      return;
+    }
+
+    // Opt-in (general.restoreLastProject, off by default): otherwise land on
+    // Home and let the user choose, rather than evaluating the previous pack
+    // before they have asked for anything.
+    if (!getRestoreLastProject()) {
       finishBoot();
       return;
     }

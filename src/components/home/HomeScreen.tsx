@@ -96,6 +96,10 @@ export function HomeScreen() {
       } else if (e.key === "o") {
         e.preventDefault();
         openAssetPack();
+      } else if (e.key === ",") {
+        // macOS convention for preferences; harmless on other platforms.
+        e.preventDefault();
+        setShowSettings(true);
       }
     }
 
@@ -111,6 +115,7 @@ export function HomeScreen() {
         onNewProject={handleNewProject}
         onCreatePack={() => setShowCreatePack(true)}
         onOpenProject={openAssetPack}
+        onOpenSettings={() => setShowSettings(true)}
       />
 
       <div className="flex-1 flex flex-col min-w-0">

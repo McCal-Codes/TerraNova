@@ -16,6 +16,8 @@ interface ModalShellProps {
   /** When set, body uses flex row (sidebar + content). */
   layout?: "stack" | "sidebar";
   sidebar?: ReactNode;
+  /** The scrolling content element, so callers can reset scroll on navigation. */
+  bodyRef?: React.Ref<HTMLDivElement>;
 }
 
 export function ModalShell({
@@ -27,6 +29,7 @@ export function ModalShell({
   widthClass = "w-[920px]",
   layout = "stack",
   sidebar,
+  bodyRef,
 }: ModalShellProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -87,10 +90,13 @@ export function ModalShell({
 
         {layout === "sidebar" && sidebar ? (
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            <nav className="w-[180px] shrink-0 border-r border-tn-border overflow-y-auto overscroll-contain py-2">
+            <nav className="w-[208px] shrink-0 border-r border-tn-border overflow-y-auto overscroll-contain py-2">
               {sidebar}
             </nav>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 flex flex-col gap-4">
+            <div
+              ref={bodyRef}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 flex flex-col gap-4"
+            >
               {children}
             </div>
           </div>

@@ -120,6 +120,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const [tab, setTab] = useState<CategoryId>(resolveTab(initialTab));
   const [query, setQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const searching = query.trim().length > 0;
   const [appVersion, setAppVersion] = useState("");
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -299,6 +300,12 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
     }
   }
 
+  // Categories are independent pages; carrying the previous scroll offset into
+  // a new one lands the user mid-content for no reason.
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  }, [tab, searching]);
+
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
@@ -330,8 +337,11 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
         onClose={onClose}
         title="Settings"
         layout="sidebar"
-        widthClass="w-[1040px] max-w-[95vw]"
+        // Fixed height: without it the panel resizes to each category's content,
+        // so switching categories makes the whole dialog jump.
+        widthClass="w-[1040px] max-w-[95vw] h-[680px]"
         sidebar={sidebarNav}
+        bodyRef={bodyRef}
         footer={
           <button
             type="button"

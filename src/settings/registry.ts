@@ -78,6 +78,9 @@ export function getSections(category: CategoryId): string[] {
  */
 export function valuesEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
+  // Object.is separates 0 from -0. For a setting they are the same value, and
+  // reporting "Modified" for a -0 against a 0 default would never clear.
+  if (typeof a === "number" && typeof b === "number" && a === b) return true;
   if (typeof a !== typeof b) return false;
   if (a === null || b === null || typeof a !== "object") return false;
 
@@ -189,7 +192,10 @@ export function searchSettings(
 ): AnySettingDefinition[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   const tokens = words.filter(isSearchToken);
-  const terms = words.filter((w) => !isSearchToken(w));
+  // Anything else starting with "@" is a mistyped filter. Treating it as free
+  // text would match nothing and read as "no such setting" rather than "no such
+  // filter", so unknown tokens are ignored and the rest of the query still runs.
+  const terms = words.filter((w) => !w.startsWith("@"));
 
   if (!tokens.length && !terms.length) return [];
 

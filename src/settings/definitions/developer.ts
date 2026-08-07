@@ -1,3 +1,4 @@
+import { getAutoRecoverWebview, setAutoRecoverWebview } from "@/utils/startupPrefs";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { defineSetting, type AnySettingDefinition } from "../types";
 
@@ -50,6 +51,23 @@ export const DEVELOPER_SETTINGS: AnySettingDefinition[] = [
     control: { kind: "toggle" },
     read: () => s().showDevToolsDock,
     write: (value) => s().setShowDevToolsDock(value),
+  }),
+
+  // Not devOnly: this is the escape hatch if the watchdog ever reloads during
+  // legitimate long-running work, so it must be reachable without dev mode.
+  defineSetting<boolean>({
+    id: "developer.autoRecoverWebview",
+    category: "developer",
+    section: "diagnostics",
+    label: "Recover automatically from a blank window",
+    description:
+      "Reload the view if the interface stops responding for 20 seconds. Reloads at most twice per session and always writes to the crash log.",
+    defaultValue: true,
+    scopes: ["user"],
+    searchTerms: ["blank", "white screen", "hang", "freeze", "recover", "reload", "watchdog"],
+    control: { kind: "toggle" },
+    read: () => getAutoRecoverWebview(),
+    write: (value) => setAutoRecoverWebview(value),
   }),
 
   defineSetting<boolean>({

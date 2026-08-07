@@ -26,3 +26,28 @@ export function setRestoreLastProject(value: boolean): void {
     // Storage unavailable — the default (open to Home) still applies.
   }
 }
+
+const AUTO_RECOVER_WEBVIEW_KEY = "tn-auto-recover-webview";
+
+/**
+ * Whether the Rust watchdog may reload a webview that stops responding.
+ * Defaults on; see src-tauri/src/webview_watchdog.rs.
+ */
+export function getAutoRecoverWebview(): boolean {
+  try {
+    return localStorage.getItem(AUTO_RECOVER_WEBVIEW_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+export function setAutoRecoverWebview(value: boolean): void {
+  try {
+    if (value) localStorage.removeItem(AUTO_RECOVER_WEBVIEW_KEY);
+    else localStorage.setItem(AUTO_RECOVER_WEBVIEW_KEY, "0");
+  } catch {
+    // ignore
+  }
+  // Push it to the watchdog, which holds its own copy.
+  void import("@/utils/webviewHeartbeat").then((m) => m.setWebviewAutoRecover(value));
+}

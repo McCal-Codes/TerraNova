@@ -110,6 +110,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TERRANOVA_HYTALE_CLIENT_ID: ${{ secrets.TERRANOVA_HYTALE_CLIENT_ID }}
         with:
           includeUpdaterJson: false
           updaterJsonPreferNsis: true
@@ -125,6 +126,7 @@ jobs:
         uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TERRANOVA_HYTALE_CLIENT_ID: ${{ secrets.TERRANOVA_HYTALE_CLIENT_ID }}
         with:
           includeUpdaterJson: false
           tagName: ${{ inputs.tag }}
@@ -137,6 +139,8 @@ jobs:
       - name: Build only (no release upload)
         if: ${{ !inputs.publish }}
         shell: bash
+        env:
+          TERRANOVA_HYTALE_CLIENT_ID: ${{ secrets.TERRANOVA_HYTALE_CLIENT_ID }}
         run: |
           if [ -n "${{ matrix.rust_target }}" ]; then
             pnpm tauri build --no-sign --target "${{ matrix.rust_target }}"

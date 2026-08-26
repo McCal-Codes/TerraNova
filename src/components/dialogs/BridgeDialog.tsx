@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useAccountStore } from "@/stores/accountStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import { useBridge } from "@/hooks/useBridge";
 import { useTauriIO } from "@/hooks/useTauriIO";
@@ -97,6 +98,17 @@ export function BridgeDialog() {
   const [showToken, setShowToken] = useState(false);
   const [testModFolder, setTestModFolder] = useState<string | null>(null);
   const [uiMode, setUiMode] = useState<"simple" | "advanced">("simple");
+
+  // Warn when the Bridge resolved a player that is not the signed-in profile.
+  // Only meaningful once both UUIDs are known and resolution actually fell back
+  // to the newest-file heuristic.
+  const signedInUuid = useAccountStore((s) => s.account?.uuid ?? null);
+  const playerMismatch =
+    !!signedInUuid &&
+    !!discovery?.playerUuid &&
+    discovery.playerUuidSource !== "preferred" &&
+    discovery.playerUuid.replace(/-/g, "").toLowerCase() !==
+      signedInUuid.replace(/-/g, "").toLowerCase();
 
   // Plugin state
   const [pluginStatus, setPluginStatus] = useState<PluginStatus | null>(null);
@@ -602,6 +614,14 @@ export function BridgeDialog() {
                   ) : discovery.hytaleSessionActive === false ? (
                     <span className="text-amber-400/90 ml-1">(last known)</span>
                   ) : null}
+                  {playerMismatch && (
+                    <span
+                      className="text-amber-400/90 ml-1"
+                      title="This save's most recently written player file is not the profile you signed in with. Enable 'Prefer my signed-in player' in Settings > Account to target your own player."
+                    >
+                      (not your profile)
+                    </span>
+                  )}
                 </span>
               )}
               {discovery.chunkX != null && discovery.chunkZ != null && (

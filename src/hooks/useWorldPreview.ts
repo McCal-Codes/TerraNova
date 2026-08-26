@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useAccountStore, preferredPlayerUuid } from "@/stores/accountStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import {
@@ -94,7 +95,7 @@ export function useWorldPreview() {
 
     async function pollPlayer() {
       try {
-        const info = await bridgePlayerInfo();
+        const info = await bridgePlayerInfo(preferredPlayerUuid(useAccountStore.getState()));
         const live = livePlayerFromInfo(info);
         if (live) applyLivePlayerToPreview(live, { follow: true });
       } catch {
@@ -119,7 +120,7 @@ export function useWorldPreview() {
 
     let cancelled = false;
 
-    bridgePlayerInfo()
+    bridgePlayerInfo(preferredPlayerUuid(useAccountStore.getState()))
       .then((info) => {
         if (cancelled) return;
         const live = livePlayerFromInfo(info);

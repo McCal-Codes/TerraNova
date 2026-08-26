@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useAccountStore, preferredPlayerUuid } from "@/stores/accountStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useProjectStore } from "@/stores/projectStore";
@@ -61,6 +62,7 @@ export function useBridgeDiscovery() {
           modPackPath,
           host: store.host,
           port: store.port,
+          preferredPlayerUuid: preferredPlayerUuid(useAccountStore.getState()),
         });
         if (cancelled) return;
 

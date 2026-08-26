@@ -162,6 +162,9 @@ pub struct ResolvedPlayer {
     pub save_world_id: Option<String>,
     pub hytale_session_active: bool,
     pub player_world_live: bool,
+    /// How the player file was chosen: "preferred" (matched a caller-supplied
+    /// UUID) or "newest_file" (mtime heuristic fallback).
+    pub uuid_source: &'static str,
 }
 
 fn extract_world_from_quoted_after(line: &str, marker: &str) -> Option<String> {
@@ -263,6 +266,39 @@ pub fn most_recent_instance_world(save_root: &Path) -> Option<String> {
         }
     }
     best.map(|(_, name)| name)
+}
+
+/// Lowercase and strip hyphens so dashed and undashed UUID spellings compare
+/// equal. Save filenames and the `profile.uuid` claim are not guaranteed to
+/// agree on formatting, and a naive compare would silently fall through to the
+/// mtime heuristic — looking like the preference feature simply does not work.
+fn normalize_uuid(raw: &str) -> String {
+    raw.chars()
+        .filter(|c| *c != '-')
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// Player file whose filename stem matches `uuid`, ignoring case and hyphens.
+pub fn player_file_for_uuid(players_dir: &Path, uuid: &str) -> Option<PathBuf> {
+    let want = normalize_uuid(uuid);
+    if want.is_empty() {
+        return None;
+    }
+    for entry in std::fs::read_dir(players_dir).ok()?.filter_map(|e| e.ok()) {
+        let path = entry.path();
+        if path.extension().is_none_or(|ext| ext != "json") {
+            continue;
+        }
+        let matches = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .is_some_and(|stem| normalize_uuid(stem) == want);
+        if matches {
+            return Some(path);
+        }
+    }
+    None
 }
 
 pub fn active_player_file(players_dir: &Path) -> Option<PathBuf> {
@@ -384,11 +420,38 @@ fn position_from_per_world_entry(data: &Value) -> Option<(f64, f64, f64)> {
     Some((x, y, z))
 }
 
+/// Resolve the active player, falling back to the newest-mtime player file.
+///
+/// Kept at its original signature so existing callers (the sidecar, the Java
+/// plugin's Rust-side helpers) need no change and see no behaviour difference.
 pub fn resolve_player(save_root: &Path, bridge_port_open: bool) -> Option<ResolvedPlayer> {
+    resolve_player_preferring(save_root, bridge_port_open, None)
+}
+
+/// As [`resolve_player`], but prefers the player file matching `preferred_uuid`
+/// when one exists.
+///
+/// A `None` UUID, or one with no matching file, is a strict no-op: resolution
+/// falls back to [`active_player_file`]'s newest-mtime heuristic exactly as
+/// before. Callers can tell which path ran via [`ResolvedPlayer::uuid_source`].
+pub fn resolve_player_preferring(
+    save_root: &Path,
+    bridge_port_open: bool,
+    preferred_uuid: Option<&str>,
+) -> Option<ResolvedPlayer> {
     let use_live_signals = prefer_live_world_signals(save_root, bridge_port_open);
     let session_active = hytale_server_session_active(save_root);
     let players_dir = save_root.join("universe").join("players");
-    let path = active_player_file(&players_dir)?;
+    let preferred = preferred_uuid.and_then(|u| player_file_for_uuid(&players_dir, u));
+    let uuid_source = if preferred.is_some() {
+        "preferred"
+    } else {
+        "newest_file"
+    };
+    let path = match preferred {
+        Some(p) => p,
+        None => active_player_file(&players_dir)?,
+    };
     let uuid = path
         .file_stem()
         .and_then(|s| s.to_str())
@@ -504,12 +567,131 @@ pub fn resolve_player(save_root: &Path, bridge_port_open: bool) -> Option<Resolv
         save_world_id,
         hytale_session_active: session_active,
         player_world_live,
+        uuid_source,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Build a save with the given player UUIDs, written oldest-first so the
+    /// last entry is the newest-mtime file the heuristic would pick.
+    fn save_with_players(tag: &str, uuids: &[&str]) -> PathBuf {
+        let root =
+            std::env::temp_dir().join(format!("tn-player-pref-{}-{}", tag, std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let players = root.join("universe").join("players");
+        std::fs::create_dir_all(&players).unwrap();
+        for (i, uuid) in uuids.iter().enumerate() {
+            if i > 0 {
+                // Ensure a strictly newer mtime than the previous file.
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            let json = serde_json::json!({
+                "Components": {
+                    "Nameplate": { "Text": format!("Player{}", i) },
+                    "Transform": { "Position": { "X": 1.0, "Y": 2.0, "Z": 3.0 } },
+                    "Player": { "PlayerData": { "World": "default" } }
+                }
+            });
+            std::fs::write(
+                players.join(format!("{}.json", uuid)),
+                serde_json::to_string(&json).unwrap(),
+            )
+            .unwrap();
+        }
+        root
+    }
+
+    const OLDER: &str = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const NEWER: &str = "11111111-2222-3333-4444-555555555555";
+
+    /// Diagnostic against a real Hytale save. Ignored by default so CI and
+    /// other machines never depend on local game data. Run with:
+    ///   TN_SAVE_ROOT="/path/to/Saves/Name" TN_UUID="<profile-uuid>" \
+    ///     cargo test -p bridge-save real_save -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn real_save_prefers_the_signed_in_profile() {
+        let Ok(root) = std::env::var("TN_SAVE_ROOT") else {
+            eprintln!("set TN_SAVE_ROOT to run this");
+            return;
+        };
+        let root = PathBuf::from(root);
+        let want = std::env::var("TN_UUID").ok();
+
+        let heuristic = resolve_player(&root, false).expect("no player resolved");
+        println!("newest-file heuristic -> {} ({})", heuristic.uuid, heuristic.name);
+
+        if let Some(want) = want {
+            let preferred =
+                resolve_player_preferring(&root, false, Some(&want)).expect("no player resolved");
+            println!("preferred            -> {} ({})", preferred.uuid, preferred.name);
+            println!("uuid_source          -> {}", preferred.uuid_source);
+            assert_eq!(preferred.uuid_source, "preferred");
+            assert_eq!(
+                preferred.uuid.replace('-', "").to_lowercase(),
+                want.replace('-', "").to_lowercase()
+            );
+            if heuristic.uuid != preferred.uuid {
+                println!("*** heuristic would have targeted the WRONG player ***");
+            }
+        }
+    }
+
+    #[test]
+    fn prefers_matching_uuid_over_newest_file() {
+        let root = save_with_players("prefers", &[OLDER, NEWER]);
+        let p = resolve_player_preferring(&root, false, Some(OLDER)).unwrap();
+        assert_eq!(p.uuid, OLDER);
+        assert_eq!(p.uuid_source, "preferred");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn falls_back_to_newest_when_uuid_does_not_match() {
+        let root = save_with_players("unmatched", &[OLDER, NEWER]);
+        let p =
+            resolve_player_preferring(&root, false, Some("99999999-9999-9999-9999-999999999999"))
+                .unwrap();
+        assert_eq!(p.uuid, NEWER);
+        assert_eq!(p.uuid_source, "newest_file");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn resolve_player_is_unchanged_without_a_preference() {
+        let root = save_with_players("nopref", &[OLDER, NEWER]);
+        let plain = resolve_player(&root, false).unwrap();
+        let explicit_none = resolve_player_preferring(&root, false, None).unwrap();
+        assert_eq!(plain.uuid, NEWER);
+        assert_eq!(plain.uuid_source, "newest_file");
+        assert_eq!(plain.uuid, explicit_none.uuid);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn matches_uuid_ignoring_hyphens_and_case() {
+        let root = save_with_players("normalize", &[OLDER, NEWER]);
+        // Undashed + uppercase spelling of the older file's dashed, lowercase name.
+        let p = resolve_player_preferring(&root, false, Some("AAAAAAAABBBBCCCCDDDDEEEEEEEEEEEE"))
+            .unwrap();
+        assert_eq!(p.uuid, OLDER);
+        assert_eq!(p.uuid_source, "preferred");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn player_file_for_uuid_rejects_empty_and_unknown() {
+        let root = save_with_players("lookup", &[OLDER]);
+        let players = root.join("universe").join("players");
+        assert!(player_file_for_uuid(&players, "").is_none());
+        assert!(player_file_for_uuid(&players, "-  -").is_none());
+        assert!(player_file_for_uuid(&players, NEWER).is_none());
+        assert!(player_file_for_uuid(&players, OLDER).is_some());
+        let _ = std::fs::remove_dir_all(&root);
+    }
 
     #[test]
     fn parses_transform_position_from_add_line() {

@@ -280,6 +280,10 @@ pub async fn bridge_discover(
     mod_pack_path: Option<String>,
     host: Option<String>,
     port: Option<u16>,
+    // `preferred_player_uuid` is the signed-in Hytale profile UUID, when the
+    // user has opted to target their own player. `None` keeps the
+    // newest-player-file heuristic.
+    preferred_player_uuid: Option<String>,
 ) -> Result<BridgeDiscovery, String> {
     let save = save_name.unwrap_or_default();
     let host = host.unwrap_or_else(|| "127.0.0.1".to_string());
@@ -290,6 +294,7 @@ pub async fn bridge_discover(
         port,
         save_root.as_deref(),
         mod_pack_path.as_deref(),
+        preferred_player_uuid.as_deref(),
     )
     .await)
 }
@@ -355,12 +360,19 @@ pub async fn bridge_teleport(
 #[tauri::command]
 pub async fn bridge_player_info(
     state: tauri::State<'_, BridgeState>,
+    // Kept in step with `bridge_discover` so both agree on which player is
+    // being targeted.
+    preferred_player_uuid: Option<String>,
 ) -> Result<PlayerInfo, String> {
     let client = state.get_client().await?;
     if let Ok(status) = client.status().await {
         if let Some(root) = status.save_root {
             let path = PathBuf::from(root);
-            if let Some(live) = live_player::resolve_live_player_from_save(&path, true) {
+            if let Some(live) = live_player::resolve_live_player_from_save(
+                &path,
+                true,
+                preferred_player_uuid.as_deref(),
+            ) {
                 return Ok(PlayerInfo {
                     name: live.name,
                     uuid: live.uuid,

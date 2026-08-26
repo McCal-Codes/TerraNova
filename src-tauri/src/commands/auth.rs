@@ -110,8 +110,9 @@ pub async fn hytale_sign_in(
         // Reuse the existing external-URL opener: it already handles the Windows
         // case where `cmd /c start` would truncate the URL at the first `&`,
         // which an authorize URL is full of.
-        io_commands::open_url(authorize_url)
-            .map_err(|e| AuthError::new("network", format!("Could not open your browser: {}", e)))?;
+        io_commands::open_url(authorize_url).map_err(|e| {
+            AuthError::new("network", format!("Could not open your browser: {}", e))
+        })?;
 
         let cb = callback::wait_for_callback(listener, &csrf_state, cancel_rx).await?;
         let tokens = token::exchange_code(

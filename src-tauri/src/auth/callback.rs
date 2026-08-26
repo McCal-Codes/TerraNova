@@ -136,17 +136,58 @@ Content-Length: {len}\r\nConnection: close\r\n\r\n{html}",
     let _ = stream.flush().await;
 }
 
+/// Longest a single connection may take to send its request line before we
+/// give up on it and go back to accepting. Browsers speculatively preconnect
+/// to a freshly opened port without sending anything; without this bound, one
+/// such socket would block the accept loop and the real callback would never
+/// be read.
+const PER_CONNECTION_TIMEOUT_SECS: u64 = 10;
+
+/// Longest request line we will buffer. A callback carries a code plus state,
+/// comfortably under 2 KB; this is only a runaway guard.
+const MAX_REQUEST_LINE: usize = 16 * 1024;
+
+/// Read up to the first newline, reassembling across reads.
+///
+/// A single `read` is not guaranteed to deliver the whole request line even on
+/// loopback, and a short read would misclassify a real callback as noise —
+/// leaving the browser with a 404 and the flow hanging until it timed out.
+async fn read_request_line(stream: &mut TcpStream) -> Option<String> {
+    let mut buf: Vec<u8> = Vec::with_capacity(1024);
+    let mut chunk = [0u8; 1024];
+    loop {
+        if let Some(pos) = buf.iter().position(|b| *b == b'\n') {
+            let line = String::from_utf8_lossy(&buf[..pos]);
+            return Some(line.trim_end_matches('\r').to_string());
+        }
+        if buf.len() >= MAX_REQUEST_LINE {
+            return None;
+        }
+        match stream.read(&mut chunk).await {
+            Ok(0) | Err(_) => {
+                // Peer closed without a newline; use whatever arrived.
+                return if buf.is_empty() {
+                    None
+                } else {
+                    Some(
+                        String::from_utf8_lossy(&buf)
+                            .trim_end_matches('\r')
+                            .to_string(),
+                    )
+                };
+            }
+            Ok(n) => buf.extend_from_slice(&chunk[..n]),
+        }
+    }
+}
+
 /// Read the request line, classify it, and answer the browser.
 async fn handle_one(stream: &mut TcpStream) -> Outcome {
-    let mut buf = vec![0u8; 8192];
-    let n = match stream.read(&mut buf).await {
-        Ok(0) | Err(_) => return Outcome::Ignored,
-        Ok(n) => n,
+    let Some(first_line) = read_request_line(stream).await else {
+        return Outcome::Ignored;
     };
-    let text = String::from_utf8_lossy(&buf[..n]);
-    let first_line = text.lines().next().unwrap_or_default();
     // NB: never log `first_line` — it carries the authorization code.
-    let outcome = classify_request_line(first_line);
+    let outcome = classify_request_line(&first_line);
 
     match &outcome {
         Outcome::Code { .. } => {
@@ -195,7 +236,14 @@ pub async fn wait_for_callback(
             let Ok((mut stream, _)) = listener.accept().await else {
                 continue;
             };
-            match handle_one(&mut stream).await {
+            let handled = tokio::time::timeout(
+                std::time::Duration::from_secs(PER_CONNECTION_TIMEOUT_SECS),
+                handle_one(&mut stream),
+            )
+            .await;
+            // A connection that never sent anything is abandoned, not fatal.
+            let Ok(outcome) = handled else { continue };
+            match outcome {
                 Outcome::Code { code, state } => {
                     if state != expected_state {
                         return Err(AuthError::new(
@@ -305,6 +353,64 @@ mod tests {
         assert!(REDIRECT_PORTS.contains(&listener.local_addr().unwrap().port()));
         assert!(redirect.starts_with("http://127.0.0.1:"));
         assert!(redirect.ends_with(CALLBACK_PATH));
+    }
+
+    /// Drive a real callback through a real socket, delivered in two writes
+    /// with a gap. A single-read implementation would see only the first half,
+    /// answer 404, and hang until the overall timeout.
+    #[tokio::test]
+    async fn reassembles_a_request_line_split_across_writes() {
+        let (listener, redirect) = bind_first_free().await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let (_tx, rx) = oneshot::channel();
+
+        tokio::spawn(async move {
+            let mut c = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+            c.write_all(b"GET /oauth/callback?code=split")
+                .await
+                .unwrap();
+            c.flush().await.unwrap();
+            tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+            c.write_all(b"ping&state=st8 HTTP/1.1\r\n\r\n")
+                .await
+                .unwrap();
+            c.flush().await.unwrap();
+        });
+
+        let cb = wait_for_callback(listener, "st8", rx).await.unwrap();
+        assert_eq!(cb.code, "splitping");
+        assert!(redirect.ends_with(CALLBACK_PATH));
+    }
+
+    /// A browser preconnect that opens a socket and sends nothing must not
+    /// block the accept loop — the real callback arrives on a later socket.
+    #[tokio::test]
+    async fn a_silent_connection_does_not_block_the_real_callback() {
+        let (listener, _) = bind_first_free().await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let (_tx, rx) = oneshot::channel();
+
+        tokio::spawn(async move {
+            // Held open, never written to, kept alive past the callback.
+            let idle = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+            tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+            let mut real = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+            real.write_all(b"GET /oauth/callback?code=ok&state=st8 HTTP/1.1\r\n\r\n")
+                .await
+                .unwrap();
+            real.flush().await.unwrap();
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+            drop(idle);
+        });
+
+        let cb = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            wait_for_callback(listener, "st8", rx),
+        )
+        .await
+        .expect("accept loop stalled on the silent connection")
+        .unwrap();
+        assert_eq!(cb.code, "ok");
     }
 
     #[tokio::test]

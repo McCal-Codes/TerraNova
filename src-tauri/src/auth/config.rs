@@ -80,14 +80,27 @@ mod tests {
 
     #[test]
     fn scopes_and_ports_match_what_was_registered() {
-        assert_eq!(SCOPES, &["openid", "hytale:profile", "account:shared_source"]);
-        assert_eq!(REDIRECT_PORTS.len(), 5, "the portal caps redirect URIs at 5");
-        assert!(!REDIRECT_PORTS.contains(&7854), "must not collide with the Bridge sidecar");
+        assert_eq!(
+            SCOPES,
+            &["openid", "hytale:profile", "account:shared_source"]
+        );
+        assert_eq!(
+            REDIRECT_PORTS.len(),
+            5,
+            "the portal caps redirect URIs at 5"
+        );
+        assert!(
+            !REDIRECT_PORTS.contains(&7854),
+            "must not collide with the Bridge sidecar"
+        );
     }
 
     #[test]
     fn discovery_url_is_well_formed() {
-        let cfg = AuthConfig { issuer: ISSUER.into(), client_id: "x".into() };
+        let cfg = AuthConfig {
+            issuer: ISSUER.into(),
+            client_id: "x".into(),
+        };
         assert_eq!(
             cfg.discovery_url(),
             "https://connect.accounts.hytale.com/.well-known/openid-configuration"

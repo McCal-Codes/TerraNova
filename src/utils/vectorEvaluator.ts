@@ -51,12 +51,42 @@ export function evaluateVectorProvider(
 
   switch (type) {
     case "Constant": {
-      const val = fields.Value as { x?: number; y?: number; z?: number } | undefined;
+      // V2 spells this `Vector` with uppercase X/Y/Z components. Reading
+      // `Value`/lowercase silently returned the fallback for every constant
+      // that was not already (0, 1, 0) — 13 of the 16 in the shipped assets,
+      // including (30, 0, 0) and (0, 0, -15). The lowercase form is kept as a
+      // fallback for graphs authored against the older shape.
+      const raw = (fields.Vector ?? fields.Value) as
+        | { X?: number; Y?: number; Z?: number; x?: number; y?: number; z?: number }
+        | undefined;
+      if (!raw) return { x: 0, y: 1, z: 0 };
+      // `??` rather than `||` throughout: a component of 0 is a real value, and
+      // six shipped constants are exactly (0, 0, 0).
       return {
-        x: Number(val?.x ?? 0),
-        y: Number(val?.y ?? 1),
-        z: Number(val?.z ?? 0),
+        x: Number(raw.X ?? raw.x ?? 0),
+        y: Number(raw.Y ?? raw.y ?? 0),
+        z: Number(raw.Z ?? raw.z ?? 0),
       };
+    }
+
+    case "ScalarMultiplier": {
+      // Scales a vector provider by a density. Java: vectorProviderAsset +
+      // scalarAsset; JSON: "Vector" and "Scalar", confirmed against
+      // Biomes/Examples/Example_Vector_Offset.json.
+      const vecId = inputs.get("Vector");
+      const scalarId = inputs.get("Scalar");
+      if (!vecId) return ZERO_VEC3;
+      const v = evaluateVectorProvider(
+        vecId,
+        x,
+        y,
+        z,
+        nodeById,
+        inputEdges,
+        densityEvaluate,
+      );
+      const s = scalarId ? densityEvaluate(scalarId, x, y, z) : 1;
+      return { x: v.x * s, y: v.y * s, z: v.z * s };
     }
 
     case "DensityGradient": {

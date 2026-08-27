@@ -40,10 +40,10 @@ import { collectExternalImportedNames } from "@/utils/densityExportRegistry";
  * asserts these *still* fail, and starts failing the moment one is fixed —
  * at which point delete the entry.
  */
+// Fake3dNoise carried the same fault but no longer ships as of Update 6.
 const KNOWN_NON_FINITE = new Map<string, string>([
   ["Example_Multi_Mixer_Curve.json", "MultiMix handle mismatch (Selector/Densities[i] vs InputA/InputB/Factor)"],
   ["Example_Multi_Mixer_Horizontal.json", "MultiMix handle mismatch"],
-  ["Fake3dNoise.json", "MultiMix handle mismatch"],
 ]);
 
 const EXAMPLES_REL = "Server/HytaleGenerator/Biomes/Examples";

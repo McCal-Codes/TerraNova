@@ -21,11 +21,29 @@ export function resolveHytaleCacheRoot(): string | null {
   const env = envRecord?.TERRANOVA_HYTALE_CACHE?.trim();
   if (env && existsSync(env)) return env;
 
-  const local = envRecord?.LOCALAPPDATA;
-  if (!local) return null;
+  // Mirror the Rust resolver (io::hytale_assets::default_hytale_assets_root):
+  // the synced cache normally sits at the repo root, and tests may run from
+  // either the repo root or src-tauri. Checking these first is what makes the
+  // suite run on macOS and Linux at all — the LOCALAPPDATA branch below is
+  // Windows-only, so without them `resolveHytaleCacheRoot` returned null and
+  // every Hytale smoke test silently skipped while still reporting green.
+  const cwd = (globalThis as { process?: { cwd?: () => string } }).process?.cwd?.();
+  if (cwd) {
+    for (const candidate of [
+      path.join(cwd, "hytale-assets"),
+      path.join(cwd, "..", "hytale-assets"),
+    ]) {
+      if (existsSync(candidate)) return candidate;
+    }
+  }
 
-  const defaultRoot = path.join(local, "TerraNova", "hytale-assets");
-  return existsSync(defaultRoot) ? defaultRoot : null;
+  const local = envRecord?.LOCALAPPDATA;
+  if (local) {
+    const defaultRoot = path.join(local, "TerraNova", "hytale-assets");
+    if (existsSync(defaultRoot)) return defaultRoot;
+  }
+
+  return null;
 }
 
 function extractExportBody(record: Record<string, unknown>): Record<string, unknown> {

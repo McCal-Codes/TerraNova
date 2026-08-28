@@ -24,10 +24,6 @@ public final class TnBridgeCommand extends AbstractCommandCollection {
         addSubCommand(new NotifyCommandCollection(services));
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
-    }
 
     private abstract static class TnBridgeSubCommand
             extends com.hypixel.hytale.server.core.command.system.AbstractCommand {
@@ -35,10 +31,16 @@ public final class TnBridgeCommand extends AbstractCommandCollection {
             super(name, description);
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
-        }
+        // Update 6 removed AbstractCommand.canGeneratePermission(). These
+        // classes previously overrode it to return false, suppressing the
+        // auto-generated permission node. There is no direct replacement:
+        // generatePermissionNode() is still overridable but generatePermission()
+        // is private, so suppression is no longer expressible the same way.
+        //
+        // Removing the override is the minimal change that compiles. It does
+        // mean /tnbridge now carries a generated permission node where it
+        // previously carried none — if the command stops working for
+        // non-operators, that is why, and setPermissionGroups(...) is the knob.
 
         protected void send(CommandContext context, String text) {
             context.sender().sendMessage(Message.raw(text));
@@ -210,10 +212,6 @@ public final class TnBridgeCommand extends AbstractCommandCollection {
             addSubCommand(new NotifyStatusSubCommand(services));
         }
 
-        @Override
-        protected boolean canGeneratePermission() {
-            return false;
-        }
     }
 
     private static final class NotifyOnSubCommand extends TnBridgeSubCommand {

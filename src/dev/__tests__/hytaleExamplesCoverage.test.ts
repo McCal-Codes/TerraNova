@@ -29,22 +29,23 @@ import { evaluateDensityGrid } from "@/utils/density/evaluateGrid";
 import { collectExternalImportedNames } from "@/utils/densityExportRegistry";
 
 /**
- * Graphs that currently evaluate to an entirely non-finite field.
+ * Graphs known to evaluate to an entirely non-finite field.
  *
- * All three use `MultiMix`. The importer wires that node with InputA/InputB/
- * Factor handles, but `handleMultiMix` in density/handlers/combinators.ts asks
- * for a `Selector` input and `Densities[i]` inputs, so every lookup misses and
- * NaN propagates through the whole graph.
- *
- * Listed rather than skipped so the coverage is not silently lost: the test
- * asserts these *still* fail, and starts failing the moment one is fixed —
- * at which point delete the entry.
+ * Empty, and that is the point: the MultiMix handle mismatch that put
+ * Example_Multi_Mixer_Curve and Example_Multi_Mixer_Horizontal here is fixed,
+ * and this test is what confirmed it — the entries asserted the graphs still
+ * failed, so the fix surfaced as a failure telling us to delete them.
  */
-// Fake3dNoise carried the same fault but no longer ships as of Update 6.
-const KNOWN_NON_FINITE = new Map<string, string>([
-  ["Example_Multi_Mixer_Curve.json", "MultiMix handle mismatch (Selector/Densities[i] vs InputA/InputB/Factor)"],
-  ["Example_Multi_Mixer_Horizontal.json", "MultiMix handle mismatch"],
-]);
+const KNOWN_NON_FINITE = new Map<string, string>();
+
+/**
+ * Graphs that import and evaluate finitely but collapse to a constant.
+ *
+ * Empty. Example_Multi_Mixer_Horizontal lived here while the MultiMix wiring
+ * was half-fixed; both entries were removed when the test itself reported the
+ * graphs had started evaluating.
+ */
+const KNOWN_CONSTANT = new Map<string, string>();
 
 const EXAMPLES_REL = "Server/HytaleGenerator/Biomes/Examples";
 
@@ -108,6 +109,16 @@ describe.skipIf(examples.length === 0)("hytale Examples biomes evaluate", () => 
         if (v < min) min = v;
         if (v > max) max = v;
       }
+    }
+
+    const knownConstant = KNOWN_CONSTANT.get(file);
+    if (knownConstant) {
+      expect(nonFinite, `${file} should at least be finite`).toBe(0);
+      expect(
+        max,
+        `${file} now varies — fix confirmed, remove it from KNOWN_CONSTANT (${knownConstant})`,
+      ).toBe(min);
+      return;
     }
 
     const known = KNOWN_NON_FINITE.get(file);

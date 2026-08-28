@@ -724,12 +724,37 @@ function unwrapMaterial(value: unknown): unknown {
 // Inputs[] → named handle conversion
 // ---------------------------------------------------------------------------
 
+/**
+ * `MultiMix` is overloaded. TerraNova's BlendCurve exports as a 3-input
+ * MultiMix carrying a `Curve`, while Hytale's own form is an N-input node whose
+ * `Keys` array of {Value, DensityIndex} indexes into `Inputs`.
+ *
+ * Only the former wants InputA/InputB/Factor. Applying those names to the
+ * keyed form dropped every input past the third — including the selector — so
+ * the node evaluated to NaN and took the whole graph with it.
+ */
+function hasKeyedMultiMixInputs(asset: Record<string, unknown>): boolean {
+  // Deliberately not keyed on the type name: a Hytale MultiMix resolves to the
+  // internal BlendCurve type, so checking for "MultiMix" here never matches.
+  // The keyed shape is itself the discriminator — {Value, DensityIndex} entries
+  // only appear on Hytale's N-input form.
+  const keys = asset.Keys;
+  if (!Array.isArray(keys) || keys.length === 0) return false;
+  const first = keys[0];
+  return typeof first === "object" && first !== null && "DensityIndex" in first;
+}
+
 function distributeInputs(
   inputs: unknown[],
   internalType: string,
   _ctx: ImportContext,
+  asset?: Record<string, unknown>,
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
+  if (asset && hasKeyedMultiMixInputs(asset)) {
+    result.Inputs = inputs;
+    return result;
+  }
   const handleNames = HYTALE_ARRAY_TO_NAMED[internalType];
   if (!handleNames) {
     // No named handles — keep as Inputs[]
@@ -1149,7 +1174,7 @@ function transformNodeToInternal(
     });
     const { Inputs: _, ...rest } = processedFields;
     const resolvedType = output.Type as string;
-    processedFields = { ...rest, ...distributeInputs(inputs, resolvedType, ctx) };
+    processedFields = { ...rest, ...distributeInputs(inputs, resolvedType, ctx, processedFields) };
   }
 
   // Apply per-type reverse field transformations

@@ -307,7 +307,20 @@ export function jsonToGraph(json: V2Asset, startX = 0, startY = 0, idPrefix = "g
         "Type" in value[0]
       ) {
         // Array of nested assets (e.g., Inputs for Sum)
-        const namedHandles = (key === "Inputs") ? HYTALE_ARRAY_TO_NAMED[rawType] : undefined;
+        // The named-handle mapping is applied in two places: hytaleToInternal
+        // decides whether to keep `Inputs` as an array, and this decides the
+        // edge handles. Both must agree, so the keyed-MultiMix exemption is
+        // repeated here — object-shaped Keys with a DensityIndex mean the
+        // inputs are positional and must not be squeezed into three names.
+        const keys = (asset as Record<string, unknown>).Keys;
+        const hasKeyedInputs =
+          Array.isArray(keys)
+          && keys.length > 0
+          && typeof keys[0] === "object"
+          && keys[0] !== null
+          && "DensityIndex" in (keys[0] as object);
+        const namedHandles =
+          key === "Inputs" && !hasKeyedInputs ? HYTALE_ARRAY_TO_NAMED[rawType] : undefined;
         for (let i = 0; i < value.length; i++) {
           const childId = processAsset(value[i] as V2Asset, x - 300, y + childIndex * 150, key);
           const targetHandle = (namedHandles && i < namedHandles.length)

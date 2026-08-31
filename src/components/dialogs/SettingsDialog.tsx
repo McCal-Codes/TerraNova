@@ -5,12 +5,12 @@ import "@/settings/index";
 import { CategoryRail } from "./settings/CategoryRail";
 import { CategoryPanel } from "./settings/CategoryPanel";
 import { FilesOperations } from "./settings/FilesOperations";
+import { AboutPanel } from "./settings/AboutPanel";
 import { DeveloperOperations } from "./settings/DeveloperOperations";
 import { HytaleAssetsPanel } from "./settings/HytaleAssetsPanel";
 import { SettingsSearchInput, SettingsSearchResults } from "./settings/SettingsSearch";
 import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
-import { useBugReportStore } from "@/stores/bugReportStore";
 import { WhatsNewDialog } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
 import { LegalTextDialog } from "./LegalTextDialog";
@@ -54,12 +54,8 @@ interface SettingsDialogProps {
   onOpenAlphaChecklist?: () => void;
 }
 
-
 export function SettingsDialog({ open, onClose, initialTab = "general", initialSystemTab = "cpu", onOpenAlphaChecklist }: SettingsDialogProps) {
   const devActive = useDeveloperMode();
-
-  // Developer → Caches keeps its own entry point; Hytale assets has an
-  // equivalent "Repair cache" beside the sync controls it belongs with.
 
   const updateStatus = useUpdateStore((s) => s.status);
   const updateVersion = useUpdateStore((s) => s.version);
@@ -93,18 +89,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   
   
 
-
-
-
-
-
   
-
-
-
-
-
-
 
   // Categories are independent pages; carrying the previous scroll offset into
   // a new one lands the user mid-content for no reason.
@@ -267,114 +252,20 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
             )}
 
             {tab === "about" && (
-              <>
-                {/* App identity */}
-                <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-4 flex flex-col gap-1">
-                  <p className="text-sm font-semibold text-tn-text">TerraNova</p>
-                  <p className="text-[11px] text-tn-text-muted">Offline design studio for Hytale World Generation V2</p>
-                  <p className="mt-1 text-[11px] text-tn-text-muted">v{appVersion}</p>
-                </div>
-
-                {/* Authors */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Author</label>
-                  <div className="flex flex-col gap-1.5">
-                    <div className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 flex flex-col gap-0.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-tn-text">McCal</span>
-                        <span className="text-[10px] rounded border border-tn-border/50 px-1.5 py-0.5 text-tn-text-muted">McCal-Codes</span>
-                      </div>
-                      <p className="text-[11px] text-tn-text-muted leading-relaxed">
-                        TerraNova — Hytale worldgen editor, preview, atmosphere stack, Bridge integration, and McCal-Codes closed alpha.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contributors */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Contributors</label>
-                  <p className="text-[11px] text-tn-text-muted leading-relaxed">
-                    McCal-Codes, nmang004, ZenithDevHQ, LeoWherle, derrickmehaffy — see{" "}
-                    <a
-                      href="https://github.com/McCal-Codes/TerraNova/graphs/contributors"
-                      className="text-tn-accent hover:opacity-80"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      GitHub contributors
-                    </a>
-                    .
-                  </p>
-                </div>
-
-                {/* Legal */}
-                <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Legal</label>
-                  <div className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 flex flex-col gap-1 text-[11px] text-tn-text-muted">
-                    <p>© 2024–2026 McCal.</p>
-                    <p>TerraNova is not affiliated with or endorsed by Hypixel Studios.</p>
-                    <p>Hytale is a trademark of Hypixel Studios.</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setLegalDialog("license")}
-                      className="flex-1 px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm text-left"
-                    >
-                      <span className="font-medium text-tn-text">License</span>
-                      <p className="text-xs mt-0.5 text-tn-text-muted">GNU Lesser General Public License v2.1</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLegalDialog("notice")}
-                      className="flex-1 px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm text-left"
-                    >
-                      <span className="font-medium text-tn-text">Copyright Notices</span>
-                      <p className="text-xs mt-0.5 text-tn-text-muted">Third-party acknowledgements</p>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Support */}
-                <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Support</label>
-                  <button
-                    type="button"
-                    onClick={() => useBugReportStore.getState().requestOpen()}
-                    className="text-left px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm"
-                  >
-                    <span className="font-medium">Report a bug</span>
-                    <p className="text-xs text-tn-text-muted mt-0.5">Copy a debug bundle and open the GitHub issue form</p>
-                  </button>
-                </div>
-
-                {/* Release notes */}
-                <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Release Notes</label>
-                  <div className="flex gap-2">
-                    <button onClick={() => setShowWhatsNew(true)} className="flex-1 px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm">
-                      View What's New
-                    </button>
-                    <button onClick={() => setShowChangelog(true)} className="flex-1 px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm">
-                      All Changelogs
-                    </button>
-                  </div>
-                  {onOpenAlphaChecklist && (
-                    <button
-                      type="button"
-                      onClick={() => {
+              <AboutPanel
+                appVersion={appVersion}
+                onShowLegal={setLegalDialog}
+                onShowWhatsNew={() => setShowWhatsNew(true)}
+                onShowChangelog={() => setShowChangelog(true)}
+                onOpenAlphaChecklist={
+                  onOpenAlphaChecklist
+                    ? () => {
                         onClose();
                         onOpenAlphaChecklist();
-                      }}
-                      className="text-left px-3 py-2 rounded border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-sm w-full"
-                    >
-                      <span className="font-medium text-tn-text">View What to test checklist</span>
-                      <p className="text-xs text-tn-text-muted mt-0.5">Closed-alpha tester focus areas for this build</p>
-                    </button>
-                  )}
-                </div>
-              </>
+                      }
+                    : undefined
+                }
+              />
             )}
 
         </div>

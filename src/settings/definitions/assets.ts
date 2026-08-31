@@ -1,3 +1,8 @@
+import {
+  resolveDefaultCommonAssetsPath,
+  resolveDefaultPreReleaseAssetsPath,
+  resolveDefaultReleaseAssetsPath,
+} from "@/utils/hytaleDefaultPaths";
 import { useSettingsStore, type HytaleAssetSourceChannel } from "@/stores/settingsStore";
 import { defineSetting, type AnySettingDefinition } from "../types";
 
@@ -33,8 +38,14 @@ export const ASSETS_SETTINGS: AnySettingDefinition[] = [
     label: "Release assets folder",
     defaultValue: "",
     scopes: ["user"],
+    description: "The `latest` folder, or an `Assets.zip` inside it.",
     searchTerms: ["asset path", "source folder", "release"],
-    control: { kind: "path", mode: "directory", placeholder: "Detected automatically" },
+    control: {
+      kind: "path",
+      mode: "directory",
+      placeholder: "Detected automatically",
+      resolveDefault: resolveDefaultReleaseAssetsPath,
+    },
     read: () => s().hytaleReleaseAssetsPath,
     write: (value) => s().setHytaleReleaseAssetsPath(value),
   }),
@@ -47,8 +58,14 @@ export const ASSETS_SETTINGS: AnySettingDefinition[] = [
     label: "Pre-release assets folder",
     defaultValue: "",
     scopes: ["user"],
+    description: "Can point straight at `Assets.zip`.",
     searchTerms: ["asset path", "source folder", "prerelease", "pre-release"],
-    control: { kind: "path", mode: "directory", placeholder: "Detected automatically" },
+    control: {
+      kind: "path",
+      mode: "directory",
+      placeholder: "Detected automatically",
+      resolveDefault: resolveDefaultPreReleaseAssetsPath,
+    },
     read: () => s().hytalePreReleaseAssetsPath,
     write: (value) => s().setHytalePreReleaseAssetsPath(value),
   }),
@@ -76,8 +93,15 @@ export const ASSETS_SETTINGS: AnySettingDefinition[] = [
     label: "Common assets folder",
     defaultValue: "",
     scopes: ["user"],
+    description:
+      "Point at `Common`, a parent folder containing it, or an `Assets.zip`. The internal `Common/` subtree is read automatically.",
     searchTerms: ["common", "overlay", "shared assets", "path"],
-    control: { kind: "path", mode: "directory", placeholder: "Detected automatically" },
+    control: {
+      kind: "path",
+      mode: "directory",
+      placeholder: "Detected automatically",
+      resolveDefault: resolveDefaultCommonAssetsPath,
+    },
     read: () => s().hytaleCommonAssetsPath,
     write: (value) => s().setHytaleCommonAssetsPath(value),
   }),

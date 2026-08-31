@@ -176,11 +176,20 @@ export function SettingRow({ def, onNavigate, breadcrumb }: SettingRowProps) {
               <input
                 id={controlId}
                 type="text"
-                readOnly
+                readOnly={control.readOnly}
                 value={typeof value === "string" ? value : ""}
                 placeholder={control.placeholder}
                 aria-describedby={describedBy}
-                className={`min-h-8 flex-1 truncate rounded border border-tn-border bg-tn-bg px-2 font-mono text-[11px] text-tn-text-muted ${focusRing}`}
+                aria-invalid={error ? true : undefined}
+                onChange={(e) => {
+                  if (!control.readOnly) setValue(e.target.value);
+                }}
+                // Typeable by default: some of these point inside a zip or at a
+                // folder the picker cannot reach, so a read-only field would
+                // remove the only way to set them.
+                className={`min-h-8 flex-1 truncate rounded border bg-tn-bg px-2 font-mono text-[11px] ${focusRing} ${
+                  control.readOnly ? "text-tn-text-muted" : "text-tn-text"
+                } ${error ? "border-red-400" : "border-tn-border"}`}
               />
               <button
                 type="button"
@@ -197,6 +206,20 @@ export function SettingRow({ def, onNavigate, breadcrumb }: SettingRowProps) {
               >
                 Browse…
               </button>
+              {control.resolveDefault ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void control.resolveDefault!()
+                      .then(setValue)
+                      .catch(() => setValue(""));
+                  }}
+                  title="Fill in the standard location for this machine"
+                  className={`min-h-8 whitespace-nowrap rounded border border-tn-border bg-tn-bg px-3 text-sm text-tn-text-muted hover:bg-tn-surface ${focusRing}`}
+                >
+                  Default
+                </button>
+              ) : null}
             </div>
           }
         />

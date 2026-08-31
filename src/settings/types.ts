@@ -54,7 +54,19 @@ export type ControlSpec<T> =
   | { kind: "radio"; options: ReadonlyArray<SettingOption<T>> }
   | { kind: "select"; options: ReadonlyArray<SettingOption<T>> }
   | { kind: "number"; min?: number; max?: number; step?: number; unit?: string }
-  | { kind: "path"; mode: "file" | "directory"; placeholder?: string }
+  | {
+      kind: "path";
+      mode: "file" | "directory";
+      placeholder?: string;
+      /**
+       * Paths stay typeable, not just pickable. Some of these point inside a
+       * zip or at a folder the picker cannot reach, so removing the text field
+       * would take away the only way to set them.
+       */
+      readOnly?: boolean;
+      /** Adds a "Default" button that resolves the OS-appropriate location. */
+      resolveDefault?: () => Promise<string>;
+    }
   | { kind: "custom"; render: (ctx: CustomRenderContext<T>) => ReactNode }
   /**
    * Rendered by an owning panel rather than as a row (e.g. the CPU/GPU/RAM tabs

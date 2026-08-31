@@ -6,18 +6,11 @@ import "@/settings/index";
 import { CategoryRail } from "./settings/CategoryRail";
 import { CategoryPanel } from "./settings/CategoryPanel";
 import { FilesOperations } from "./settings/FilesOperations";
+import { HytaleAssetsPanel } from "./settings/HytaleAssetsPanel";
 import { SettingsSearchInput, SettingsSearchResults } from "./settings/SettingsSearch";
 import { useSettingsStore } from "@/stores/settingsStore";
-import {
-  resolveDefaultPreReleaseAssetsPath,
-  resolveDefaultReleaseAssetsPath,
-  resolveDefaultCommonAssetsPath,
-} from "@/utils/hytaleDefaultPaths";
 import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, type AssetStalenessInfo } from "@/utils/ipc";
-import { formatHytaleSyncToast, runHytaleAssetSync } from "@/utils/hytaleAssetSyncAction";
 import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolders";
 import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
 import { useBugReportStore } from "@/stores/bugReportStore";
@@ -42,7 +35,6 @@ import { buildBugReportBundle, formatBugReportClipboard } from "@/utils/bugRepor
 import { useDeveloperMode } from "@/hooks/useDeveloperMode";
 import { useDevMetricsStore } from "@/stores/devMetricsStore";
 import { DevSettingRow } from "@/components/dev/devUi";
-import { AlertTriangle } from "lucide-react";
 
 /**
  * Settings categories now come from the registry (CATEGORY_META). This alias
@@ -71,33 +63,8 @@ interface SettingsDialogProps {
   onOpenAlphaChecklist?: () => void;
 }
 
-function formatSyncedAt(syncedAt: string): string {
-  const secs = Date.parse(syncedAt) / 1000;
-  if (Number.isNaN(secs)) return syncedAt;
-  const nowSecs = Date.now() / 1000;
-  const diff = Math.floor(nowSecs - secs);
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  const days = Math.floor(diff / 86400);
-  return days === 1 ? "1 day ago" : `${days} days ago`;
-}
 
 export function SettingsDialog({ open, onClose, initialTab = "general", initialSystemTab = "cpu", onOpenAlphaChecklist }: SettingsDialogProps) {
-  const exportPath = useSettingsStore((s) => s.exportPath);
-  const setExportPath = useSettingsStore((s) => s.setExportPath);
-  const hytaleAssetSyncEnabled = useSettingsStore((s) => s.hytaleAssetSyncEnabled);
-  const setHytaleAssetSyncEnabled = useSettingsStore((s) => s.setHytaleAssetSyncEnabled);
-  const hytaleAssetSourceChannel = useSettingsStore((s) => s.hytaleAssetSourceChannel);
-  const setHytaleAssetSourceChannel = useSettingsStore((s) => s.setHytaleAssetSourceChannel);
-  const hytalePreReleaseAssetsPath = useSettingsStore((s) => s.hytalePreReleaseAssetsPath);
-  const setHytalePreReleaseAssetsPath = useSettingsStore((s) => s.setHytalePreReleaseAssetsPath);
-  const hytaleReleaseAssetsPath = useSettingsStore((s) => s.hytaleReleaseAssetsPath);
-  const setHytaleReleaseAssetsPath = useSettingsStore((s) => s.setHytaleReleaseAssetsPath);
-  const hytaleCommonAssetsEnabled = useSettingsStore((s) => s.hytaleCommonAssetsEnabled);
-  const setHytaleCommonAssetsEnabled = useSettingsStore((s) => s.setHytaleCommonAssetsEnabled);
-  const hytaleCommonAssetsPath = useSettingsStore((s) => s.hytaleCommonAssetsPath);
-  const setHytaleCommonAssetsPath = useSettingsStore((s) => s.setHytaleCommonAssetsPath);
   const developerMode = useSettingsStore((s) => s.developerMode);
   const setDeveloperMode = useSettingsStore((s) => s.setDeveloperMode);
   const autoEnableDeveloperModeInDev = useSettingsStore((s) => s.autoEnableDeveloperModeInDev);
@@ -111,6 +78,14 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const showPerformanceOverlay = useDevMetricsStore((s) => s.showPerformanceOverlay);
   const setShowPerformanceOverlay = useDevMetricsStore((s) => s.setShowPerformanceOverlay);
   const devActive = useDeveloperMode();
+
+  // Developer → Caches keeps its own entry point; Hytale assets has an
+  // equivalent "Repair cache" beside the sync controls it belongs with.
+  function handleClearAssetBrowserCache() {
+    clearAvailableHytaleAssetFoldersCache("hytale-assets");
+    clearHytaleAssetsInFolderCache("hytale-assets");
+    addToast("Cleared cached Hytale asset folder listings.", "success");
+  }
   const addToast = useToastStore((s) => s.addToast);
 
   const updateStatus = useUpdateStore((s) => s.status);
@@ -126,12 +101,6 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [legalDialog, setLegalDialog] = useState<"license" | "notice" | null>(null);
-  const [hytaleAssetCacheRoot, setHytaleAssetCacheRoot] = useState("");
-  const [syncingHytaleAssets, setSyncingHytaleAssets] = useState(false);
-  const [stalenessInfo, setStalenessInfo] = useState<AssetStalenessInfo | null>(null);
-  const [checkingStaleness, setCheckingStaleness] = useState(false);
-  const [examplePreReleasePath, setExamplePreReleasePath] = useState("");
-  const [exampleReleasePath, setExampleReleasePath] = useState("");
   const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
   const [refreshingHardware, setRefreshingHardware] = useState(false);
 
@@ -142,8 +111,6 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
     }
 
     void getAppVersion().then(setAppVersion).catch(() => setAppVersion(""));
-    void resolveDefaultPreReleaseAssetsPath().then(setExamplePreReleasePath).catch(() => setExamplePreReleasePath(""));
-    void resolveDefaultReleaseAssetsPath().then(setExampleReleasePath).catch(() => setExampleReleasePath(""));
   }, []);
 
   useEffect(() => {
@@ -152,13 +119,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
     setQuery("");
   }, [open, initialTab]);
 
-  useEffect(() => {
-    if (!open) return;
-    void getHytaleAssetCacheRoot()
-      .then(setHytaleAssetCacheRoot)
-      .catch(() => setHytaleAssetCacheRoot(""));
-  }, [open]);
-
+  
   useEffect(() => {
     if (!open || (tab !== "performance" && tab !== "developer")) return;
     void detectHardware()
@@ -167,120 +128,17 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   }, [open, tab]);
 
 
-  async function handleBrowseExportPath() {
-    if (!isTauriRuntime()) {
-      addToast("Folder browsing is available in the TerraNova desktop app.", "warning");
-      return;
-    }
-    const selected = await openDialog({ directory: true, defaultPath: exportPath ?? undefined });
-    if (typeof selected === "string") setExportPath(selected);
-  }
 
 
 
 
-  const activeHytaleSourcePath = hytaleAssetSourceChannel === "pre-release"
-    ? hytalePreReleaseAssetsPath
-    : hytaleReleaseAssetsPath;
 
-  useEffect(() => {
-    if (!open || !activeHytaleSourcePath.trim()) return;
-    setCheckingStaleness(true);
-    void checkHytaleAssetStaleness(activeHytaleSourcePath, hytaleAssetSourceChannel)
-      .then(setStalenessInfo)
-      .catch(() => setStalenessInfo(null))
-      .finally(() => setCheckingStaleness(false));
-  }, [open, activeHytaleSourcePath, hytaleAssetSourceChannel]);
+  
 
-  function setActiveHytaleSourcePath(path: string) {
-    if (hytaleAssetSourceChannel === "pre-release") {
-      setHytalePreReleaseAssetsPath(path);
-      return;
-    }
-    setHytaleReleaseAssetsPath(path);
-  }
 
-  async function handleBrowseHytaleAssetSource() {
-    if (!isTauriRuntime()) {
-      addToast("Folder browsing is available in the TerraNova desktop app.", "warning");
-      return;
-    }
-    const selected = await openDialog(
-      hytaleAssetSourceChannel === "pre-release"
-        ? { directory: false, defaultPath: activeHytaleSourcePath, filters: [{ name: "Zip", extensions: ["zip"] }] }
-        : { directory: true, defaultPath: activeHytaleSourcePath },
-    );
-    if (typeof selected === "string") setActiveHytaleSourcePath(selected);
-  }
 
-  async function handleBrowseCommonAssetsSource() {
-    if (!isTauriRuntime()) {
-      addToast("Folder browsing is available in the TerraNova desktop app.", "warning");
-      return;
-    }
-    const browseZip = hytaleCommonAssetsPath.trim().toLowerCase().endsWith(".zip")
-      || activeHytaleSourcePath.trim().toLowerCase().endsWith(".zip");
-    const selected = await openDialog(
-      browseZip
-        ? { directory: false, defaultPath: hytaleCommonAssetsPath || activeHytaleSourcePath, filters: [{ name: "Zip", extensions: ["zip"] }] }
-        : { directory: true, defaultPath: hytaleCommonAssetsPath || activeHytaleSourcePath },
-    );
-    if (typeof selected === "string") setHytaleCommonAssetsPath(selected);
-  }
 
-  async function handleSyncHytaleAssets() {
-    if (!isTauriRuntime()) {
-      addToast("Hytale asset sync is available in the TerraNova desktop app.", "warning");
-      return;
-    }
-    if (!hytaleAssetSyncEnabled) {
-      addToast("Enable managed Hytale assets in Settings before syncing.", "warning");
-      return;
-    }
-    if (!activeHytaleSourcePath.trim()) {
-      addToast("Choose a Hytale asset source path first.", "warning");
-      return;
-    }
-    try {
-      // Start the sync in the background immediately. The Rust side will
-      // emit a quick completion event if there are zero files to write, so
-      // we avoid doing a potentially expensive pre-count on the UI thread.
-      setSyncingHytaleAssets(true);
 
-      const { result, cacheRoot, staleness } = await runHytaleAssetSync({
-        sourcePath: activeHytaleSourcePath,
-        commonOverlayEnabled: hytaleCommonAssetsEnabled,
-        commonOverlayPath: hytaleCommonAssetsPath,
-        channel: hytaleAssetSourceChannel,
-      });
-      setHytaleAssetCacheRoot(cacheRoot);
-      setStalenessInfo(staleness);
-      addToast(formatHytaleSyncToast(result), "success");
-    } catch (error) {
-      addToast(`Failed to sync Hytale assets: ${error}`, "error");
-    } finally {
-      setSyncingHytaleAssets(false);
-    }
-  }
-
-  async function handleOpenHytaleAssetCache() {
-    if (!hytaleAssetCacheRoot) return;
-    if (!isTauriRuntime()) {
-      addToast("Opening the asset cache is available in the TerraNova desktop app.", "warning");
-      return;
-    }
-    try {
-      await showInFolder(hytaleAssetCacheRoot);
-    } catch (error) {
-      addToast(`Could not open the Hytale asset cache: ${error}`, "error");
-    }
-  }
-
-  function handleClearAssetBrowserCache() {
-    clearAvailableHytaleAssetFoldersCache("hytale-assets");
-    clearHytaleAssetsInFolderCache("hytale-assets");
-    addToast("Cleared cached Hytale asset folder listings.", "success");
-  }
 
   async function handleRefreshHardware() {
     if (!isTauriRuntime()) {
@@ -442,213 +300,9 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
             )}
 
             {tab === "assets" && (
-              <>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Default Export Path</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={exportPath ?? "Not set"}
-                      className="flex-1 px-3 py-1.5 rounded border border-tn-border bg-tn-bg text-sm text-tn-text-muted truncate"
-                    />
-                    <button onClick={handleBrowseExportPath} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap">
-                      Browse...
-                    </button>
-                    <button onClick={() => setExportPath(null)} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted" disabled={!exportPath}>
-                      Clear
-                    </button>
-                  </div>
-                  <p className="text-xs text-tn-text-muted">Default target directory for File › Export operations</p>
-                </div>
-
-                <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-3">
-                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Hytale Asset Cache</label>
-
-                  <button
-                    onClick={() => setHytaleAssetSyncEnabled(!hytaleAssetSyncEnabled)}
-                    className={`text-left px-3 py-2 rounded border text-sm ${
-                      hytaleAssetSyncEnabled ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                    }`}
-                  >
-                    <span className="font-medium">Managed Hytale asset cache</span>
-                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{hytaleAssetSyncEnabled ? "On" : "Off"}</span>
-                    <p className="mt-0.5 text-xs text-tn-text-muted">
-                      Sync release or pre-release Hytale assets into TerraNova's local cache instead of shipping them with the app.
-                    </p>
-                  </button>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setHytaleAssetSourceChannel("pre-release")}
-                      className={`text-left px-3 py-2 rounded border text-sm ${
-                        hytaleAssetSourceChannel === "pre-release" ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                      }`}
-                    >
-                      <span className="font-medium">Pre-release</span>
-                      <p className="mt-0.5 text-xs text-tn-text-muted">Read directly from `Assets.zip`.</p>
-                    </button>
-                    <button
-                      onClick={() => setHytaleAssetSourceChannel("release")}
-                      className={`text-left px-3 py-2 rounded border text-sm ${
-                        hytaleAssetSourceChannel === "release" ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                      }`}
-                    >
-                      <span className="font-medium">Release</span>
-                      <p className="mt-0.5 text-xs text-tn-text-muted">Use `Assets.zip` inside the release `latest` folder when present.</p>
-                    </button>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-tn-text-muted">
-                      {hytaleAssetSourceChannel === "pre-release" ? "Pre-release asset source" : "Release asset source"}
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={activeHytaleSourcePath}
-                        onChange={(e) => setActiveHytaleSourcePath(e.target.value)}
-                        className="flex-1 rounded border border-tn-border bg-tn-bg px-3 py-1.5 text-sm text-tn-text"
-                      />
-                      <button onClick={handleBrowseHytaleAssetSource} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap">Browse...</button>
-                      <button
-                        onClick={() => {
-                          if (!isTauriRuntime()) {
-                            addToast("Default Hytale asset paths are available in the TerraNova desktop app.", "warning");
-                            return;
-                          }
-                          const resolve = hytaleAssetSourceChannel === "pre-release"
-                            ? resolveDefaultPreReleaseAssetsPath
-                            : resolveDefaultReleaseAssetsPath;
-                          void resolve().then(setActiveHytaleSourcePath).catch(() => setActiveHytaleSourcePath(""));
-                        }}
-                        className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap"
-                      >
-                        Default
-                      </button>
-                    </div>
-                    <p className="text-xs text-tn-text-muted">
-                      Pre-release can point straight at `Assets.zip`. Release can point at the `latest` folder or a zip file inside it.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setHytaleCommonAssetsEnabled(!hytaleCommonAssetsEnabled)}
-                    className={`text-left px-3 py-2 rounded border text-sm ${
-                      hytaleCommonAssetsEnabled ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                    }`}
-                  >
-                    <span className="font-medium">Include external Common assets</span>
-                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{hytaleCommonAssetsEnabled ? "On" : "Off"}</span>
-                    <p className="mt-0.5 text-xs text-tn-text-muted">
-                      Layer an extra `Common` source over the synced cache for block textures, material PNGs, sky art, and other TerraNova references.
-                    </p>
-                  </button>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-tn-text-muted">External Common asset source</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={hytaleCommonAssetsPath}
-                        onChange={(e) => setHytaleCommonAssetsPath(e.target.value)}
-                        disabled={!hytaleCommonAssetsEnabled}
-                        className="flex-1 rounded border border-tn-border bg-tn-bg px-3 py-1.5 text-sm text-tn-text disabled:cursor-not-allowed disabled:opacity-60"
-                      />
-                      <button onClick={handleBrowseCommonAssetsSource} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Browse...</button>
-                      <button onClick={() => setHytaleCommonAssetsPath(activeHytaleSourcePath)} disabled={!hytaleCommonAssetsEnabled || !activeHytaleSourcePath.trim()} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Use Source</button>
-                      <button
-                        onClick={() => {
-                          if (!isTauriRuntime()) {
-                            addToast("Default Hytale asset paths are available in the TerraNova desktop app.", "warning");
-                            return;
-                          }
-                          void resolveDefaultCommonAssetsPath().then(setHytaleCommonAssetsPath).catch(() => setHytaleCommonAssetsPath(""));
-                        }}
-                        disabled={!hytaleCommonAssetsEnabled}
-                        className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Default
-                      </button>
-                    </div>
-                    <p className="text-xs text-tn-text-muted">
-                      Point this at `Common` directly, a parent folder that contains `Common`, or an `Assets.zip` source. TerraNova will read the internal `Common/` subtree automatically.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-tn-text-muted">TerraNova cache folder</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        readOnly
-                        value={hytaleAssetCacheRoot || "Loading cache path..."}
-                        className="flex-1 rounded border border-tn-border bg-tn-bg px-3 py-1.5 text-sm text-tn-text-muted"
-                      />
-                      <button onClick={() => { void handleOpenHytaleAssetCache(); }} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap" disabled={!hytaleAssetCacheRoot}>
-                        Open Cache
-                      </button>
-                      <button
-                        onClick={() => { void handleSyncHytaleAssets(); }}
-                        className="px-3 py-1.5 text-sm rounded border border-tn-accent text-tn-accent hover:bg-tn-accent/10 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={syncingHytaleAssets}
-                      >
-                        {syncingHytaleAssets ? "Syncing..." : "Sync Now"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {activeHytaleSourcePath.trim() && (
-                    <div className={`flex items-center gap-2 rounded border px-3 py-2 text-[11px] ${
-                      checkingStaleness
-                        ? "border-tn-border/50 text-tn-text-muted"
-                        : (stalenessInfo?.channelMismatch || stalenessInfo?.isStale)
-                          ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
-                          : stalenessInfo?.syncedAt
-                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                            : "border-tn-border/50 text-tn-text-muted"
-                    }`}>
-                      <span className="shrink-0 text-base leading-none">
-                        {checkingStaleness ? "⏳" : (stalenessInfo?.channelMismatch || stalenessInfo?.isStale) ? "⚠️" : stalenessInfo?.syncedAt ? "✓" : "–"}
-                      </span>
-                      <span>
-                        {checkingStaleness
-                          ? "Checking source for updates…"
-                          : stalenessInfo?.channelMismatch
-                            ? <><span>Cache was built from a different channel — </span><button onClick={() => { void handleSyncHytaleAssets(); }} className="underline hover:no-underline">Re-sync to avoid conflicts</button></>
-                            : stalenessInfo?.isStale
-                              ? <><span>Source has files newer than your cache — </span><button onClick={() => { void handleSyncHytaleAssets(); }} className="underline hover:no-underline">Sync Now</button></>
-                              : stalenessInfo?.syncedAt
-                                ? `Cache is up to date · Last synced ${formatSyncedAt(stalenessInfo.syncedAt)}`
-                                : "Not synced yet — press Sync Now to build the cache"}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Manual Setup</p>
-                    <div className="mt-2 flex flex-col gap-2 text-[11px] leading-relaxed text-tn-text-muted">
-                      <p>Point TerraNova at the asset source on your computer and press <span className="font-medium text-tn-text">Sync Now</span>.</p>
-                      <p><span className="font-medium text-tn-text">Pre-release:</span> target the `Assets.zip` file directly.</p>
-                      <p className="rounded border border-tn-border/40 bg-tn-panel/40 px-2 py-1 font-mono text-[10px] text-tn-text">
-                        {examplePreReleasePath || "Resolving path…"}
-                      </p>
-                      <p><span className="font-medium text-tn-text">Release:</span> target the `latest` folder or its `Assets.zip`.</p>
-                      <p className="rounded border border-tn-border/40 bg-tn-panel/40 px-2 py-1 font-mono text-[10px] text-tn-text">
-                        {exampleReleasePath || "Resolving path…"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2 rounded border border-amber-500/30 bg-amber-950 px-3 py-2.5 text-[11px] text-amber-100">
-                    <AlertTriangle className="shrink-0 mt-px h-4 w-4 text-amber-300" aria-hidden />
-                    <p>
-                      The Hytale asset cache can reach <span className="font-medium text-amber-200">2–4 GB</span> depending on which release channel you sync and whether Common assets are included.
-                      Make sure the drive hosting your TerraNova folder has enough free space before syncing.
-                    </p>
-                  </div>
-                </div>
-              </>
+              <CategoryPanel category="assets" developerMode={devActive} onNavigate={handleNavigate}>
+                <HytaleAssetsPanel />
+              </CategoryPanel>
             )}
 
             {/* ── About ── */}

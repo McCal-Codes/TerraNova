@@ -1,4 +1,5 @@
 import { getAutoRecoverWebview, setAutoRecoverWebview } from "@/utils/startupPrefs";
+import { useDevMetricsStore } from "@/stores/devMetricsStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { defineSetting, type AnySettingDefinition } from "../types";
 
@@ -68,6 +69,23 @@ export const DEVELOPER_SETTINGS: AnySettingDefinition[] = [
     control: { kind: "toggle" },
     read: () => getAutoRecoverWebview(),
     write: (value) => setAutoRecoverWebview(value),
+  }),
+
+  // Lives in devMetricsStore rather than settingsStore, hence no storeKey; the
+  // coverage test only pairs storeKey against settingsStore/configStore.
+  defineSetting<boolean>({
+    id: "developer.performanceOverlay",
+    category: "developer",
+    section: "tools",
+    label: "Preview timing overlay",
+    description: "Live elapsed and last-evaluation time for 2D, voxel and world preview.",
+    defaultValue: false,
+    scopes: ["user"],
+    searchTerms: ["overlay", "timing", "performance", "fps", "profiling"],
+    devOnly: true,
+    control: { kind: "toggle" },
+    read: () => useDevMetricsStore.getState().showPerformanceOverlay,
+    write: (value) => useDevMetricsStore.getState().setShowPerformanceOverlay(value),
   }),
 
   defineSetting<boolean>({

@@ -1,20 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { ModalShell } from "@/components/ui/ModalShell";
-import { SettingsNestedCard } from "@/components/ui/settingsPrimitives";
 import { CATEGORY_META, type CategoryId, type SettingDeepLink } from "@/settings/registry";
 import "@/settings/index";
 import { CategoryRail } from "./settings/CategoryRail";
 import { CategoryPanel } from "./settings/CategoryPanel";
 import { FilesOperations } from "./settings/FilesOperations";
+import { DeveloperOperations } from "./settings/DeveloperOperations";
 import { HytaleAssetsPanel } from "./settings/HytaleAssetsPanel";
 import { SettingsSearchInput, SettingsSearchResults } from "./settings/SettingsSearch";
-import { useSettingsStore } from "@/stores/settingsStore";
 import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
-import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolders";
-import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
 import { useBugReportStore } from "@/stores/bugReportStore";
-import { useToastStore } from "@/stores/toastStore";
 import { WhatsNewDialog } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
 import { LegalTextDialog } from "./LegalTextDialog";
@@ -27,14 +23,9 @@ import {
 import { SystemSettingsPanel, type SystemTab } from "./ConfigurationDialog";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { KeyboardShortcutsPanel } from "./KeyboardShortcutsDialog";
-import { clearHardwareDetectionCache, detectHardware, type HardwareInfo } from "@/utils/hardwareDetect";
 import { isTauriRuntime } from "@/utils/platform";
 import { getAppVersion } from "@/utils/fetchReleases";
-import { copyTextToClipboard } from "@/utils/devTools";
-import { buildBugReportBundle, formatBugReportClipboard } from "@/utils/bugReport";
 import { useDeveloperMode } from "@/hooks/useDeveloperMode";
-import { useDevMetricsStore } from "@/stores/devMetricsStore";
-import { DevSettingRow } from "@/components/dev/devUi";
 
 /**
  * Settings categories now come from the registry (CATEGORY_META). This alias
@@ -65,28 +56,10 @@ interface SettingsDialogProps {
 
 
 export function SettingsDialog({ open, onClose, initialTab = "general", initialSystemTab = "cpu", onOpenAlphaChecklist }: SettingsDialogProps) {
-  const developerMode = useSettingsStore((s) => s.developerMode);
-  const setDeveloperMode = useSettingsStore((s) => s.setDeveloperMode);
-  const autoEnableDeveloperModeInDev = useSettingsStore((s) => s.autoEnableDeveloperModeInDev);
-  const setAutoEnableDeveloperModeInDev = useSettingsStore((s) => s.setAutoEnableDeveloperModeInDev);
-  const showDevToolsDock = useSettingsStore((s) => s.showDevToolsDock);
-  const setShowDevToolsDock = useSettingsStore((s) => s.setShowDevToolsDock);
-  const debugWorkerLogging = useSettingsStore((s) => s.debugWorkerLogging);
-  const setDebugWorkerLogging = useSettingsStore((s) => s.setDebugWorkerLogging);
-  const showNodeIdsOnCanvas = useSettingsStore((s) => s.showNodeIdsOnCanvas);
-  const setShowNodeIdsOnCanvas = useSettingsStore((s) => s.setShowNodeIdsOnCanvas);
-  const showPerformanceOverlay = useDevMetricsStore((s) => s.showPerformanceOverlay);
-  const setShowPerformanceOverlay = useDevMetricsStore((s) => s.setShowPerformanceOverlay);
   const devActive = useDeveloperMode();
 
   // Developer → Caches keeps its own entry point; Hytale assets has an
   // equivalent "Repair cache" beside the sync controls it belongs with.
-  function handleClearAssetBrowserCache() {
-    clearAvailableHytaleAssetFoldersCache("hytale-assets");
-    clearHytaleAssetsInFolderCache("hytale-assets");
-    addToast("Cleared cached Hytale asset folder listings.", "success");
-  }
-  const addToast = useToastStore((s) => s.addToast);
 
   const updateStatus = useUpdateStore((s) => s.status);
   const updateVersion = useUpdateStore((s) => s.version);
@@ -101,8 +74,6 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [legalDialog, setLegalDialog] = useState<"license" | "notice" | null>(null);
-  const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
-  const [refreshingHardware, setRefreshingHardware] = useState(false);
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -120,13 +91,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   }, [open, initialTab]);
 
   
-  useEffect(() => {
-    if (!open || (tab !== "performance" && tab !== "developer")) return;
-    void detectHardware()
-      .then(setHardwareInfo)
-      .catch(() => setHardwareInfo(null));
-  }, [open, tab]);
-
+  
 
 
 
@@ -140,23 +105,6 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
 
 
 
-  async function handleRefreshHardware() {
-    if (!isTauriRuntime()) {
-      addToast("Hardware detection is available in the TerraNova desktop app.", "warning");
-      return;
-    }
-    try {
-      setRefreshingHardware(true);
-      clearHardwareDetectionCache();
-      const info = await detectHardware();
-      setHardwareInfo(info);
-      addToast("Refreshed detected hardware information.", "success");
-    } catch (error) {
-      addToast(`Could not refresh hardware information: ${error}`, "error");
-    } finally {
-      setRefreshingHardware(false);
-    }
-  }
 
   // Categories are independent pages; carrying the previous scroll offset into
   // a new one lands the user mid-content for no reason.
@@ -307,145 +255,15 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
 
             {/* ── About ── */}
             {tab === "developer" && (
-              <>
-                <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-tn-text">Developer Tools</p>
-                      <p className="mt-1 text-xs text-tn-text-muted">Optional controls for debugging TerraNova locally. Safe to ignore for normal editing.</p>
-                    </div>
-                    <span className="rounded border border-tn-border/60 px-2 py-1 text-[10px] uppercase tracking-wider text-tn-text-muted">
-                      Advanced
-                    </span>
-                  </div>
-                </div>
-
-                <SettingsNestedCard className="px-3 divide-y divide-tn-border/40">
-                  <p className="text-xs font-medium text-tn-text-muted uppercase tracking-wider py-2">Mode</p>
-                  <DevSettingRow
-                    label="Developer mode"
-                    description="Enables debug controls in production builds."
-                    checked={developerMode}
-                    onChange={setDeveloperMode}
-                  />
-                  {import.meta.env.DEV && (
-                    <DevSettingRow
-                      label="Auto-enable in dev builds"
-                      description="Turn on developer tooling when running pnpm tauri dev."
-                      checked={autoEnableDeveloperModeInDev}
-                      onChange={setAutoEnableDeveloperModeInDev}
-                    />
-                  )}
-                </SettingsNestedCard>
-
-                {devActive && (
-                  <p className="text-xs text-emerald-400/90 px-1">
-                    Developer tooling is active{import.meta.env.DEV && !developerMode ? " (dev build)" : ""}.
+              <CategoryPanel category="developer" developerMode={devActive} onNavigate={handleNavigate}>
+                {devActive ? (
+                  <DeveloperOperations />
+                ) : (
+                  <p className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 text-xs text-tn-text-muted">
+                    Turn on developer mode to access logging, diagnostics and the tools below.
                   </p>
                 )}
-
-                {!devActive ? (
-                  <div className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 text-xs text-tn-text-muted">
-                    Enable developer mode to access logging, diagnostics, and the optional tools below.
-                  </div>
-                ) : (
-                  <>
-                    <SettingsNestedCard className="px-3 divide-y divide-tn-border/40">
-                      <p className="text-xs font-medium text-tn-text-muted uppercase tracking-wider py-2">Tools</p>
-                      <DevSettingRow
-                        label="Verbose worker logging"
-                        description="Log preview worker steps, import resolution, and layout changes to the console (off by default)."
-                        checked={debugWorkerLogging}
-                        onChange={setDebugWorkerLogging}
-                      />
-                      <DevSettingRow
-                        label="Developer tools panel"
-                        description="Bottom dock for store snapshots and export diff."
-                        checked={showDevToolsDock}
-                        onChange={setShowDevToolsDock}
-                      />
-                      <DevSettingRow
-                        label="Preview timing overlay"
-                        description="Live elapsed + last eval time for 2D, voxel, and world preview (developer mode)."
-                        checked={showPerformanceOverlay}
-                        onChange={setShowPerformanceOverlay}
-                      />
-                      <DevSettingRow
-                        label="Node IDs on canvas"
-                        description="Show UUIDs under nodes (pairs with the properties inspector)."
-                        checked={showNodeIdsOnCanvas}
-                        onChange={setShowNodeIdsOnCanvas}
-                      />
-                    </SettingsNestedCard>
-
-                    <div className="rounded border border-tn-border bg-tn-bg p-3 flex flex-col gap-2">
-                      <div>
-                        <p className="text-xs font-medium uppercase tracking-wider text-tn-text-muted">Session snapshot</p>
-                        <p className="mt-1 text-xs text-tn-text-muted">
-                          Copy project path, open file, graph counts, validation summary, preview state, and Bridge status as JSON for bug reports.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void buildBugReportBundle().then((snap) =>
-                            copyTextToClipboard(formatBugReportClipboard(snap)).then((ok) => {
-                              addToast(ok ? "Copied debug report" : "Could not copy debug report", ok ? "success" : "error");
-                            }),
-                          );
-                        }}
-                        className="self-start px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
-                      >
-                        Copy session snapshot
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                      <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-3 flex flex-col gap-3">
-                        <div>
-                          <p className="text-xs font-medium uppercase tracking-wider text-tn-text-muted">Caches</p>
-                          <p className="mt-1 text-xs text-tn-text-muted">Use these when asset browsing or hardware detection needs a clean refresh.</p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={handleClearAssetBrowserCache}
-                            className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
-                          >
-                            Clear Asset Browser Cache
-                          </button>
-                          <button
-                            onClick={() => { clearHardwareDetectionCache(); setHardwareInfo(null); addToast("Cleared cached hardware detection.", "success"); }}
-                            className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
-                          >
-                            Clear Hardware Cache
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-3 flex flex-col gap-3">
-                        <div>
-                          <p className="text-xs font-medium uppercase tracking-wider text-tn-text-muted">Detected Hardware</p>
-                          <p className="mt-1 text-xs text-tn-text-muted">Quick reference for the live hardware profile TerraNova is currently using.</p>
-                        </div>
-                        <div className="text-xs text-tn-text-muted flex flex-col gap-1">
-                          <p><span className="text-tn-text">CPU:</span> {hardwareInfo?.cpuName || "Unknown"}</p>
-                          <p><span className="text-tn-text">Cores:</span> {hardwareInfo?.cpuCores ?? "Unknown"}</p>
-                          <p><span className="text-tn-text">GPU:</span> {hardwareInfo?.gpuRenderer || "Unknown"}</p>
-                          <p><span className="text-tn-text">Adapters:</span> {hardwareInfo?.gpus.length ?? 0}</p>
-                          <p><span className="text-tn-text">RAM:</span> {hardwareInfo?.totalRamMb ? `${(hardwareInfo.totalRamMb / 1024).toFixed(1)} GB` : "Unknown"}</p>
-                        </div>
-                        <button
-                          onClick={() => { void handleRefreshHardware(); }}
-                          disabled={refreshingHardware}
-                          className="self-start px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {refreshingHardware ? "Refreshing..." : "Refresh Hardware Info"}
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </>
+              </CategoryPanel>
             )}
 
             {tab === "about" && (

@@ -412,144 +412,6 @@
    ],
    "derivedFrom": "BaseHeightDensityAsset"
   },
-  "BlockMask:And": {
-   "nodeType": "And",
-   "displayName": "And",
-   "category": "BlockMask",
-   "subcategory": "",
-   "description": "",
-   "fields": {},
-   "inputs": [
-    {
-     "id": "ContentPredicates",
-     "handleType": "BlockMask",
-     "label": "ContentPredicates"
-    }
-   ],
-   "outputs": [
-    {
-     "id": "output",
-     "handleType": "BlockMask",
-     "label": "output"
-    }
-   ],
-   "derivedFrom": "AndContentPredicateAsset"
-  },
-  "BlockMask:Constant": {
-   "nodeType": "Constant",
-   "displayName": "Constant",
-   "category": "BlockMask",
-   "subcategory": "",
-   "description": "",
-   "fields": {
-    "Value": {
-     "type": "boolean",
-     "required": true,
-     "default": true
-    }
-   },
-   "inputs": [],
-   "outputs": [
-    {
-     "id": "output",
-     "handleType": "BlockMask",
-     "label": "output"
-    }
-   ],
-   "derivedFrom": "ConstantContentPredicateAsset"
-  },
-  "BlockMask:Imported": {
-   "nodeType": "Imported",
-   "displayName": "Imported",
-   "category": "BlockMask",
-   "subcategory": "",
-   "description": "",
-   "fields": {
-    "Name": {
-     "type": "string",
-     "required": true,
-     "default": ""
-    }
-   },
-   "inputs": [],
-   "outputs": [
-    {
-     "id": "output",
-     "handleType": "BlockMask",
-     "label": "output"
-    }
-   ],
-   "derivedFrom": "ImportedContentPredicateAsset"
-  },
-  "BlockMask:Not": {
-   "nodeType": "Not",
-   "displayName": "Not",
-   "category": "BlockMask",
-   "subcategory": "",
-   "description": "",
-   "fields": {},
-   "inputs": [
-    {
-     "id": "ContentPredicate",
-     "handleType": "BlockMask",
-     "label": "ContentPredicate"
-    }
-   ],
-   "outputs": [
-    {
-     "id": "output",
-     "handleType": "BlockMask",
-     "label": "output"
-    }
-   ],
-   "derivedFrom": "NotContentPredicateAsset"
-  },
-  "BlockMask:Or": {
-   "nodeType": "Or",
-   "displayName": "Or",
-   "category": "BlockMask",
-   "subcategory": "",
-   "description": "",
-   "fields": {},
-   "inputs": [
-    {
-     "id": "ContentPredicates",
-     "handleType": "BlockMask",
-     "label": "ContentPredicates"
-    }
-   ],
-   "outputs": [
-    {
-     "id": "output",
-     "handleType": "BlockMask",
-     "label": "output"
-    }
-   ],
-   "derivedFrom": "OrContentPredicateAsset"
-  },
-  "BlockMask:Set": {
-   "nodeType": "Set",
-   "displayName": "Set",
-   "category": "BlockMask",
-   "subcategory": "",
-   "description": "",
-   "fields": {
-    "ContentTags": {
-     "type": "array",
-     "required": true,
-     "default": []
-    }
-   },
-   "inputs": [],
-   "outputs": [
-    {
-     "id": "output",
-     "handleType": "BlockMask",
-     "label": "output"
-    }
-   ],
-   "derivedFrom": "SetContentPredicateAsset"
-  },
   "Cache": {
    "nodeType": "Cache",
    "displayName": "Cache",
@@ -1036,6 +898,144 @@
     }
    ],
    "derivedFrom": "ConstantDensityAsset"
+  },
+  "ContentPredicate:And": {
+   "nodeType": "And",
+   "displayName": "And",
+   "category": "ContentPredicate",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "ContentPredicates",
+     "handleType": "ContentPredicate",
+     "label": "ContentPredicates"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ContentPredicate",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AndContentPredicateAsset"
+  },
+  "ContentPredicate:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "ContentPredicate",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "boolean",
+     "required": true,
+     "default": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ContentPredicate",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantContentPredicateAsset"
+  },
+  "ContentPredicate:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "ContentPredicate",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ContentPredicate",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedContentPredicateAsset"
+  },
+  "ContentPredicate:Not": {
+   "nodeType": "Not",
+   "displayName": "Not",
+   "category": "ContentPredicate",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "ContentPredicate",
+     "handleType": "ContentPredicate",
+     "label": "ContentPredicate"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ContentPredicate",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NotContentPredicateAsset"
+  },
+  "ContentPredicate:Or": {
+   "nodeType": "Or",
+   "displayName": "Or",
+   "category": "ContentPredicate",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "ContentPredicates",
+     "handleType": "ContentPredicate",
+     "label": "ContentPredicates"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ContentPredicate",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OrContentPredicateAsset"
+  },
+  "ContentPredicate:Set": {
+   "nodeType": "Set",
+   "displayName": "Set",
+   "category": "ContentPredicate",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ContentTags": {
+     "type": "array",
+     "required": true,
+     "default": []
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ContentPredicate",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SetContentPredicateAsset"
   },
   "ContentSupplier:Constant": {
    "nodeType": "Constant",
@@ -4083,7 +4083,7 @@
    "inputs": [
     {
      "id": "ContentPredicate",
-     "handleType": "BlockMask",
+     "handleType": "ContentPredicate",
      "label": "ContentPredicate"
     }
    ],
@@ -4464,7 +4464,7 @@
    "inputs": [
     {
      "id": "ContentPredicate",
-     "handleType": "BlockMask",
+     "handleType": "ContentPredicate",
      "label": "ContentPredicate"
     }
    ],

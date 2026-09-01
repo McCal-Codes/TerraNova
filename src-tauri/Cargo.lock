@@ -4174,7 +4174,7 @@ dependencies = [
 
 [[package]]
 name = "terranova"
-version = "0.1.8-alpha.5"
+version = "0.1.8-alpha.6"
 dependencies = [
  "base64 0.22.1",
  "bridge-save",

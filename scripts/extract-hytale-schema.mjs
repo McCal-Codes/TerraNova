@@ -282,7 +282,12 @@ for (const k of Object.keys(byCategory)) byCategory[k].sort();
  */
 const REGISTRY_TO_EDITOR_CATEGORY = {
   Assignments: "Assignment",
-  ContentPredicate: "BlockMask",
+  // NOT BlockMask. ContentPredicate lives in assets/graph/contentpredicates and
+  // belongs to the world-structure graph; BlockMask is a separate named asset in
+  // assets/blockmask that is not a typed node at all (it is a Default array of
+  // block rules). Mapping one onto the other put graph predicates in the block
+  // mask palette, where the generator would never read them.
+  ContentPredicate: "ContentPredicate",
   Density: "Density",
   Curve: "Curve",
   MaterialProvider: "MaterialProvider",

@@ -152,6 +152,7 @@ const HANDLE_TYPE_TO_CATEGORY: Record<string, AssetCategory> = {
   CaveGenerator: AssetCategory.CaveGenerator,
   Generator: AssetCategory.Generator,
   Noise: AssetCategory.Noise,
+  ContentPredicate: AssetCategory.ContentPredicate,
   DistanceFunction: AssetCategory.DistanceFunction,
   ContentSupplier: AssetCategory.ContentSupplier,
   ReturnType: AssetCategory.ReturnType,

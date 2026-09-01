@@ -45,9 +45,7 @@ function identity(key: string, node: BundleNode): { category: string; type: stri
 function toDerivedKey(registryKey: string): string {
   const [category, type] = registryKey.split(":") as [string, string];
   if (category === "Density") return type;
-  const editorCategory = category === "Assignments" ? "Assignment"
-    : category === "ContentPredicate" ? "BlockMask"
-    : category;
+  const editorCategory = category === "Assignments" ? "Assignment" : category;
   return `${editorCategory}:${type}`;
 }
 

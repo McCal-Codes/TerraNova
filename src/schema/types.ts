@@ -29,6 +29,7 @@ export enum AssetCategory {
   // registry exactly like the categories above; TerraNova simply had no
   // definitions for them until the registry was read directly.
   Noise = "Noise",
+  ContentPredicate = "ContentPredicate",
   DistanceFunction = "DistanceFunction",
   ContentSupplier = "ContentSupplier",
   ReturnType = "ReturnType",
@@ -112,6 +113,7 @@ export const CATEGORY_COLORS: Record<AssetCategory, string> = {
   // Graph subsystem — a related family, so a common hue with the node/edge
   // halves separated by lightness rather than nine unrelated colours.
   [AssetCategory.Noise]: "#4A90D9",
+  [AssetCategory.ContentPredicate]: "#8C8878",
   [AssetCategory.DistanceFunction]: "#5AACA6",
   [AssetCategory.ContentSupplier]: "#A08258",
   [AssetCategory.ReturnType]: "#8C8878",

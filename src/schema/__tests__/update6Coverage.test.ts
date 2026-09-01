@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import bundle from "../../data/terranova-bundle.json";
 import registryNodes from "../../data/hytale-update6-nodes.json";
+import { ALL_DEFAULTS } from "../defaults";
+import { isPaletteTypeKeyVisible } from "@/nodes/shared/legacyTypes";
+import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
+import { isSubTypeNode } from "../schemaLoader";
+import { EDITOR_PREFIX_TO_BUNDLE_CATEGORY } from "../categoryPrefixes";
 import {
   allUpdate6Keys,
   getUpdate6Type,
@@ -49,6 +54,14 @@ function toDerivedKey(registryKey: string): string {
   return `${editorCategory}:${type}`;
 }
 
+/** Editor key ("Curve:Sum", or a bare name meaning Density) -> registry key. */
+function toRegistryKey(typeKey: string): [category: string, type: string] {
+  const i = typeKey.indexOf(":");
+  if (i < 0) return ["Density", typeKey];
+  const bundle = EDITOR_PREFIX_TO_BUNDLE_CATEGORY[typeKey.slice(0, i)] ?? typeKey.slice(0, i);
+  return [bundle === "Assignment" ? "Assignments" : bundle, typeKey.slice(i + 1)];
+}
+
 const IDENTITIES = new Map<string, { category: string; type: string; node: BundleNode }>();
 for (const [key, node] of Object.entries(NODES)) {
   const id = identity(key, node);
@@ -56,25 +69,21 @@ for (const [key, node] of Object.entries(NODES)) {
 }
 
 describe("editor node set vs the Update 6 registry", () => {
-  it("offers no node the generator would reject", () => {
-    const rejected: string[] = [];
-    for (const [key, { category, type, node }] of IDENTITIES) {
-      const availability = nodeAvailability(category, type, { isSubType: node.isSubType });
-      if (availability === "legacy") rejected.push(key);
+  it("offers nothing in the palette that the generator would reject", () => {
+    // The invariant that makes the classification worth having: every type a
+    // user can place must be one Update 6 registers, or an editor construct
+    // that is deliberately not a generator node. Anything else is hidden by the
+    // legacy gate, which also badges it and suggests a replacement.
+    const offered: string[] = [];
+    for (const entry of ALL_DEFAULTS) {
+      const key = resolveNodeTypeKey(entry);
+      if (!isPaletteTypeKeyVisible(key)) continue;
+      const [category, type] = toRegistryKey(key);
+      if (nodeAvailability(category, type, { isSubType: isSubTypeNode(key) }) === "legacy") {
+        offered.push(key);
+      }
     }
-    // Every legacy type is listed in update6.ts with the reason it is there.
-    // A new name here means an unregistered type reached the palette.
-    expect(rejected.sort()).toEqual([
-      "EnvironmentProvider:EnvironmentConstant",
-      "EnvironmentProvider:EnvironmentDensityDelimited",
-      "Pattern:Gap",
-      "PositionProvider:Mesh",
-      "PositionProvider:Positions",
-      "Prop:Curve",
-      "Prop:UniquePrefab",
-      "TintProvider:TintConstant",
-      "TintProvider:TintDensityDelimited",
-    ]);
+    expect(offered.sort()).toEqual([]);
   });
 
   it("has an editor definition for every registered type", () => {

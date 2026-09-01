@@ -308,6 +308,15 @@ export function getAllSchemaTypes(): string[] {
 }
 
 /**
+ * Whether this palette entry stands for an enum value rather than a node — a
+ * CellNoise return type, a distance function. They are expected to have no
+ * registration of their own.
+ */
+export function isSubTypeNode(nodeType: string): boolean {
+  return resolveNodeKey(nodeType)?.isSubType === true;
+}
+
+/**
  * Whether this type's definition came from the registry generator rather than
  * from the curated bundle.
  *

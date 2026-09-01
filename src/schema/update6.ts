@@ -102,29 +102,25 @@ const EDITOR_ONLY = new Set([
   "Biome:NoiseRange",
   "Biome:WorldStructureAsset",
   "Biome:WorldStructureNoiseRange",
+  // A BlockMask is not a typed node in Hytale. It is a named asset holding
+  // DontPlace/Materials rule lists — a shipped one carries no "Type" field at
+  // all — so these are the editor's way of building that structure and have no
+  // registration to match. BlockMask is also not ContentPredicate, which lives
+  // in the graph subsystem and registers names that collide with these.
+  "BlockMask:All",
+  "BlockMask:None",
+  "BlockMask:Single",
+  "BlockMask:Imported",
+  "BlockMask:Set",
 ]);
 
 /**
- * Types Update 6 does not register and that are not editor constructs.
- *
- * Each is here because it was checked against the shipped assets and found
- * absent — not because it merely failed a name lookup.
+ * Everything else unregistered is legacy, and the palette gate in
+ * `nodes/shared/legacyTypes.ts` is what hides it — that list already drives the
+ * LEGACY badge, the validation warning and the replacement suggestion, so
+ * duplicating it here would only give it a second place to drift from.
+ * `update6Coverage.test.ts` checks the two agree.
  */
-const LEGACY = new Set([
-  // Zero occurrences in HytaleAssets; the shipped documents use the
-  // unprefixed "Constant" / "DensityDelimited" that Update 6 registers.
-  "EnvironmentProvider:EnvironmentConstant",
-  "EnvironmentProvider:EnvironmentDensityDelimited",
-  "TintProvider:TintConstant",
-  "TintProvider:TintDensityDelimited",
-  // Registered under PointGenerator, not PositionProvider.
-  "PositionProvider:Mesh",
-  // No codec registration under any category.
-  "Pattern:Gap",
-  "PositionProvider:Positions",
-  "Prop:Curve",
-  "Prop:UniquePrefab",
-]);
 
 /**
  * Classifies a node type the editor offers.
@@ -138,12 +134,8 @@ export function nodeAvailability(
   type: string,
   options: { isSubType?: boolean } = {},
 ): NodeAvailability {
-  const key = update6Key(category, type);
   if (isRegisteredType(category, type)) return "registered";
-  if (options.isSubType || EDITOR_ONLY.has(key)) return "editor-only";
-  if (LEGACY.has(key)) return "legacy";
-  // Unclassified and unregistered: treat as legacy so it is surfaced rather
-  // than silently offered. Adding it to one of the sets above is the fix.
+  if (options.isSubType || EDITOR_ONLY.has(update6Key(category, type))) return "editor-only";
   return "legacy";
 }
 

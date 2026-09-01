@@ -32,6 +32,7 @@ Sixth **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github
 - Ten categories that had no editor support at all — node and edge selectors and actions, graph passes, return types, content predicates and suppliers, distance functions and noise — are grouped below the terrain categories under one **World structure graph** heading, collapsed by default.
 - Types are keyed by category rather than by name. Forty-eight type names are registered under more than one category, `Imported` under nineteen of them.
 - Nodes with no bespoke editor component no longer report themselves as "not in the TerraNova palette".
+- **Eighteen node types that the generator would reject are no longer offered** — prefixed Environment and Tint spellings, `Environment:Imported`, `Tint:Imported`, `Position:Mesh` and others. Each was checked against the registry and against every shipped asset file before being retired; existing graphs still open them, with a badge and a suggested replacement where one exists.
 - Hand-written node defaults are kept where they exist; generated ones only fill gaps. A generated default is whatever the Java field was initialised to, which is often the inert value.
 
 ### Interface

@@ -1,0 +1,5 @@
+{ "Type": "Clamp", "WallA": -1, "WallB": 1, "Inputs": [
+  { "Type": "Normalizer", "FromMin": 0, "FromMax": 0.005, "ToMin": -1, "ToMax": 1, "Inputs": [
+    { "Type": "Pow", "Exponent": 3, "Inputs": [
+      { "Type": "Abs", "Inputs": [
+        { "Type": "SimplexNoise2D", "Lacunarity": 3, "Persistence": 0.15, "Octaves": 2, "Scale": 80, "Seed": "Skyreach_Selection_Roots_Density" } ] } ] } ] } ] }

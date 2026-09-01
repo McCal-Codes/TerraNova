@@ -10,7 +10,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    include: ["src/**/__tests__/**/*.test.{ts,tsx}"],
+    // scripts/ holds the dev launcher and doctor, whose decision logic is unit
+    // tested the same way as app code.
+    include: ["src/**/__tests__/**/*.test.{ts,tsx}", "scripts/**/__tests__/**/*.test.{ts,tsx}"],
     setupFiles: ["./src/test/setup.ts"],
     coverage: {
       provider: "v8",

@@ -6,7 +6,8 @@ import {
   createHytaleNoise2D, createHytaleNoise3D,
   createHytaleNoise2DWithGradient, createHytaleNoise3DWithGradient,
 } from "../hytaleNoise";
-import { mulberry32, hashSeed } from "./prng";
+import { mulberry32 } from "./prng";
+import { deriveNodeSeed } from "./javaRandom";
 import { voronoiNoise2D, voronoiNoise3D } from "./voronoiNoise";
 import { findDensityRoot, getNodeType, UNSUPPORTED_TYPES } from "./evalTypes";
 import { buildAllHandlers } from "./handlers";
@@ -29,6 +30,15 @@ export interface EvaluationOptions {
   contentFields?: Record<string, number>;
   /** Cross-file density exports keyed by ExportAs / Imported Name. */
   externalDensityExports?: DensityExportMap;
+  /**
+   * Root key of the SeedBox chain — in-game this is the world's seed.
+   *
+   * V2 derives a node's integer seed as
+   * `new FastRandom((parentKey + nodeSeedKey).hashCode()).nextInt()`, so the same
+   * node renders a different world under a different root. Defaults to "", which
+   * matches an unseeded root rather than skipping the derivation.
+   */
+  worldSeed?: string;
 }
 
 export interface EvaluationContext {
@@ -94,7 +104,7 @@ export interface EvalCtx {
   vec3Length: typeof vec3Length;
 
   // Re-export for handlers
-  hashSeed: typeof hashSeed;
+  hashSeed: (seed: string | number | undefined) => number;
 
   /** Lazy cache for position-warp preview (PositionsPinch / PositionsTwist). */
   positionListCache?: Map<string, EvaluatedPosition[]>;
@@ -137,6 +147,17 @@ export function createEvaluationContext(
 
   const nodeById = new Map(nodes.map((nd) => [nd.id, nd]));
   const contentFields = options?.contentFields ?? {};
+  const worldSeed = options?.worldSeed ?? "";
+
+  /**
+   * Resolve a node's Seed field to the integer the game would hand its noise field.
+   *
+   * Not the plain string hash: SeedBox concatenates the key path and then runs it
+   * through one FastRandom draw. A numeric Seed goes through the identical path,
+   * because SeedBox(int) stores Integer.toString(i) as its key.
+   */
+  const hashSeed = (seed: string | number | undefined): number =>
+    deriveNodeSeed(worldSeed, seed === undefined || seed === null ? "" : String(seed));
 
   // Noise caches
   const noise2DCache = new Map<number, (x: number, y: number) => number>();

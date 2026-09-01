@@ -92,15 +92,25 @@ const handleYSampled: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   return isInterpolated ? v0 + (v1 - v0) * ratio : (ratio < 0.5 ? v0 : v1);
 };
 
+/**
+ * SwitchState — evaluate the subtree with the switch state set to a fixed integer.
+ *
+ * V2's field is `SwitchState`; `State` is a TerraNova-era spelling kept for graphs
+ * already saved with it. SwitchStateDensity assigns the value straight into
+ * `Context.switchState` as an `int`, so it is truncated, never hashed.
+ */
 const handleSwitchState: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  const state = Math.trunc(Number(fields.SwitchState ?? fields.State ?? 0));
   if (!inputs.has("Input")) {
-    return Number(fields.State ?? 0);
-  } else {
-    const prevState = ctx.switchState;
-    ctx.switchState = ctx.hashSeed(fields.State as string | number | undefined);
-    const result = ctx.getInput(inputs, "Input", x, y, z);
+    return state;
+  }
+  const prevState = ctx.switchState;
+  ctx.switchState = state;
+  try {
+    return ctx.getInput(inputs, "Input", x, y, z);
+  } finally {
+    // Restore even if a nested handler throws, or the state leaks into siblings.
     ctx.switchState = prevState;
-    return result;
   }
 };
 

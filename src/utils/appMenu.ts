@@ -15,6 +15,8 @@ export const MENU_EVENT = "menu://action";
 /** Must match `menu::ids` in src-tauri/src/menu.rs. */
 export const MENU_ACTIONS = [
   "app.settings",
+  "edit.undo",
+  "edit.redo",
   "file.new-project",
   "file.create-pack",
   "file.open",

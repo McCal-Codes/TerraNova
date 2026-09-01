@@ -24,6 +24,9 @@ pub const MENU_EVENT: &str = "menu://action";
 pub mod ids {
     pub const SETTINGS: &str = "app.settings";
 
+    pub const UNDO: &str = "edit.undo";
+    pub const REDO: &str = "edit.redo";
+
     pub const NEW_PROJECT: &str = "file.new-project";
     pub const CREATE_PACK: &str = "file.create-pack";
     pub const OPEN: &str = "file.open";
@@ -101,11 +104,25 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&MenuItemBuilder::with_id(ids::CLOSE_PROJECT, "Close Project").build(app)?)
         .build()?;
 
-    // All predefined: macOS expects the system to own these, and routing
-    // Cmd+C/V/Z through them is what makes text fields behave correctly.
+    // Cut/Copy/Paste/Select All stay predefined — they are genuinely text
+    // operations and macOS should own them.
+    //
+    // Undo/Redo are NOT. The predefined versions send Cocoa's undo:/redo: down
+    // the responder chain to the WKWebView, which only ever undoes text
+    // editing. This app's undo is graph-level (editorStore), so the predefined
+    // items looked correct and did nothing. These route to the frontend, which
+    // applies the same in-a-text-field check the keyboard path uses.
     let edit_menu = SubmenuBuilder::new(app, "Edit")
-        .undo()
-        .redo()
+        .item(
+            &MenuItemBuilder::with_id(ids::UNDO, "Undo")
+                .accelerator("CmdOrCtrl+Z")
+                .build(app)?,
+        )
+        .item(
+            &MenuItemBuilder::with_id(ids::REDO, "Redo")
+                .accelerator("CmdOrCtrl+Shift+Z")
+                .build(app)?,
+        )
         .separator()
         .cut()
         .copy()
@@ -179,7 +196,18 @@ pub fn set_menu_project_open<R: Runtime>(app: AppHandle<R>, open: bool) {
 
 fn set_project_open<R: Runtime>(app: &AppHandle<R>, open: bool) {
     let Some(menu) = app.menu() else { return };
-    for id in [ids::SAVE, ids::SAVE_AS, ids::EXPORT_SVG, ids::CLOSE_PROJECT] {
+    for id in [
+        ids::SAVE,
+        ids::SAVE_AS,
+        ids::EXPORT_SVG,
+        ids::CLOSE_PROJECT,
+        ids::UNDO,
+        ids::REDO,
+        ids::TOGGLE_LEFT_PANEL,
+        ids::TOGGLE_RIGHT_PANEL,
+        ids::TOGGLE_GRID,
+        ids::TOGGLE_MINIMAP,
+    ] {
         if let Some(item) = menu.get(id).and_then(|i| i.as_menuitem().cloned()) {
             let _ = item.set_enabled(open);
         }

@@ -32,6 +32,8 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useUIStore } from "@/stores/uiStore";
 import { setMenuProjectOpen, useAppMenu } from "@/utils/appMenu";
+import { isTextEntryFocused } from "@/utils/textEntry";
+import { useEditorStore } from "@/stores/editorStore";
 import type { SvgExportOptions } from "@/utils/exportSvg";
 import { useReactFlow } from "@xyflow/react";
 import { useTauriIO } from "@/hooks/useTauriIO";
@@ -519,6 +521,8 @@ function ProjectEditor({
   // Same hook the keyboard shortcuts use, so File → Save and Cmd+S are
   // literally the same handler.
   const { saveFile, saveFileAs } = useTauriIO();
+  const undo = useEditorStore((s) => s.undo);
+  const redo = useEditorStore((s) => s.redo);
 
   useGlobalKeyboardShortcuts({
     onCloseProject: requestCloseProject,
@@ -535,6 +539,10 @@ function ProjectEditor({
     useMemo(
       () => ({
         "app.settings": () => openSettings("general"),
+        // Mirrors the keyboard path: inside a text field the browser's own
+        // text undo is what the user means; anywhere else it is the graph.
+        "edit.undo": () => (isTextEntryFocused() ? document.execCommand("undo") : undo()),
+        "edit.redo": () => (isTextEntryFocused() ? document.execCommand("redo") : redo()),
         "file.save": () => void saveFile(),
         "file.save-as": () => void saveFileAs(),
         "file.new-project": () => setShowNewProject(true),
@@ -555,7 +563,7 @@ function ProjectEditor({
         },
         "help.changelog": () => openSettings("about"),
       }),
-      [openSettings, requestCloseProject, saveFile, saveFileAs, setShowCreatePack, setShowExportSvg, setShowNewProject],
+      [openSettings, redo, requestCloseProject, saveFile, saveFileAs, setShowCreatePack, setShowExportSvg, setShowNewProject, undo],
     ),
   );
 

@@ -35,7 +35,11 @@ export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
   "SurfaceDensity", "TerrainBoolean", "TerrainMask",
   "GradientDensity", "BeardDensity", "ColumnDensity", "CaveDensity",
   "SplineFunction", "FlatCache", "Wrap",
-  "Zero", "One", "Debug", "Passthrough", "YGradient", "Amplitude",
+  "Zero", "One", "Debug", "Passthrough", "YGradient",
+  // "Amplitude" was here, and should not have been: Update 6 registers
+  // AmplitudeDensityAsset and a shipped biome uses it. It takes a FunctionForY
+  // curve, so the old rewrite to AmplitudeConstant (Scale/Offset) was not an
+  // equivalent either. `update6Legacy.test.ts` now catches this class of error.
   // Density — old names replaced by V2 names
   "Product", "Negate", "SquareRoot", "ImportedValue", "LinearTransform",
   "CoordinateX", "CoordinateY", "CoordinateZ", "CurveFunction",
@@ -173,7 +177,6 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ["FlatCache",           "Cache"],
   ["Zero",                "Constant"],
   ["One",                 "Constant"],
-  ["Amplitude",           "AmplitudeConstant"],
   ["VoronoiNoise2D",     "CellNoise2D"],
   ["VoronoiNoise3D",     "CellNoise3D"],
   ["Cache2D",             "Cache"],

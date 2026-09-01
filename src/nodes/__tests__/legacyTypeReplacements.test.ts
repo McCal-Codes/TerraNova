@@ -21,7 +21,11 @@ describe("getLegacyReplacement", () => {
     expect(getLegacyReplacement("AverageFunction")).toBe("Mix");
     expect(getLegacyReplacement("FlatCache")).toBe("Cache");
     expect(getLegacyReplacement("Cache2D")).toBe("Cache");
-    expect(getLegacyReplacement("Amplitude")).toBe("AmplitudeConstant");
+    // Amplitude is not legacy: Update 6 registers AmplitudeDensityAsset and a
+    // shipped biome uses it. It takes a FunctionForY curve where
+    // AmplitudeConstant takes Scale/Offset, so the old redirect also changed
+    // what the node did. See update6Legacy.test.ts.
+    expect(getLegacyReplacement("Amplitude")).toBeNull();
     expect(getLegacyReplacement("Zero")).toBe("Constant");
     expect(getLegacyReplacement("One")).toBe("Constant");
     expect(getLegacyReplacement("VoronoiNoise2D")).toBe("CellNoise2D");

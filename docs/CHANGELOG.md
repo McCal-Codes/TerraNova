@@ -28,8 +28,8 @@ Sixth **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github
 ### Nodes and schema
 
 - The node schema is now generated from `AssetManager.java`'s registry and each asset's codec — 313 types, 1299 fields, with enum fields resolved to their constants so they offer a choice instead of free text.
-- **Vector providers went from 5 to 18**, position providers from 24 to 27, materials from 14 to 17, props from 22 to 23, block masks from 5 to 9.
-- Nine categories that had no editor support at all — node and edge selectors and actions, graph passes, return types, content suppliers, distance functions and noise — are grouped below the terrain categories under one **World structure graph** heading, collapsed by default.
+- **Vector providers went from 5 to 18**, position providers from 24 to 27, materials from 14 to 17, prop distributions from 5 to 8, props from 22 to 23, density functions from 81 to 98.
+- Ten categories that had no editor support at all — node and edge selectors and actions, graph passes, return types, content predicates and suppliers, distance functions and noise — are grouped below the terrain categories under one **World structure graph** heading, collapsed by default.
 - Types are keyed by category rather than by name. Forty-eight type names are registered under more than one category, `Imported` under nineteen of them.
 - Nodes with no bespoke editor component no longer report themselves as "not in the TerraNova palette".
 - Hand-written node defaults are kept where they exist; generated ones only fill gaps. A generated default is whatever the Java field was initialised to, which is often the inert value.

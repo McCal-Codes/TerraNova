@@ -8,6 +8,7 @@ import { resolveTerrainReferenceLevels } from "@/utils/terrainPreviewLevel";
 import { resolvePreviewRootNodeId } from "@/utils/previewRootResolver";
 import {
   PreviewCheckbox,
+  PreviewControlGroup,
   PreviewCallout,
   PreviewSidebarSection,
   previewButtonClass,
@@ -171,51 +172,72 @@ export function ControlsVoxel() {
 
   return (
     <PreviewSidebarSection title="Voxel mesh" headingId="preview-voxel-heading">
-      <SliderField label="Range min" value={rangeMin} min={-256} max={0} step={1} onChange={(v) => setRange(v, rangeMax)} />
-      <SliderField label="Range max" value={rangeMax} min={0} max={256} step={1} onChange={(v) => setRange(rangeMin, v)} />
+      <PreviewControlGroup label="Density range">
+        <SliderField label="Range min" value={rangeMin} min={-256} max={0} step={1} onChange={(v) => setRange(v, rangeMax)} />
+        <SliderField label="Range max" value={rangeMax} min={0} max={256} step={1} onChange={(v) => setRange(rangeMin, v)} />
+      </PreviewControlGroup>
 
-      <button
-        type="button"
-        onClick={handleResetToAuto}
-        className={`w-full ${previewButtonClass}`}
-        title="Clears manual overrides so auto-fit can reframe hills"
-      >
-        Reset to auto
-      </button>
+      <PreviewControlGroup label="Volume">
+        <SliderField
+          label="Resolution"
+          value={voxelResolution}
+          min={8}
+          max={256}
+          step={8}
+          allowInputOverflow
+          onChange={setVoxelResolution}
+        />
+        <SliderField label="Y min" value={voxelYMin} min={-128} max={319} step={1} onChange={handleYMinChange} />
+        <SliderField label="Y max" value={voxelYMax} min={-127} max={320} step={1} onChange={handleYMaxChange} />
+        <SliderField label="Y slices" value={voxelYSlices} min={8} max={128} step={4} onChange={setVoxelYSlices} />
+        {terrainRef && (
+          <p className="text-[10px] leading-snug text-tn-text-muted">
+            Terrain ref: {terrainRef.baseHeightName} Y={terrainRef.referenceY}
+            {!terrainRefUseBaseY && terrainRef.suggestedYLevel !== terrainRef.referenceY
+              ? ` · nominal surface Y≈${terrainRef.suggestedYLevel}`
+              : terrainRefUseBaseY ? " · anchored to Base Y" : ""}
+            {terrainRef.bedrockY != null ? ` · bedrock Y=${terrainRef.bedrockY}` : ""}
+          </p>
+        )}
+      </PreviewControlGroup>
 
-      <button
-        type="button"
-        onClick={handleFitToContent}
-        disabled={isFitToContentRunning}
-        className={`w-full ${previewButtonClass}`}
-      >
-        {isFitToContentRunning ? "Scanning…" : "Fit to content"}
-      </button>
+      {/* The two buttons act on the auto-fit settings below them, so they live
+          in the same group rather than floating above the sliders. */}
+      <PreviewControlGroup label="Framing">
+        <PreviewCheckbox checked={autoFitYEnabled} onChange={setAutoFitYEnabled} label="Auto-fit Y range" />
+        <PreviewCheckbox
+          checked={autoFitContentEnabled}
+          onChange={setAutoFitContentEnabled}
+          label="Auto fit to content"
+          description="Coarse 3D probe when the graph changes — frames XZ and Y to visible solids."
+        />
+        <PreviewCheckbox
+          checked={terrainRefUseBaseY}
+          onChange={handleTerrainRefUseBaseY}
+          label="Anchor terrain ref to Base Y"
+          description="Use ContentFields Base for auto-fit and 2D Y level instead of the height-curve zero-crossing."
+        />
+        <div className="mt-1 flex gap-1.5">
+          <button
+            type="button"
+            onClick={handleResetToAuto}
+            className={`flex-1 ${previewButtonClass}`}
+            title="Clears manual overrides so auto-fit can reframe hills"
+          >
+            Reset to auto
+          </button>
+          <button
+            type="button"
+            onClick={handleFitToContent}
+            disabled={isFitToContentRunning}
+            className={`flex-1 ${previewButtonClass}`}
+          >
+            {isFitToContentRunning ? "Scanning…" : "Fit to content"}
+          </button>
+        </div>
+      </PreviewControlGroup>
 
-      <SliderField
-        label="Resolution"
-        value={voxelResolution}
-        min={8}
-        max={256}
-        step={8}
-        allowInputOverflow
-        onChange={setVoxelResolution}
-      />
-      <SliderField label="Y min" value={voxelYMin} min={-128} max={319} step={1} onChange={handleYMinChange} />
-      <SliderField label="Y max" value={voxelYMax} min={-127} max={320} step={1} onChange={handleYMaxChange} />
-      {terrainRef && (
-        <p className="text-[10px] text-tn-text-muted leading-snug">
-          Terrain ref: {terrainRef.baseHeightName} Y={terrainRef.referenceY}
-          {!terrainRefUseBaseY && terrainRef.suggestedYLevel !== terrainRef.referenceY
-            ? ` · nominal surface Y≈${terrainRef.suggestedYLevel}`
-            : terrainRefUseBaseY ? " · anchored to Base Y" : ""}
-          {terrainRef.bedrockY != null ? ` · bedrock Y=${terrainRef.bedrockY}` : ""}
-        </p>
-      )}
-      <SliderField label="Y slices" value={voxelYSlices} min={8} max={128} step={4} onChange={setVoxelYSlices} />
-
-      <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0">
-        <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">World seed</legend>
+      <PreviewControlGroup label="World seed">
         <input
           type="text"
           value={worldSeed}
@@ -228,10 +250,9 @@ export function ControlsVoxel() {
           Root of the seed chain. Set this to your world&rsquo;s seed to preview the
           terrain that world actually generates — every seeded node derives from it.
         </p>
-      </fieldset>
+      </PreviewControlGroup>
 
-      <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0">
-        <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">Cave visibility</legend>
+      <PreviewControlGroup label="Cave visibility">
         <PreviewCheckbox
           checked={cutawayEnabled}
           onChange={setCutawayEnabled}
@@ -284,29 +305,14 @@ export function ControlsVoxel() {
         >
           Sync cutaway to 2D Y level ({yLevel})
         </button>
-      </fieldset>
+      </PreviewControlGroup>
 
-      <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0">
-        <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">Display</legend>
-        <PreviewCheckbox checked={autoFitYEnabled} onChange={setAutoFitYEnabled} label="Auto-fit Y range" />
-        <PreviewCheckbox
-          checked={autoFitContentEnabled}
-          onChange={setAutoFitContentEnabled}
-          label="Auto fit to content"
-          description="Coarse 3D probe when the graph changes — frames XZ and Y to visible solids."
-        />
-        <PreviewCheckbox
-          checked={terrainRefUseBaseY}
-          onChange={handleTerrainRefUseBaseY}
-          label="Anchor terrain ref to Base Y"
-          description="Use ContentFields Base for auto-fit and 2D Y level instead of the height-curve zero-crossing."
-        />
+      <PreviewControlGroup label="Materials">
         <PreviewCheckbox checked={showMaterialColors} onChange={setShowMaterialColors} label="Material colors" />
         <PreviewCheckbox checked={showVoxelWireframe} onChange={setShowVoxelWireframe} label="Wireframe" />
         <PreviewCheckbox checked={showMaterialLegend} onChange={setShowMaterialLegend} label="Material legend" />
         {voxelPalette.length > 0 && (
-          <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0 pl-2 border-l border-tn-border/40">
-            <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">Legend visibility</legend>
+          <PreviewControlGroup label="Legend visibility" className="border-l border-tn-border/40 pl-2">
             {voxelPalette.map((entry) => {
               const visible = !hiddenVoxelMaterialNames.includes(entry.name);
               return (
@@ -329,14 +335,17 @@ export function ControlsVoxel() {
                 </label>
               );
             })}
-          </fieldset>
+          </PreviewControlGroup>
         )}
+      </PreviewControlGroup>
+
+      <PreviewControlGroup label="Scene">
         <PreviewCheckbox checked={showWaterPlane} onChange={setShowWaterPlane} label="Water plane" />
         <PreviewCheckbox checked={showFog3D} onChange={setShowFog3D} label="Fog" />
         <PreviewCheckbox checked={showSky3D} onChange={setShowSky3D} label="Sky" />
         <PreviewCheckbox checked={showSSAO} onChange={setShowSSAO} label="SSAO" />
         <PreviewCheckbox checked={showEdgeOutline} onChange={setShowEdgeOutline} label="Edge outline" />
-      </fieldset>
+      </PreviewControlGroup>
 
       {voxelRootResolution?.nodeId ? (
         <div className="rounded-md border border-tn-border/60 bg-tn-surface-2/40 px-2.5 py-2 text-[10px] text-tn-text-muted space-y-0.5 font-mono">

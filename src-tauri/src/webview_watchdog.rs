@@ -75,6 +75,15 @@ pub fn set_webview_auto_recover(state: State<'_, SharedHeartbeat>, enabled: bool
     }
 }
 
+/// Whether a reload is warranted, separated from performing one so the policy
+/// is testable without a running window.
+///
+/// Deliberately conservative: a blocked main thread is indistinguishable from a
+/// dead webview here, so everything below the threshold is left alone.
+fn should_reload(silent_for: Duration, reloads_so_far: u32, enabled: bool) -> bool {
+    enabled && reloads_so_far < MAX_RELOADS_PER_SESSION && silent_for >= SILENCE_BEFORE_RELOAD
+}
+
 /// Spawns the watchdog thread. Call once from `setup`.
 pub fn spawn<R: Runtime>(app: &AppHandle<R>) {
     let app = app.clone();
@@ -89,18 +98,12 @@ pub fn spawn<R: Runtime>(app: &AppHandle<R>) {
     std::thread::spawn(move || loop {
         std::thread::sleep(CHECK_INTERVAL);
 
-        if !state.enabled.lock().map(|f| *f).unwrap_or(true) {
-            continue;
-        }
-        if state.reloads.load(Ordering::Relaxed) >= MAX_RELOADS_PER_SESSION {
-            continue;
-        }
-
+        let enabled = state.enabled.lock().map(|f| *f).unwrap_or(true);
         let silent_for = match state.last.lock() {
             Ok(last) => last.elapsed(),
             Err(_) => continue,
         };
-        if silent_for < SILENCE_BEFORE_RELOAD {
+        if !should_reload(silent_for, state.reloads.load(Ordering::Relaxed), enabled) {
             continue;
         }
 
@@ -121,4 +124,44 @@ pub fn spawn<R: Runtime>(app: &AppHandle<R>) {
             *last = Instant::now();
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SILENT: Duration = SILENCE_BEFORE_RELOAD;
+
+    #[test]
+    fn leaves_a_responsive_webview_alone() {
+        assert!(!should_reload(Duration::from_secs(0), 0, true));
+        assert!(!should_reload(SILENT - Duration::from_secs(1), 0, true));
+    }
+
+    #[test]
+    fn reloads_once_silence_reaches_the_threshold() {
+        assert!(should_reload(SILENT, 0, true));
+        assert!(should_reload(SILENT + Duration::from_secs(60), 0, true));
+    }
+
+    #[test]
+    fn stops_after_the_session_cap() {
+        // A broken app must not sit in a reload loop; looping would also
+        // destroy the evidence needed to diagnose it.
+        assert!(should_reload(SILENT, MAX_RELOADS_PER_SESSION - 1, true));
+        assert!(!should_reload(SILENT, MAX_RELOADS_PER_SESSION, true));
+        assert!(!should_reload(SILENT, MAX_RELOADS_PER_SESSION + 5, true));
+    }
+
+    #[test]
+    fn never_reloads_when_the_user_has_turned_recovery_off() {
+        assert!(!should_reload(SILENT + Duration::from_secs(600), 0, false));
+    }
+
+    #[test]
+    fn threshold_leaves_room_for_a_missed_heartbeat() {
+        // The frontend pings every 3s; the threshold must tolerate several
+        // dropped pings so a slow tick never triggers a reload.
+        assert!(SILENCE_BEFORE_RELOAD.as_secs() >= 15);
+    }
 }

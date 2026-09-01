@@ -24,20 +24,25 @@ public final class TnBridgeCommand extends AbstractCommandCollection {
         addSubCommand(new NotifyCommandCollection(services));
     }
 
-    @Override
-    protected boolean canGeneratePermission() {
-        return false;
-    }
-
     private abstract static class TnBridgeSubCommand
             extends com.hypixel.hytale.server.core.command.system.AbstractCommand {
         protected TnBridgeSubCommand(String name, String description) {
             super(name, description);
         }
 
+        /**
+         * Contribute no node of our own, so every sub-command shares the parent
+         * `tnbridge` permission instead of minting one each.
+         *
+         * <p>Replaces {@code canGeneratePermission() == false}, which the server
+         * API no longer declares. Deliberately not {@code requireNoPermission()}:
+         * that opens a command to everyone, and these write files into the
+         * server's mod folder.
+         */
         @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        @Nullable
+        protected String generatePermissionNode() {
+            return null;
         }
 
         protected void send(CommandContext context, String text) {
@@ -210,9 +215,11 @@ public final class TnBridgeCommand extends AbstractCommandCollection {
             addSubCommand(new NotifyStatusSubCommand(services));
         }
 
+        /** Nested collection: inherit the parent `tnbridge` permission. See TnBridgeSubCommand. */
         @Override
-        protected boolean canGeneratePermission() {
-            return false;
+        @Nullable
+        protected String generatePermissionNode() {
+            return null;
         }
     }
 

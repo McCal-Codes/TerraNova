@@ -622,12 +622,18 @@ mod tests {
         let want = std::env::var("TN_UUID").ok();
 
         let heuristic = resolve_player(&root, false).expect("no player resolved");
-        println!("newest-file heuristic -> {} ({})", heuristic.uuid, heuristic.name);
+        println!(
+            "newest-file heuristic -> {} ({})",
+            heuristic.uuid, heuristic.name
+        );
 
         if let Some(want) = want {
             let preferred =
                 resolve_player_preferring(&root, false, Some(&want)).expect("no player resolved");
-            println!("preferred            -> {} ({})", preferred.uuid, preferred.name);
+            println!(
+                "preferred            -> {} ({})",
+                preferred.uuid, preferred.name
+            );
             println!("uuid_source          -> {}", preferred.uuid_source);
             assert_eq!(preferred.uuid_source, "preferred");
             assert_eq!(

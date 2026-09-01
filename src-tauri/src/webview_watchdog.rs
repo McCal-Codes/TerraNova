@@ -23,6 +23,10 @@ use std::{
 };
 use tauri::{AppHandle, Manager, Runtime, State};
 
+/// Log file alongside the frontend's crash.log, in the platform-standard
+/// location (`~/Library/Logs/TerraNova` on macOS).
+const WATCHDOG_LOG: &str = "watchdog.log";
+
 /// How often the watchdog looks at the last heartbeat.
 const CHECK_INTERVAL: Duration = Duration::from_secs(5);
 
@@ -75,6 +79,41 @@ pub fn set_webview_auto_recover(state: State<'_, SharedHeartbeat>, enabled: bool
     }
 }
 
+/// Records a reload where someone can find it later.
+///
+/// The frontend cannot log this: when the WKWebView content process dies no
+/// JavaScript runs, so `crash.log` stays empty and a shipped app — which has no
+/// terminal to print to — would recover with no trace of why. Written to a
+/// separate file rather than crash.log because the frontend rewrites that one
+/// wholesale and would clobber these entries.
+fn record_reload<R: Runtime>(app: &AppHandle<R>, silent_for: Duration, attempt: u32) {
+    let Ok(dir) = app.path().app_log_dir() else {
+        return;
+    };
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let line = format!(
+        "{} webview unresponsive for {}s — reloaded (attempt {attempt}/{MAX_RELOADS_PER_SESSION})\n",
+        chrono_now(),
+        silent_for.as_secs(),
+    );
+    // Best effort: a diagnostic must never be the thing that breaks recovery.
+    let _ = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(dir.join(WATCHDOG_LOG))
+        .and_then(|mut f| std::io::Write::write_all(&mut f, line.as_bytes()));
+}
+
+/// Seconds since the epoch. Avoids pulling in a date crate for one log line.
+fn chrono_now() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| format!("epoch+{}s", d.as_secs()))
+        .unwrap_or_else(|_| "unknown-time".into())
+}
+
 /// Whether a reload is warranted, separated from performing one so the policy
 /// is testable without a running window.
 ///
@@ -119,6 +158,7 @@ pub fn spawn<R: Runtime>(app: &AppHandle<R>) {
             eprintln!("webview watchdog: reload failed: {err}");
             continue;
         }
+        record_reload(&app, silent_for, count);
         // Give the reloaded page room to boot before judging it silent again.
         if let Ok(mut last) = state.last.lock() {
             *last = Instant::now();

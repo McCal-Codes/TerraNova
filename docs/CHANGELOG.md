@@ -6,6 +6,39 @@ All notable changes to [TerraNova](https://github.com/McCal-Codes/TerraNova) are
 
 _Next build's changes go here._
 
+## [0.1.8-alpha.6] — 2026-09-01 — Closed alpha
+
+Sixth **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.6`.  
+**Updates:** Users on `v0.1.8-alpha.5` receive this build via the in-app updater (~3s after launch when auto-check is on).
+
+### Highlights
+
+- **The map Hytale actually draws** — the 2D preview can now render a biome's `MapColor` under the game's own relief shading, ported from Hytale's source rather than approximated.
+- **110 node types you could not build before** — the editor's node set is now derived from Hytale's asset registry, so every type Update 6 registers is available, including the whole world-structure graph subsystem.
+- **Amplitude works again** — it had been hidden as a legacy node and offered a replacement that changed what it did.
+- **No more glass** — the last translucent, blurred panels are opaque.
+
+### 2D map
+
+- **Hytale map style** joins Heat and Topo in a single map-style picker. Colour comes from the biome's `MapColor` — the field `BiomeJsonLoader` documents as "the color to be used on the world map for this biome", which most shipped biomes define and which the editor had been ignoring.
+- Relief shading is a direct port of `ImageBuilder.shadeFromHeights`: bilinear cardinal and diagonal gradients with the cardinals weighted twice, a fixed `dy` of 3, and the game's own light direction and ambient/diffuse split. These are not tunable, because they are not tunable in Hytale. Tests pin them against output from the Java method itself.
+- A biome with no `MapColor` renders in neutral grey and says so, rather than being given an invented colour.
+- The printed-topo style stays — it is still the best way to read exact elevations. Existing users keep it; the old `usgsTopoStyle` preference migrates across.
+
+### Nodes and schema
+
+- The node schema is now generated from `AssetManager.java`'s registry and each asset's codec — 313 types, 1299 fields, with enum fields resolved to their constants so they offer a choice instead of free text.
+- **Vector providers went from 5 to 18**, position providers from 24 to 27, materials from 14 to 17, props from 22 to 23, block masks from 5 to 9.
+- Nine categories that had no editor support at all — node and edge selectors and actions, graph passes, return types, content suppliers, distance functions and noise — are grouped below the terrain categories under one **World structure graph** heading, collapsed by default.
+- Types are keyed by category rather than by name. Forty-eight type names are registered under more than one category, `Imported` under nineteen of them.
+- Nodes with no bespoke editor component no longer report themselves as "not in the TerraNova palette".
+- Hand-written node defaults are kept where they exist; generated ones only fill gaps. A generated default is whatever the Java field was initialised to, which is often the inert value.
+
+### Interface
+
+- Every remaining `backdrop-blur` is gone, and the translucent backgrounds under them are solid. A lint rule keeps them from creeping back.
+- Voxel preview controls are grouped — Density range, Volume, Framing, Materials and Scene — instead of eleven checkboxes under one heading, with the framing buttons beside the settings they act on.
+
 ## [0.1.8-alpha.5] — 2026-08-01 — Closed alpha
 
 Fifth **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.5`.  

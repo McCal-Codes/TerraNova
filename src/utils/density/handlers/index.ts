@@ -1,4 +1,5 @@
 import type { NodeHandler } from "../evalContext";
+import { getRegisteredDensityHandlers } from "../handlerRegistry";
 import { buildSimpleHandlers } from "./simple";
 import { buildArithmeticHandlers } from "./arithmetic";
 import { buildClampingHandlers } from "./clamping";
@@ -33,6 +34,10 @@ export function buildAllHandlers(): Map<string, NodeHandler> {
     for (const [k, v] of build()) {
       map.set(k, v);
     }
+  }
+  // Last, so a registered handler can add a missing type or correct a built-in.
+  for (const [k, v] of getRegisteredDensityHandlers()) {
+    map.set(k, v);
   }
   return map;
 }

@@ -1,5 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import { EvalStatus } from "@/schema/types";
+import { hasRegisteredDensityHandler } from "./handlerRegistry";
 
 const UNSUPPORTED_TYPES = new Set<string>([]);
 
@@ -24,6 +25,9 @@ const APPROXIMATED_TYPES = new Set([
 ]);
 
 export function getEvalStatus(type: string): EvalStatus {
+  // A registered handler is a real implementation, so it outranks the static
+  // unsupported/approximated lists.
+  if (hasRegisteredDensityHandler(type)) return EvalStatus.Full;
   if (UNSUPPORTED_TYPES.has(type)) return EvalStatus.Unsupported;
   if (APPROXIMATED_TYPES.has(type)) return EvalStatus.Approximated;
   return EvalStatus.Full;
@@ -123,4 +127,16 @@ export function findDensityRoot(nodes: Node[], edges: Edge[]): Node | null {
   if (terminalDensity) return terminalDensity;
 
   return nodes.find((n) => isTerrainDensityCandidate(n)) ?? null;
+}
+
+/**
+ * True when this type will actually be evaluated — either built in, or supplied
+ * through `registerDensityHandlers`.
+ *
+ * Prefer this over `DENSITY_TYPES.has(...)` when deciding whether to warn a user
+ * that a node cannot be evaluated, so extension-provided types are not reported
+ * as missing.
+ */
+export function isKnownDensityType(type: string): boolean {
+  return DENSITY_TYPES.has(type) || hasRegisteredDensityHandler(type);
 }

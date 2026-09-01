@@ -197,29 +197,11 @@ jobs:
           if [ -f "${APPIMAGE}.sig" ]; then
             gh release upload "${{ inputs.tag }}" "${APPIMAGE}.sig" --clobber
           fi
-          # tauri-action builds latest.json in memory and uploads it to the
-          # release; it never lands under src-tauri/target. Read it back from
-          # the release, which is what v0.1.8-alpha.4 did successfully.
-          if [ -f "${APPIMAGE}.sig" ]; then
-            LATEST_JSON=$(mktemp)
-            gh release download "${{ inputs.tag }}" -p 'latest.json' -D "$(dirname "$LATEST_JSON")" -O "$LATEST_JSON" || true
-            if [ -f "$LATEST_JSON" ] && [ -s "$LATEST_JSON" ]; then
-              NEW_SIG=$(cat "${APPIMAGE}.sig")
-              node -e "
-                const fs = require('fs');
-                const latest = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-                const sig = process.argv[2];
-                for (const [key, val] of Object.entries(latest.platforms || {})) {
-                  if (val.url && val.url.includes('.AppImage')) {
-                    val.signature = sig;
-                  }
-                }
-                fs.writeFileSync(process.argv[1], JSON.stringify(latest, null, 2) + '\n');
-              " "$LATEST_JSON" "$NEW_SIG"
-              gh release upload "${{ inputs.tag }}" "$LATEST_JSON#latest.json" --clobber
-            fi
-            rm -f "$LATEST_JSON"
-          fi
+          # The repacked AppImage above no longer matches the signature Tauri
+          # recorded in latest.json. Repairing it here does not stick — the
+          # other three builds upload their own manifest afterwards and put the
+          # stale signature back — so the finalize job does it once they are all
+          # done. Uploading the .sig is what finalize reads.
           rm -rf squashfs-root appimagetool
 
       - name: Verify macOS bundle artifacts
@@ -262,11 +244,80 @@ jobs:
           IS_PRERELEASE=$(node -p "JSON.parse(process.argv[1]).isPrerelease" "$META")
           MAKE_LATEST=$(node -p "JSON.parse(process.argv[1]).makeLatest" "$META")
           if [ "$IS_PRERELEASE" = "true" ]; then
-            # Prerelease + Latest so /releases/latest/download/latest.json resolves (Tauri updater).
-            # Still prerelease=true on the Releases page; publish draft so assets are public.
-            gh release edit "$TAG" --draft=false --prerelease=true --latest=true
-            echo "Prerelease $TAG: published, prerelease=true, latest=true (updater endpoint)"
+            # --latest is deliberately not passed here. GitHub will not make a
+            # prerelease the "latest" release, so it silently does nothing and
+            # /releases/latest keeps resolving to the channel release below.
+            gh release edit "$TAG" --draft=false --prerelease=true
+            echo "Prerelease $TAG: published, prerelease=true"
           else
             gh release edit "$TAG" --draft=false --prerelease=false --latest="$MAKE_LATEST"
             echo "Stable $TAG: published, prerelease=false, latest=$MAKE_LATEST"
           fi
+
+      - name: Point the in-app updater at this build
+        if: inputs.sign
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          META=$(node scripts/validate-release-tag.mjs "$TAG")
+          IS_PRERELEASE=$(node -p "JSON.parse(process.argv[1]).isPrerelease" "$META")
+
+          WORK=$(mktemp -d)
+          gh release download "$TAG" -p 'latest.json' -D "$WORK"
+
+          # The Linux job repacks the AppImage after Tauri signs it, which
+          # invalidates the signature recorded in the manifest. Patching it in
+          # that job does not survive: the other three builds upload their own
+          # manifest afterwards and put the stale signature back. Doing it here,
+          # once every build has finished, is the only ordering that holds.
+          if gh release download "$TAG" -p '*.AppImage.sig' -D "$WORK" 2>/dev/null; then
+            APPIMAGE_SIG=$(cat "$WORK"/*.AppImage.sig)
+            node -e '
+              const fs = require("fs");
+              const [file, sig] = process.argv.slice(1);
+              const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+              const fixed = [];
+              for (const [name, entry] of Object.entries(manifest.platforms || {})) {
+                if (entry.url?.includes(".AppImage") && entry.signature !== sig) {
+                  entry.signature = sig;
+                  fixed.push(name);
+                }
+              }
+              fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + "\n");
+              console.log(fixed.length ? `Repaired AppImage signature for ${fixed.join(", ")}` : "AppImage signature already correct");
+            ' "$WORK/latest.json" "$APPIMAGE_SIG"
+            gh release upload "$TAG" "$WORK/latest.json#latest.json" --clobber
+          fi
+
+          # Every platform entry must carry a signature or the updater rejects it.
+          node -e '
+            const m = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            const unsigned = Object.entries(m.platforms || {}).filter(([, v]) => !v.signature).map(([k]) => k);
+            if (!Object.keys(m.platforms || {}).length) throw new Error("manifest lists no platforms");
+            if (unsigned.length) throw new Error(`unsigned platforms: ${unsigned.join(", ")}`);
+            console.log(`Manifest for ${m.version}: ${Object.keys(m.platforms).length} platforms, all signed`);
+          ' "$WORK/latest.json"
+
+          if [ "$IS_PRERELEASE" != "true" ]; then
+            echo "Stable release — /releases/latest already resolves to it."
+            exit 0
+          fi
+
+          # Prereleases are never "latest" on GitHub, so the updater endpoint
+          # reads a dedicated non-prerelease release that exists only to host
+          # this manifest. Without this step a prerelease is published but never
+          # delivered — which is how the updater sat on alpha.2 while alpha.3,
+          # alpha.4 and alpha.6 shipped.
+          CHANNEL_TAG=$(printf '%s' "$TAG" | sed -E 's/-([a-z]+)\.[0-9]+.*$/-\1-channel/')
+          if [ "$CHANNEL_TAG" = "$TAG" ]; then
+            echo "::error::Could not derive a channel tag from $TAG"
+            exit 1
+          fi
+          if ! gh release view "$CHANNEL_TAG" >/dev/null 2>&1; then
+            echo "::error::Channel release $CHANNEL_TAG does not exist — the updater has nothing to read"
+            exit 1
+          fi
+          gh release upload "$CHANNEL_TAG" "$WORK/latest.json#latest.json" --clobber
+          echo "Updater channel $CHANNEL_TAG now serves $TAG"

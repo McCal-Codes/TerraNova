@@ -4,7 +4,9 @@ All notable changes to [TerraNova](https://github.com/McCal-Codes/TerraNova) are
 
 ## Unreleased
 
-_Next alpha cycle — add bullets here as features land._
+### Added
+
+- `registerDensityHandlers()` extension point, so callers can supply density node handlers at runtime for V2 types TerraNova does not implement. Unknown types otherwise evaluate to `0`, which is a real density value — one unhandled node under a `Max` lifts every air sample to solid and flattens a biome into a slab. Registered types report `EvalStatus.Full` and satisfy the new `isKnownDensityType()`.
 
 ## [0.1.8-alpha.4] — 2026-06-21 — Closed alpha
 

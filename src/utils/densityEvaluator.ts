@@ -7,6 +7,11 @@ export {
   evaluateDensityGrid,
   enrichPreviewContentFields,
   getEvalStatus,
+  isKnownDensityType,
+  registerDensityHandlers,
+  clearRegisteredDensityHandlers,
+  getRegisteredDensityHandlers,
+  hasRegisteredDensityHandler,
 } from "./density";
 
 export type {

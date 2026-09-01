@@ -5,20 +5,49 @@ import path from "node:path";
 
 const repoRoot = process.cwd();
 
-function defaultReleaseLatestPath() {
+/**
+ * Default install location of a channel's `latest` game folder.
+ *
+ * Defaults to the release channel — pre-release is opt-in via `--channel`, so
+ * existing invocations keep pointing where they always did.
+ */
+function defaultChannelLatestPath(channel = "release") {
   const appData = process.env.APPDATA;
+  const segments = ["install", channel, "package", "game", "latest"];
   if (appData) {
-    return path.join(appData, "Hytale", "install", "release", "package", "game", "latest");
+    return path.join(appData, "Hytale", ...segments);
   }
   const home = os.homedir();
   if (process.platform === "darwin") {
-    return path.join(home, "Library", "Application Support", "Hytale", "install", "release", "package", "game", "latest");
+    return path.join(home, "Library", "Application Support", "Hytale", ...segments);
   }
-  return path.join(home, ".local", "share", "Hytale", "install", "release", "package", "game", "latest");
+  return path.join(home, ".local", "share", "Hytale", ...segments);
 }
 
-const defaultReleaseLatest = defaultReleaseLatestPath();
-const userInput = process.argv[2] ?? process.env.HYTALE_ASSETS ?? defaultReleaseLatest;
+/**
+ * Accepts either an explicit source path (first positional argument, as before)
+ * or `--channel release|pre-release`.
+ */
+function parseSyncArgs(argv) {
+  let channel = "release";
+  let sourcePath = null;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--channel" && (argv[i + 1] === "release" || argv[i + 1] === "pre-release")) {
+      channel = argv[++i];
+    } else if (arg.startsWith("--channel=")) {
+      const value = arg.slice("--channel=".length);
+      if (value === "release" || value === "pre-release") channel = value;
+    } else if (!arg.startsWith("--") && sourcePath === null) {
+      sourcePath = arg;
+    }
+  }
+  return { channel, sourcePath };
+}
+
+const syncArgs = parseSyncArgs(process.argv.slice(2));
+const defaultReleaseLatest = defaultChannelLatestPath(syncArgs.channel);
+const userInput = syncArgs.sourcePath ?? process.env.HYTALE_ASSETS ?? defaultReleaseLatest;
 const templateRoot = path.join(repoRoot, "templates", "hytale-release");
 const hytaleGeneratorTarget = path.join(templateRoot, "HytaleGenerator");
 const bundlePath = path.join(repoRoot, "src", "data", "terranova-bundle.json");
@@ -347,6 +376,10 @@ const manifest = {
   sourcePath: assetsRoot,
   fileCount: files.length,
   nodeTypeCount: typeSamples.size,
+  // Provenance: which channel produced this cache, and when. Without these the
+  // cache is indistinguishable from one built off the other channel.
+  channel: syncArgs.channel,
+  syncedAt: new Date().toISOString(),
 };
 writeFileSync(path.join(templateRoot, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 

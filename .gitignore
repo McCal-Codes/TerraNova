@@ -61,3 +61,7 @@ docs/planning/
 
 # Local Hytale OAuth client id (public value, but keep it out of the repo)
 src-tauri/.cargo/config.toml
+
+# Java parity harness build output
+tools/parity/out/
+tools/parity/out2/

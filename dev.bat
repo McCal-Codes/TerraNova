@@ -1,16 +1,19 @@
 @echo off
+REM TerraNova development launcher (Windows double-click wrapper).
+REM
+REM Deliberately minimal: scripts/dev-launcher.mjs owns every check and process.
+REM The previous version started `pnpm dev` in its own window AND then ran
+REM `pnpm tauri dev`, whose beforeDevCommand starts `pnpm dev` again — two Vite
+REM servers competing for port 1420. Tauri is the only owner of Vite now.
+REM
+REM Pass --lab to open straight into Dev Lab, or --web for browser-only.
+
 cd /d "%~dp0"
+call pnpm start %*
 
-echo Starting Vite dev server...
-start "TerraNova Vite" cmd /k "pnpm dev"
-
-echo Waiting for dev server on port 1420...
-:wait
-powershell -NoProfile -Command "try { $c = New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1', 1420); $c.Close(); exit 0 } catch { exit 1 }" 2>nul
 if errorlevel 1 (
-  timeout /t 1 /nobreak >nul
-  goto wait
+  echo.
+  echo TerraNova failed to start. For a diagnosis run:
+  echo     pnpm dev:doctor
+  pause
 )
-
-echo Dev server ready. Starting Tauri...
-pnpm tauri dev

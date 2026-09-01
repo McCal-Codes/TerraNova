@@ -161,8 +161,21 @@ describe("sampleTerrainSurfaceCrossings", () => {
     const sample = sampleTerrainSurfaceCrossings(nodes, edges, { Base: 100 });
     expect(sample).not.toBeNull();
     expect(sample!.sampleCount).toBeGreaterThan(0);
+    // Re-baselined after the noise fix (java.util.Random octave offsets replacing
+    // mulberry32). The bounds below are sanity bands, not snapshots.
+    //
+    // The invariant worth asserting is physical: this curve maps height-above-base
+    // 0 -> +1 and 200 -> -1, so the height profile crosses zero at Base + 100 = Y 200,
+    // and the surface should sit there once the added noise averages out. With the
+    // corrected noise the median lands at ~209; previously it did not, which is why
+    // the old max bound of 240 was tuned around a wrong field.
+    expect(sample!.medianSurfaceY).toBeGreaterThan(190);
+    expect(sample!.medianSurfaceY).toBeLessThan(230);
+
+    // Curve slope is 2/200 = 0.01 per block, so noise in [-1, 1] can move the
+    // surface by up to +/-100 blocks: the theoretical band is Y 100..300.
     expect(sample!.minSurfaceY).toBeGreaterThan(60);
-    expect(sample!.maxSurfaceY).toBeLessThan(240);
+    expect(sample!.maxSurfaceY).toBeLessThan(300);
     expect(sample!.maxSurfaceY - sample!.minSurfaceY).toBeGreaterThan(2);
     expect(sample!.rawMaxSurfaceY).toBeGreaterThan(sample!.maxSurfaceY);
   });

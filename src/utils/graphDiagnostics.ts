@@ -9,6 +9,7 @@ import type { FieldConstraint } from "@/schema/validation";
 import { validateFields } from "@/schema/validation";
 import { isDeprecatedOrLegacyTypeKey, getLegacyReplacement, getDeprecationTier, isPrereleaseTypeKey } from "@/nodes/shared/legacyTypes";
 import { nodeTypes } from "@/nodes/index";
+import { hasSchemaNode } from "@/schema/schemaLoader";
 import { getEvalStatus } from "@/utils/densityEvaluator";
 import { findDensityRoot, DENSITY_TYPES } from "./density/evalTypes";
 import { EvalStatus } from "@/schema/types";
@@ -533,6 +534,10 @@ export function analyzeGraph(
       && nodeTypeKey !== "comment"
       && nodeTypeKey !== "frame"
       && !(nodeTypeKey in nodeTypes)
+      // A type with no bespoke component still renders through GenericNode as
+      // long as the schema describes it, which is true of every registered
+      // Hytale type. Only a type the schema has never heard of is unknown.
+      && !hasSchemaNode(nodeTypeKey)
     ) {
       diagnostics.push({
         nodeId: node.id,

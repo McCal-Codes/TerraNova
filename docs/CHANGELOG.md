@@ -9,7 +9,7 @@ _Next build's changes go here._
 ## [0.1.8-alpha.6] — 2026-09-01 — Closed alpha
 
 Sixth **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.6`.  
-**Updates:** Users on `v0.1.8-alpha.5` receive this build via the in-app updater (~3s after launch when auto-check is on).
+**Updates:** Users on `v0.1.8-alpha.4` receive this build via the in-app updater (~3s after launch when auto-check is on). `v0.1.8-alpha.5` was prepared but never published, so everything listed under it ships here too.
 
 ### Highlights
 

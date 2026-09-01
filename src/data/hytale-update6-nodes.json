@@ -1,0 +1,9431 @@
+{
+ "format": "hytale-registry-nodes@1",
+ "source": "HytaleServer/builtin/HytaleGenerator AssetManager.java",
+ "nodes": {
+  "Abs": {
+   "nodeType": "Abs",
+   "displayName": "Abs",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AbsDensityAsset"
+  },
+  "Amplitude": {
+   "nodeType": "Amplitude",
+   "displayName": "Amplitude",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "FunctionForY": {
+     "type": "NodeFunctionYOut",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AmplitudeDensityAsset"
+  },
+  "AmplitudeConstant": {
+   "nodeType": "AmplitudeConstant",
+   "displayName": "AmplitudeConstant",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AmplitudeConstantAsset"
+  },
+  "Anchor": {
+   "nodeType": "Anchor",
+   "displayName": "Anchor",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Reversed": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AnchorDensityAsset"
+  },
+  "And": {
+   "nodeType": "And",
+   "displayName": "And",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AndDensityAsset"
+  },
+  "Angle": {
+   "nodeType": "Angle",
+   "displayName": "Angle",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Vector": {
+     "type": "Vector3d",
+     "required": true
+    },
+    "IsAxis": {
+     "type": "boolean",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "VectorProvider",
+     "handleType": "VectorProvider",
+     "label": "VectorProvider"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AngleDensityAsset"
+  },
+  "Assignment:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "Assignment",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Assignment",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantAssignmentsAsset"
+  },
+  "Assignment:FieldFunction": {
+   "nodeType": "FieldFunction",
+   "displayName": "FieldFunction",
+   "category": "Assignment",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Min": {
+     "type": "number",
+     "required": true
+    },
+    "Max": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "FieldFunction",
+     "handleType": "Density",
+     "label": "FieldFunction"
+    },
+    {
+     "id": "Assignments",
+     "handleType": "Assignment",
+     "label": "Assignments"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Assignment",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "FieldFunctionAssignmentsAsset"
+  },
+  "Assignment:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "Assignment",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Assignment",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedAssignmentsAsset"
+  },
+  "Assignment:Sandwich": {
+   "nodeType": "Sandwich",
+   "displayName": "Sandwich",
+   "category": "Assignment",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "MinY": {
+     "type": "number",
+     "required": true
+    },
+    "MaxY": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Assignments",
+     "handleType": "Assignment",
+     "label": "Assignments"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Assignment",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SandwichAssignmentsAsset"
+  },
+  "Assignment:Weighted": {
+   "nodeType": "Weighted",
+   "displayName": "Weighted",
+   "category": "Assignment",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SkipChance": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "WeightedAssignments": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Weight": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Assignments",
+     "handleType": "Assignment",
+     "label": "Assignments"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Assignment",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "WeightedAssignmentsAsset"
+  },
+  "Axis": {
+   "nodeType": "Axis",
+   "displayName": "Axis",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "IsAnchored": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    "Axis": {
+     "type": "Vector3d",
+     "required": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AxisDensityAsset"
+  },
+  "BaseHeight": {
+   "nodeType": "BaseHeight",
+   "displayName": "BaseHeight",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "BaseHeightName": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    "Distance": {
+     "type": "boolean",
+     "required": false,
+     "default": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "BaseHeightDensityAsset"
+  },
+  "BlockMask:And": {
+   "nodeType": "And",
+   "displayName": "And",
+   "category": "BlockMask",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "ContentPredicates",
+     "handleType": "BlockMask",
+     "label": "ContentPredicates"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "BlockMask",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AndContentPredicateAsset"
+  },
+  "BlockMask:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "BlockMask",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "boolean",
+     "required": true,
+     "default": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "BlockMask",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantContentPredicateAsset"
+  },
+  "BlockMask:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "BlockMask",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "BlockMask",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedContentPredicateAsset"
+  },
+  "BlockMask:Not": {
+   "nodeType": "Not",
+   "displayName": "Not",
+   "category": "BlockMask",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "ContentPredicate",
+     "handleType": "BlockMask",
+     "label": "ContentPredicate"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "BlockMask",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NotContentPredicateAsset"
+  },
+  "BlockMask:Or": {
+   "nodeType": "Or",
+   "displayName": "Or",
+   "category": "BlockMask",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "ContentPredicates",
+     "handleType": "BlockMask",
+     "label": "ContentPredicates"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "BlockMask",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OrContentPredicateAsset"
+  },
+  "BlockMask:Set": {
+   "nodeType": "Set",
+   "displayName": "Set",
+   "category": "BlockMask",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ContentTags": {
+     "type": "array",
+     "required": true,
+     "default": []
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "BlockMask",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SetContentPredicateAsset"
+  },
+  "Cache": {
+   "nodeType": "Cache",
+   "displayName": "Cache",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Capacity": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CacheDensityAsset"
+  },
+  "Cache2D": {
+   "nodeType": "Cache2D",
+   "displayName": "Cache2D",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Y": {
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Cache2dDensityAsset_Deprecated"
+  },
+  "Ceiling": {
+   "nodeType": "Ceiling",
+   "displayName": "Ceiling",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Limit": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CeilingDensityAsset"
+  },
+  "CellNoise2D": {
+   "nodeType": "CellNoise2D",
+   "displayName": "CellNoise2D",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ScaleX": {
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    "ScaleZ": {
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    "Jitter": {
+     "type": "number",
+     "required": true,
+     "default": 0.3
+    },
+    "Octaves": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "CellType": {
+     "type": "enum",
+     "required": true,
+     "enum": [
+      "CellValue",
+      "Distance",
+      "Distance2",
+      "Distance2Add",
+      "Distance2Sub",
+      "Distance2Mul",
+      "Distance2Div"
+     ]
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CellNoise2DDensityAsset"
+  },
+  "CellNoise3D": {
+   "nodeType": "CellNoise3D",
+   "displayName": "CellNoise3D",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ScaleX": {
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    "ScaleY": {
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    "ScaleZ": {
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    "Jitter": {
+     "type": "number",
+     "required": true,
+     "default": 0.3
+    },
+    "Octaves": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "CellType": {
+     "type": "enum",
+     "required": true,
+     "enum": [
+      "CellValue",
+      "Distance",
+      "Distance2",
+      "Distance2Add",
+      "Distance2Sub",
+      "Distance2Mul",
+      "Distance2Div"
+     ]
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CellNoise3DDensityAsset"
+  },
+  "CellWallDistance": {
+   "nodeType": "CellWallDistance",
+   "displayName": "CellWallDistance",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CellWallDistanceDensityAsset"
+  },
+  "Clamp": {
+   "nodeType": "Clamp",
+   "displayName": "Clamp",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "WallA": {
+     "type": "number",
+     "required": true,
+     "default": -1
+    },
+    "WallB": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ClampDensityAsset"
+  },
+  "Comparator": {
+   "nodeType": "Comparator",
+   "displayName": "Comparator",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ComparatorDensityAsset"
+  },
+  "Condition:AlwaysTrueCondition": {
+   "nodeType": "AlwaysTrueCondition",
+   "displayName": "AlwaysTrueCondition",
+   "category": "Condition",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Condition",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AlwaysTrueConditionAsset"
+  },
+  "Condition:AndCondition": {
+   "nodeType": "AndCondition",
+   "displayName": "AndCondition",
+   "category": "Condition",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Conditions",
+     "handleType": "Condition",
+     "label": "Conditions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Condition",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AndConditionAsset"
+  },
+  "Condition:EqualsCondition": {
+   "nodeType": "EqualsCondition",
+   "displayName": "EqualsCondition",
+   "category": "Condition",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ContextToCheck": {
+     "type": "ConditionParameter",
+     "required": true
+    },
+    "Value": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Condition",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "EqualsConditionAsset"
+  },
+  "Condition:GreaterThanCondition": {
+   "nodeType": "GreaterThanCondition",
+   "displayName": "GreaterThanCondition",
+   "category": "Condition",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ContextToCheck": {
+     "type": "ConditionParameter",
+     "required": true
+    },
+    "Threshold": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Condition",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "GreaterThanConditionAsset"
+  },
+  "Condition:NotCondition": {
+   "nodeType": "NotCondition",
+   "displayName": "NotCondition",
+   "category": "Condition",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Condition",
+     "handleType": "Condition",
+     "label": "Condition"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Condition",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NotConditionAsset"
+  },
+  "Condition:OrCondition": {
+   "nodeType": "OrCondition",
+   "displayName": "OrCondition",
+   "category": "Condition",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Conditions",
+     "handleType": "Condition",
+     "label": "Conditions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Condition",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OrConditionAsset"
+  },
+  "Condition:SmallerThanCondition": {
+   "nodeType": "SmallerThanCondition",
+   "displayName": "SmallerThanCondition",
+   "category": "Condition",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ContextToCheck": {
+     "type": "ConditionParameter",
+     "required": true
+    },
+    "Threshold": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Condition",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmallerThanConditionAsset"
+  },
+  "Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantDensityAsset"
+  },
+  "ContentSupplier:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "ContentSupplier",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Content": {
+     "type": "GraphContent",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ContentSupplier",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantContentSupplierAsset"
+  },
+  "ContentSupplier:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "ContentSupplier",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ContentSupplier",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedContentSupplierAsset"
+  },
+  "ContentSupplier:Weighted": {
+   "nodeType": "Weighted",
+   "displayName": "Weighted",
+   "category": "ContentSupplier",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Entries": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "Weight": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "ContentSupplier",
+     "handleType": "ContentSupplier",
+     "label": "ContentSupplier"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ContentSupplier",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "WeightedContentSupplierAsset"
+  },
+  "Cube": {
+   "nodeType": "Cube",
+   "displayName": "Cube",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CubeDensityAsset"
+  },
+  "Cuboid": {
+   "nodeType": "Cuboid",
+   "displayName": "Cuboid",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Scale": {
+     "type": "Vector3d",
+     "required": false
+    },
+    "NewYAxis": {
+     "type": "Vector3d",
+     "required": false
+    },
+    "Spin": {
+     "type": "number",
+     "required": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CuboidDensityAsset"
+  },
+  "Curve:Ceiling": {
+   "nodeType": "Ceiling",
+   "displayName": "Ceiling",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Ceiling": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CeilingCurveAsset"
+  },
+  "Curve:Clamp": {
+   "nodeType": "Clamp",
+   "displayName": "Clamp",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "WallA": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "WallB": {
+     "type": "number",
+     "required": false,
+     "default": -1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ClampCurveAsset"
+  },
+  "Curve:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantCurveAsset"
+  },
+  "Curve:DistanceExponential": {
+   "nodeType": "DistanceExponential",
+   "displayName": "DistanceExponential",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Exponent": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "Range": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DistanceExponentialCurveAsset"
+  },
+  "Curve:DistanceS": {
+   "nodeType": "DistanceS",
+   "displayName": "DistanceS",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ExponentA": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "ExponentB": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "Transition": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "Range": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "TransitionSmooth": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DistanceSCurveAsset"
+  },
+  "Curve:Floor": {
+   "nodeType": "Floor",
+   "displayName": "Floor",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Floor": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "FloorCurveAsset"
+  },
+  "Curve:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedCurveAsset"
+  },
+  "Curve:Inverter": {
+   "nodeType": "Inverter",
+   "displayName": "Inverter",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "InverterCurveAsset"
+  },
+  "Curve:Manual": {
+   "nodeType": "Manual",
+   "displayName": "Manual",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Points": {
+     "type": "array",
+     "required": true,
+     "default": []
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ManualCurveAsset"
+  },
+  "Curve:Max": {
+   "nodeType": "Max",
+   "displayName": "Max",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Curves",
+     "handleType": "Curve",
+     "label": "Curves"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MaxCurveAsset"
+  },
+  "Curve:Min": {
+   "nodeType": "Min",
+   "displayName": "Min",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Curves",
+     "handleType": "Curve",
+     "label": "Curves"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MinCurveAsset"
+  },
+  "Curve:Multiplier": {
+   "nodeType": "Multiplier",
+   "displayName": "Multiplier",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Curves",
+     "handleType": "Curve",
+     "label": "Curves"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MultiplierCurveAsset"
+  },
+  "Curve:Not": {
+   "nodeType": "Not",
+   "displayName": "Not",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NotCurveAsset"
+  },
+  "Curve:SmoothCeiling": {
+   "nodeType": "SmoothCeiling",
+   "displayName": "SmoothCeiling",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Ceiling": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothCeilingCurveAsset"
+  },
+  "Curve:SmoothClamp": {
+   "nodeType": "SmoothClamp",
+   "displayName": "SmoothClamp",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "WallA": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "WallB": {
+     "type": "number",
+     "required": false,
+     "default": -1
+    },
+    "Range": {
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothClampCurveAsset"
+  },
+  "Curve:SmoothFloor": {
+   "nodeType": "SmoothFloor",
+   "displayName": "SmoothFloor",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Floor": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothFloorCurveAsset"
+  },
+  "Curve:SmoothMax": {
+   "nodeType": "SmoothMax",
+   "displayName": "SmoothMax",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "CurveA",
+     "handleType": "Curve",
+     "label": "CurveA"
+    },
+    {
+     "id": "CurveB",
+     "handleType": "Curve",
+     "label": "CurveB"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothMaxCurveAsset"
+  },
+  "Curve:SmoothMin": {
+   "nodeType": "SmoothMin",
+   "displayName": "SmoothMin",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "CurveA",
+     "handleType": "Curve",
+     "label": "CurveA"
+    },
+    {
+     "id": "CurveB",
+     "handleType": "Curve",
+     "label": "CurveB"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothMinCurveAsset"
+  },
+  "Curve:Sum": {
+   "nodeType": "Sum",
+   "displayName": "Sum",
+   "category": "Curve",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Curves",
+     "handleType": "Curve",
+     "label": "Curves"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Curve",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SumCurveAsset"
+  },
+  "CurveMapper": {
+   "nodeType": "CurveMapper",
+   "displayName": "CurveMapper",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CurveMapperDensityAsset"
+  },
+  "Cylinder": {
+   "nodeType": "Cylinder",
+   "displayName": "Cylinder",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "NewYAxis": {
+     "type": "Vector3d",
+     "required": false
+    },
+    "Spin": {
+     "type": "number",
+     "required": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "RadialCurve",
+     "handleType": "Curve",
+     "label": "RadialCurve"
+    },
+    {
+     "id": "AxialCurve",
+     "handleType": "Curve",
+     "label": "AxialCurve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CylinderDensityAsset"
+  },
+  "Directionality:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "Directionality",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Directionality",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedDirectionalityAsset"
+  },
+  "Directionality:Pattern": {
+   "nodeType": "Pattern",
+   "displayName": "Pattern",
+   "category": "Directionality",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "InitialDirection": {
+     "type": "OrthogonalDirection",
+     "required": true
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": "A"
+    }
+   },
+   "inputs": [
+    {
+     "id": "NorthPattern",
+     "handleType": "Pattern",
+     "label": "NorthPattern"
+    },
+    {
+     "id": "SouthPattern",
+     "handleType": "Pattern",
+     "label": "SouthPattern"
+    },
+    {
+     "id": "EastPattern",
+     "handleType": "Pattern",
+     "label": "EastPattern"
+    },
+    {
+     "id": "WestPattern",
+     "handleType": "Pattern",
+     "label": "WestPattern"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Directionality",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PatternDirectionalityAsset"
+  },
+  "Directionality:Random": {
+   "nodeType": "Random",
+   "displayName": "Random",
+   "category": "Directionality",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": "A"
+    }
+   },
+   "inputs": [
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Directionality",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RandomDirectionalityAsset"
+  },
+  "Directionality:Static": {
+   "nodeType": "Static",
+   "displayName": "Static",
+   "category": "Directionality",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Rotation": {
+     "type": "integer",
+     "required": false,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Directionality",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "StaticDirectionalityAsset"
+  },
+  "Distance": {
+   "nodeType": "Distance",
+   "displayName": "Distance",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DistanceDensityAsset"
+  },
+  "DistanceFunction:Euclidean": {
+   "nodeType": "Euclidean",
+   "displayName": "Euclidean",
+   "category": "DistanceFunction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "DistanceFunction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "EuclideanDistanceFunctionAsset"
+  },
+  "DistanceFunction:Manhattan": {
+   "nodeType": "Manhattan",
+   "displayName": "Manhattan",
+   "category": "DistanceFunction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "DistanceFunction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ManhattanDistanceFunctionAsset"
+  },
+  "DistanceToBiomeEdge": {
+   "nodeType": "DistanceToBiomeEdge",
+   "displayName": "DistanceToBiomeEdge",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DistanceToBiomeEdgeDensityAsset"
+  },
+  "DistanceToGraphEdge": {
+   "nodeType": "DistanceToGraphEdge",
+   "displayName": "DistanceToGraphEdge",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DistanceToGraphEdgeDensityAsset"
+  },
+  "EdgeAction:Delete": {
+   "nodeType": "Delete",
+   "displayName": "Delete",
+   "category": "EdgeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DeleteEdgeActionAsset"
+  },
+  "EdgeAction:Empty": {
+   "nodeType": "Empty",
+   "displayName": "Empty",
+   "category": "EdgeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "EmptyEdgeActionAsset"
+  },
+  "EdgeAction:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "EdgeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedEdgeActionAsset"
+  },
+  "EdgeAction:Nodes": {
+   "nodeType": "Nodes",
+   "displayName": "Nodes",
+   "category": "EdgeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "NodeAction",
+     "handleType": "NodeAction",
+     "label": "NodeAction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NodesEdgeActionAsset"
+  },
+  "EdgeAction:Proxy": {
+   "nodeType": "Proxy",
+   "displayName": "Proxy",
+   "category": "EdgeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "MaxProxyDistance": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "HostNodeSelector",
+     "handleType": "NodeSelector",
+     "label": "HostNodeSelector"
+    },
+    {
+     "id": "Normal",
+     "handleType": "VectorProvider",
+     "label": "Normal"
+    },
+    {
+     "id": "AngleToNormal",
+     "handleType": "Density",
+     "label": "AngleToNormal"
+    },
+    {
+     "id": "SpinAngle",
+     "handleType": "Density",
+     "label": "SpinAngle"
+    },
+    {
+     "id": "ProxyDistance",
+     "handleType": "Density",
+     "label": "ProxyDistance"
+    },
+    {
+     "id": "ProxyContent",
+     "handleType": "ContentSupplier",
+     "label": "ProxyContent"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ProxyEdgeActionAsset"
+  },
+  "EdgeAction:Selector": {
+   "nodeType": "Selector",
+   "displayName": "Selector",
+   "category": "EdgeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "EdgeSelector",
+     "handleType": "EdgeSelector",
+     "label": "EdgeSelector"
+    },
+    {
+     "id": "EdgeAction",
+     "handleType": "EdgeAction",
+     "label": "EdgeAction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SelectorEdgeActionAsset"
+  },
+  "EdgeAction:Splitter": {
+   "nodeType": "Splitter",
+   "displayName": "Splitter",
+   "category": "EdgeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "NodeCount": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Content",
+     "handleType": "ContentSupplier",
+     "label": "Content"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SplitterEdgeActionAsset"
+  },
+  "EdgeSelector:All": {
+   "nodeType": "All",
+   "displayName": "All",
+   "category": "EdgeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AllEdgeSelectorAsset"
+  },
+  "EdgeSelector:And": {
+   "nodeType": "And",
+   "displayName": "And",
+   "category": "EdgeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "EdgeSelectors",
+     "handleType": "EdgeSelector",
+     "label": "EdgeSelectors"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AndEdgeSelectorAsset"
+  },
+  "EdgeSelector:Angle": {
+   "nodeType": "Angle",
+   "displayName": "Angle",
+   "category": "EdgeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    }
+   },
+   "inputs": [
+    {
+     "id": "Reference",
+     "handleType": "VectorProvider",
+     "label": "Reference"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AngleEdgeSelectorAsset"
+  },
+  "EdgeSelector:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "EdgeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedEdgeSelectorAsset"
+  },
+  "EdgeSelector:Length": {
+   "nodeType": "Length",
+   "displayName": "Length",
+   "category": "EdgeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "LengthEdgeSelectorAsset"
+  },
+  "EdgeSelector:Nodes": {
+   "nodeType": "Nodes",
+   "displayName": "Nodes",
+   "category": "EdgeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Seed": {
+     "type": "enum",
+     "required": true,
+     "enum": [
+      "AND"
+     ]
+    }
+   },
+   "inputs": [
+    {
+     "id": "NodeSelector",
+     "handleType": "NodeSelector",
+     "label": "NodeSelector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NodesEdgeSelectorAsset"
+  },
+  "EdgeSelector:Not": {
+   "nodeType": "Not",
+   "displayName": "Not",
+   "category": "EdgeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "EdgeSelector",
+     "handleType": "EdgeSelector",
+     "label": "EdgeSelector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NotEdgeSelectorAsset"
+  },
+  "EdgeSelector:Or": {
+   "nodeType": "Or",
+   "displayName": "Or",
+   "category": "EdgeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "EdgeSelectors",
+     "handleType": "EdgeSelector",
+     "label": "EdgeSelectors"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OrEdgeSelectorAsset"
+  },
+  "EdgeSelector:Random": {
+   "nodeType": "Random",
+   "displayName": "Random",
+   "category": "EdgeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Chance": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EdgeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RandomEdgeSelectorAsset"
+  },
+  "Ellipsoid": {
+   "nodeType": "Ellipsoid",
+   "displayName": "Ellipsoid",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Scale": {
+     "type": "Vector3d",
+     "required": false
+    },
+    "NewYAxis": {
+     "type": "Vector3d",
+     "required": false
+    },
+    "Spin": {
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "EllipsoidDensityAsset"
+  },
+  "EnvironmentProvider:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "EnvironmentProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Environment": {
+     "type": "string",
+     "required": true,
+     "default": "Unknown"
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EnvironmentProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantEnvironmentProviderAsset"
+  },
+  "EnvironmentProvider:DensityDelimited": {
+   "nodeType": "DensityDelimited",
+   "displayName": "DensityDelimited",
+   "category": "EnvironmentProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Range": {
+     "type": "RangeDouble",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    },
+    {
+     "id": "Environment",
+     "handleType": "EnvironmentProvider",
+     "label": "Environment"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "EnvironmentProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DensityDelimitedEnvironmentProviderAsset"
+  },
+  "Equal": {
+   "nodeType": "Equal",
+   "displayName": "Equal",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Epsilon": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "EqualDensityAsset"
+  },
+  "Exported": {
+   "nodeType": "Exported",
+   "displayName": "Exported",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SingleInstance": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ExportedDensityAsset"
+  },
+  "FastGradientWarp": {
+   "nodeType": "FastGradientWarp",
+   "displayName": "FastGradientWarp",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "WarpScale": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "WarpOctaves": {
+     "type": "integer",
+     "required": false,
+     "default": 1
+    },
+    "WarpLacunarity": {
+     "type": "number",
+     "required": false,
+     "default": 2
+    },
+    "WarpPersistence": {
+     "type": "number",
+     "required": false,
+     "default": 0.5
+    },
+    "WarpFactor": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": false,
+     "default": "A"
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "FastGradientWarpDensityAsset"
+  },
+  "Floor": {
+   "nodeType": "Floor",
+   "displayName": "Floor",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Limit": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "FloorDensityAsset"
+  },
+  "Framework:DecimalConstants": {
+   "nodeType": "DecimalConstants",
+   "displayName": "DecimalConstants",
+   "category": "Framework",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Entries": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "Value": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Framework",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DecimalConstantsFrameworkAsset"
+  },
+  "Framework:Positions": {
+   "nodeType": "Positions",
+   "displayName": "Positions",
+   "category": "Framework",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Entries": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Framework",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PositionsFrameworkAsset"
+  },
+  "Gradient": {
+   "nodeType": "Gradient",
+   "displayName": "Gradient",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Axis": {
+     "type": "Vector3d",
+     "required": false
+    },
+    "SampleRange": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "GradientDensityAsset"
+  },
+  "GradientWarp": {
+   "nodeType": "GradientWarp",
+   "displayName": "GradientWarp",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SampleRange": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "WarpFactor": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "2D": {
+     "type": "boolean",
+     "required": false
+    },
+    "YFor2D": {
+     "type": "number",
+     "required": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "GradientWarpDensityAsset"
+  },
+  "Graph": {
+   "nodeType": "Graph",
+   "displayName": "Graph",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "GraphGenerator": {
+     "type": "GraphGenerator",
+     "required": true
+    },
+    "ContentLayer": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "BackgroundValue": {
+     "type": "number",
+     "required": true
+    },
+    "TransitionSlope": {
+     "type": "number",
+     "required": true,
+     "default": 2.5
+    },
+    "TransitionOffset": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "TransitionSmooth": {
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    },
+    "QueryBufferCapacity": {
+     "type": "integer",
+     "required": true,
+     "default": 3
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "GraphDensityAsset"
+  },
+  "GraphPass:EdgeAction": {
+   "nodeType": "EdgeAction",
+   "displayName": "EdgeAction",
+   "category": "GraphPass",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "StatsLabel": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "EdgeAction",
+     "handleType": "EdgeAction",
+     "label": "EdgeAction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "GraphPass",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "EdgeActionGraphPassAsset"
+  },
+  "GraphPass:Empty": {
+   "nodeType": "Empty",
+   "displayName": "Empty",
+   "category": "GraphPass",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "GraphPass",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "EmptyGraphPassAsset"
+  },
+  "GraphPass:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "GraphPass",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "GraphPass",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedGraphPassAsset"
+  },
+  "GraphPass:Manual": {
+   "nodeType": "Manual",
+   "displayName": "Manual",
+   "category": "GraphPass",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Nodes": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "StatsLabel": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "Position": {
+     "type": "Vector3d",
+     "required": true
+    },
+    "Content": {
+     "type": "GraphContent",
+     "required": true
+    },
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "Connections": {
+     "type": "array",
+     "required": false,
+     "default": []
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "GraphPass",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ManualGraphPassAsset"
+  },
+  "GraphPass:NodeAction": {
+   "nodeType": "NodeAction",
+   "displayName": "NodeAction",
+   "category": "GraphPass",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "StatsLabel": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "NodeAction",
+     "handleType": "NodeAction",
+     "label": "NodeAction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "GraphPass",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NodeActionGraphPassAsset"
+  },
+  "GraphPass:Positions": {
+   "nodeType": "Positions",
+   "displayName": "Positions",
+   "category": "GraphPass",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "StatsLabel": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "GraphPass",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PositionsGraphPassAsset"
+  },
+  "GreaterOrEqual": {
+   "nodeType": "GreaterOrEqual",
+   "displayName": "GreaterOrEqual",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "GreaterOrEqualDensityAsset"
+  },
+  "GreaterThan": {
+   "nodeType": "GreaterThan",
+   "displayName": "GreaterThan",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "GreaterThanDensityAsset"
+  },
+  "Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedDensityAsset"
+  },
+  "Inverter": {
+   "nodeType": "Inverter",
+   "displayName": "Inverter",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "InverterDensityAsset"
+  },
+  "Layer:ConstantThickness": {
+   "nodeType": "ConstantThickness",
+   "displayName": "ConstantThickness",
+   "category": "Layer",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Thickness": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Layer",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantThicknessLayerAsset"
+  },
+  "Layer:NoiseThickness": {
+   "nodeType": "NoiseThickness",
+   "displayName": "NoiseThickness",
+   "category": "Layer",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "ThicknessFunctionXZ",
+     "handleType": "Density",
+     "label": "ThicknessFunctionXZ"
+    },
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Layer",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NoiseThicknessAsset"
+  },
+  "Layer:RangeThickness": {
+   "nodeType": "RangeThickness",
+   "displayName": "RangeThickness",
+   "category": "Layer",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "RangeMin": {
+     "type": "integer",
+     "required": true
+    },
+    "RangeMax": {
+     "type": "integer",
+     "required": true
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Layer",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RangeThicknessAsset"
+  },
+  "Layer:WeightedThickness": {
+   "nodeType": "WeightedThickness",
+   "displayName": "WeightedThickness",
+   "category": "Layer",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "PossibleThicknesses": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "Weight": {
+     "type": "number",
+     "required": true
+    },
+    "Thickness": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Layer",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "WeightedThicknessLayerAsset"
+  },
+  "LessOrEqual": {
+   "nodeType": "LessOrEqual",
+   "displayName": "LessOrEqual",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "LessOrEqualDensityAsset"
+  },
+  "LessThan": {
+   "nodeType": "LessThan",
+   "displayName": "LessThan",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "LessThanDensityAsset"
+  },
+  "MaterialProvider:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Material": {
+     "type": "Material",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantMaterialProviderAsset"
+  },
+  "MaterialProvider:DownwardDepth": {
+   "nodeType": "DownwardDepth",
+   "displayName": "DownwardDepth",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Depth": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DownwardDepthMaterialProviderAsset"
+  },
+  "MaterialProvider:DownwardSpace": {
+   "nodeType": "DownwardSpace",
+   "displayName": "DownwardSpace",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Space": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DownwardSpaceMaterialProviderAsset"
+  },
+  "MaterialProvider:FieldFunction": {
+   "nodeType": "FieldFunction",
+   "displayName": "FieldFunction",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "From": {
+     "type": "number",
+     "required": true
+    },
+    "To": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "FieldFunction",
+     "handleType": "Density",
+     "label": "FieldFunction"
+    },
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "FieldFunctionMaterialProviderAsset"
+  },
+  "MaterialProvider:Graph": {
+   "nodeType": "Graph",
+   "displayName": "Graph",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "GraphGenerator": {
+     "type": "GraphGenerator",
+     "required": true
+    },
+    "ContentLayer": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "QueryBufferCapacity": {
+     "type": "integer",
+     "required": true,
+     "default": 3
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "GraphMaterialProviderAsset"
+  },
+  "MaterialProvider:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedMaterialProviderAsset"
+  },
+  "MaterialProvider:Queue": {
+   "nodeType": "Queue",
+   "displayName": "Queue",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Queue",
+     "handleType": "MaterialProvider",
+     "label": "Queue"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "QueueMaterialProviderAsset"
+  },
+  "MaterialProvider:SimpleHorizontal": {
+   "nodeType": "SimpleHorizontal",
+   "displayName": "SimpleHorizontal",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "TopY": {
+     "type": "integer",
+     "required": true
+    },
+    "BottomY": {
+     "type": "integer",
+     "required": true
+    },
+    "TopBaseHeight": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    "BottomBaseHeight": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SimpleHorizontalMaterialProviderAsset"
+  },
+  "MaterialProvider:Solidity": {
+   "nodeType": "Solidity",
+   "displayName": "Solidity",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Solid",
+     "handleType": "MaterialProvider",
+     "label": "Solid"
+    },
+    {
+     "id": "Empty",
+     "handleType": "MaterialProvider",
+     "label": "Empty"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SolidityMaterialProviderAsset"
+  },
+  "MaterialProvider:SpaceAndDepth": {
+   "nodeType": "SpaceAndDepth",
+   "displayName": "SpaceAndDepth",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "LayerContext": {
+     "type": "LayerContextType",
+     "required": true
+    },
+    "MaxExpectedDepth": {
+     "type": "integer",
+     "required": true,
+     "default": 3
+    }
+   },
+   "inputs": [
+    {
+     "id": "Condition",
+     "handleType": "Condition",
+     "label": "Condition"
+    },
+    {
+     "id": "Layers",
+     "handleType": "Layer",
+     "label": "Layers"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SpaceAndDepthMaterialProviderAsset"
+  },
+  "MaterialProvider:Striped": {
+   "nodeType": "Striped",
+   "displayName": "Striped",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Stripes": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "TopY": {
+     "type": "integer",
+     "required": true
+    },
+    "BottomY": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "StripedMaterialProviderAsset"
+  },
+  "MaterialProvider:TerrainDensity": {
+   "nodeType": "TerrainDensity",
+   "displayName": "TerrainDensity",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "From": {
+     "type": "number",
+     "required": true
+    },
+    "To": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "TerrainDensityMaterialProviderAsset"
+  },
+  "MaterialProvider:Transparent": {
+   "nodeType": "Transparent",
+   "displayName": "Transparent",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "TransparentMaterialProviderAsset"
+  },
+  "MaterialProvider:UpwardDepth": {
+   "nodeType": "UpwardDepth",
+   "displayName": "UpwardDepth",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Depth": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "UpwardDepthMaterialProviderAsset"
+  },
+  "MaterialProvider:UpwardSpace": {
+   "nodeType": "UpwardSpace",
+   "displayName": "UpwardSpace",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Space": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "UpwardSpaceMaterialProviderAsset"
+  },
+  "MaterialProvider:Weighted": {
+   "nodeType": "Weighted",
+   "displayName": "Weighted",
+   "category": "MaterialProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "WeightedMaterials": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "SkipChance": {
+     "type": "number",
+     "required": true
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "Weight": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "MaterialProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "WeightedMaterialProviderAsset"
+  },
+  "Max": {
+   "nodeType": "Max",
+   "displayName": "Max",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MaxDensityAsset"
+  },
+  "Min": {
+   "nodeType": "Min",
+   "displayName": "Min",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MinDensityAsset"
+  },
+  "Mix": {
+   "nodeType": "Mix",
+   "displayName": "Mix",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MixDensityAsset"
+  },
+  "MultiMix": {
+   "nodeType": "MultiMix",
+   "displayName": "MultiMix",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Keys": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Value": {
+     "type": "number",
+     "required": true
+    },
+    "DensityIndex": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MultiMixDensityAsset"
+  },
+  "Multiplier": {
+   "nodeType": "Multiplier",
+   "displayName": "Multiplier",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MultiplierDensityAsset"
+  },
+  "NodeAction:ConnectedEdges": {
+   "nodeType": "ConnectedEdges",
+   "displayName": "ConnectedEdges",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Ratio": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "EdgeAction",
+     "handleType": "EdgeAction",
+     "label": "EdgeAction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConnectedEdgesNodeActionAsset"
+  },
+  "NodeAction:ConnectedNodes": {
+   "nodeType": "ConnectedNodes",
+   "displayName": "ConnectedNodes",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Ratio": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "NodeAction",
+     "handleType": "NodeAction",
+     "label": "NodeAction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConnectedNodesNodeActionAsset"
+  },
+  "NodeAction:Content": {
+   "nodeType": "Content",
+   "displayName": "Content",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Content",
+     "handleType": "ContentSupplier",
+     "label": "Content"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ContentNodeActionAsset"
+  },
+  "NodeAction:ContentCopy": {
+   "nodeType": "ContentCopy",
+   "displayName": "ContentCopy",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "ContentPredicate",
+     "handleType": "BlockMask",
+     "label": "ContentPredicate"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ContentCopyNodeActionAsset"
+  },
+  "NodeAction:Delete": {
+   "nodeType": "Delete",
+   "displayName": "Delete",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DeleteNodeActionAsset"
+  },
+  "NodeAction:Empty": {
+   "nodeType": "Empty",
+   "displayName": "Empty",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "EmptyNodeActionAsset"
+  },
+  "NodeAction:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedNodeActionAsset"
+  },
+  "NodeAction:Jitter2d": {
+   "nodeType": "Jitter2d",
+   "displayName": "Jitter2d",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Magnitude": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Jitter2dNodeActionAsset"
+  },
+  "NodeAction:Jitter3d": {
+   "nodeType": "Jitter3d",
+   "displayName": "Jitter3d",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Magnitude": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Jitter3dNodeActionAsset"
+  },
+  "NodeAction:Move": {
+   "nodeType": "Move",
+   "displayName": "Move",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "MaxDistance": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Vector",
+     "handleType": "VectorProvider",
+     "label": "Vector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MoveNodeActionAsset"
+  },
+  "NodeAction:ProximityConnector": {
+   "nodeType": "ProximityConnector",
+   "displayName": "ProximityConnector",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Cap": {
+     "type": "integer",
+     "required": false
+    },
+    "Seed": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "NodeSelector",
+     "handleType": "NodeSelector",
+     "label": "NodeSelector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ProximityConnectorNodeActionAsset"
+  },
+  "NodeAction:Selector": {
+   "nodeType": "Selector",
+   "displayName": "Selector",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "NodeSelector",
+     "handleType": "NodeSelector",
+     "label": "NodeSelector"
+    },
+    {
+     "id": "NodeAction",
+     "handleType": "NodeAction",
+     "label": "NodeAction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SelectorNodeActionAsset"
+  },
+  "NodeAction:Spawner": {
+   "nodeType": "Spawner",
+   "displayName": "Spawner",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ClusterBounds": {
+     "type": "DecimalBounds3d",
+     "required": true
+    },
+    "MaxOffsetExclusive": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "CreateEdges": {
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Offset",
+     "handleType": "VectorProvider",
+     "label": "Offset"
+    },
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    },
+    {
+     "id": "Content",
+     "handleType": "ContentSupplier",
+     "label": "Content"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SpawnerNodeActionAsset"
+  },
+  "NodeAction:Weighted": {
+   "nodeType": "Weighted",
+   "displayName": "Weighted",
+   "category": "NodeAction",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Entries": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "Weight": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "NodeAction",
+     "handleType": "NodeAction",
+     "label": "NodeAction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeAction",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "WeightedNodeActionAsset"
+  },
+  "NodeSelector:All": {
+   "nodeType": "All",
+   "displayName": "All",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AllNodeSelectorAsset"
+  },
+  "NodeSelector:And": {
+   "nodeType": "And",
+   "displayName": "And",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "NodeSelectors",
+     "handleType": "NodeSelector",
+     "label": "NodeSelectors"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AndNodeSelectorAsset"
+  },
+  "NodeSelector:ConnectionCount": {
+   "nodeType": "ConnectionCount",
+   "displayName": "ConnectionCount",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Counts": {
+     "type": "array",
+     "required": true,
+     "default": []
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConnectionCountNodeSelectorAsset"
+  },
+  "NodeSelector:Content": {
+   "nodeType": "Content",
+   "displayName": "Content",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "ContentPredicate",
+     "handleType": "BlockMask",
+     "label": "ContentPredicate"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ContentNodeSelectorAsset"
+  },
+  "NodeSelector:DensityDelimited": {
+   "nodeType": "DensityDelimited",
+   "displayName": "DensityDelimited",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    }
+   },
+   "inputs": [
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DensityDelimitedNodeSelectorAsset"
+  },
+  "NodeSelector:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedNodeSelectorAsset"
+  },
+  "NodeSelector:NeighborEdges": {
+   "nodeType": "NeighborEdges",
+   "displayName": "NeighborEdges",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SelectedNeighborsThreshold": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "EdgeSelector",
+     "handleType": "EdgeSelector",
+     "label": "EdgeSelector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NeighborEdgesNodeSelectorAsset"
+  },
+  "NodeSelector:NeighborNodes": {
+   "nodeType": "NeighborNodes",
+   "displayName": "NeighborNodes",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SelectedNeighborsThreshold": {
+     "type": "integer",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "NodeSelector",
+     "handleType": "NodeSelector",
+     "label": "NodeSelector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NeighborNodesNodeSelectorAsset"
+  },
+  "NodeSelector:Not": {
+   "nodeType": "Not",
+   "displayName": "Not",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "NodeSelector",
+     "handleType": "NodeSelector",
+     "label": "NodeSelector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NotNodeSelectorAsset"
+  },
+  "NodeSelector:Or": {
+   "nodeType": "Or",
+   "displayName": "Or",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "NodeSelectors",
+     "handleType": "NodeSelector",
+     "label": "NodeSelectors"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OrNodeSelectorAsset"
+  },
+  "NodeSelector:Random": {
+   "nodeType": "Random",
+   "displayName": "Random",
+   "category": "NodeSelector",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Chance": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "NodeSelector",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RandomNodeSelectorAsset"
+  },
+  "Noise:Cell": {
+   "nodeType": "Cell",
+   "displayName": "Cell",
+   "category": "Noise",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "WarpAmount": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "WarpScale": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "Scale": {
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    "Octaves": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": "A"
+    },
+    "CellType": {
+     "type": "string",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Noise",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CellNoiseAsset"
+  },
+  "Noise:Simplex": {
+   "nodeType": "Simplex",
+   "displayName": "Simplex",
+   "category": "Noise",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Lacunarity": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "Persistence": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "Scale": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "Octaves": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": "A"
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Noise",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SimplexNoiseAsset"
+  },
+  "Nor": {
+   "nodeType": "Nor",
+   "displayName": "Nor",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NorDensityAsset"
+  },
+  "Normalizer": {
+   "nodeType": "Normalizer",
+   "displayName": "Normalizer",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "FromMin": {
+     "type": "number",
+     "required": true,
+     "default": -1
+    },
+    "FromMax": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "ToMin": {
+     "type": "number",
+     "required": true,
+     "default": -1
+    },
+    "ToMax": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NormalizerDensityAsset"
+  },
+  "Not": {
+   "nodeType": "Not",
+   "displayName": "Not",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NotDensityAsset"
+  },
+  "Offset": {
+   "nodeType": "Offset",
+   "displayName": "Offset",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "FunctionForY": {
+     "type": "NodeFunctionYOut",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OffsetDensityAsset"
+  },
+  "OffsetConstant": {
+   "nodeType": "OffsetConstant",
+   "displayName": "OffsetConstant",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OffsetConstantAsset"
+  },
+  "Or": {
+   "nodeType": "Or",
+   "displayName": "Or",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OrDensityAsset"
+  },
+  "Pattern:And": {
+   "nodeType": "And",
+   "displayName": "And",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Patterns",
+     "handleType": "Pattern",
+     "label": "Patterns"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AndPatternAsset"
+  },
+  "Pattern:BlockSet": {
+   "nodeType": "BlockSet",
+   "displayName": "BlockSet",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "BlockSet": {
+     "type": "MaterialSet",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "BlockSetPatternAsset"
+  },
+  "Pattern:BlockType": {
+   "nodeType": "BlockType",
+   "displayName": "BlockType",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Material": {
+     "type": "Material",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MaterialPatternAsset"
+  },
+  "Pattern:Ceiling": {
+   "nodeType": "Ceiling",
+   "displayName": "Ceiling",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Ceiling",
+     "handleType": "Pattern",
+     "label": "Ceiling"
+    },
+    {
+     "id": "Origin",
+     "handleType": "Pattern",
+     "label": "Origin"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CeilingPatternAsset"
+  },
+  "Pattern:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantPatternAsset"
+  },
+  "Pattern:Cuboid": {
+   "nodeType": "Cuboid",
+   "displayName": "Cuboid",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Min": {
+     "type": "Vector3i",
+     "required": true
+    },
+    "Max": {
+     "type": "Vector3i",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "SubPattern",
+     "handleType": "Pattern",
+     "label": "SubPattern"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CuboidPatternAsset"
+  },
+  "Pattern:FieldFunction": {
+   "nodeType": "FieldFunction",
+   "displayName": "FieldFunction",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Min": {
+     "type": "number",
+     "required": true
+    },
+    "Max": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "FieldFunction",
+     "handleType": "Density",
+     "label": "FieldFunction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DensityPatternAsset"
+  },
+  "Pattern:Floor": {
+   "nodeType": "Floor",
+   "displayName": "Floor",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Floor",
+     "handleType": "Pattern",
+     "label": "Floor"
+    },
+    {
+     "id": "Origin",
+     "handleType": "Pattern",
+     "label": "Origin"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "FloorPatternAsset"
+  },
+  "Pattern:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedPatternAsset"
+  },
+  "Pattern:Not": {
+   "nodeType": "Not",
+   "displayName": "Not",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NotPatternAsset"
+  },
+  "Pattern:Offset": {
+   "nodeType": "Offset",
+   "displayName": "Offset",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Offset": {
+     "type": "Vector3i",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OffsetPatternAsset"
+  },
+  "Pattern:Or": {
+   "nodeType": "Or",
+   "displayName": "Or",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Patterns",
+     "handleType": "Pattern",
+     "label": "Patterns"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OrPatternAsset"
+  },
+  "Pattern:Rotator": {
+   "nodeType": "Rotator",
+   "displayName": "Rotator",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Rotation": {
+     "type": "OrthogonalRotation",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RotatorPatternAsset"
+  },
+  "Pattern:Surface": {
+   "nodeType": "Surface",
+   "displayName": "Surface",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SurfaceRadius": {
+     "type": "number",
+     "required": false
+    },
+    "MediumRadius": {
+     "type": "number",
+     "required": false
+    },
+    "SurfaceGap": {
+     "type": "integer",
+     "required": false
+    },
+    "MediumGap": {
+     "type": "integer",
+     "required": false
+    },
+    "RequireAllFacings": {
+     "type": "boolean",
+     "required": false
+    },
+    "Facings": {
+     "type": "enum",
+     "required": true,
+     "default": [],
+     "enum": [
+      "U"
+     ]
+    }
+   },
+   "inputs": [
+    {
+     "id": "Surface",
+     "handleType": "Pattern",
+     "label": "Surface"
+    },
+    {
+     "id": "Medium",
+     "handleType": "Pattern",
+     "label": "Medium"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SurfacePatternAsset"
+  },
+  "Pattern:Wall": {
+   "nodeType": "Wall",
+   "displayName": "Wall",
+   "category": "Pattern",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "RequireAllDirections": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    "Directions": {
+     "type": "enum",
+     "required": true,
+     "default": [],
+     "enum": [
+      "N"
+     ]
+    }
+   },
+   "inputs": [
+    {
+     "id": "Wall",
+     "handleType": "Pattern",
+     "label": "Wall"
+    },
+    {
+     "id": "Origin",
+     "handleType": "Pattern",
+     "label": "Origin"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Pattern",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "WallPatternAsset"
+  },
+  "Pipeline": {
+   "nodeType": "Pipeline",
+   "displayName": "Pipeline",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Pipeline",
+     "handleType": "Density",
+     "label": "Pipeline"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PipelineDensityAsset"
+  },
+  "Plane": {
+   "nodeType": "Plane",
+   "displayName": "Plane",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "IsAnchored": {
+     "type": "boolean",
+     "required": false
+    },
+    "PlaneNormal": {
+     "type": "Vector3d",
+     "required": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PlaneDensityAsset"
+  },
+  "PointGenerator:Mesh": {
+   "nodeType": "Mesh",
+   "displayName": "Mesh",
+   "category": "PointGenerator",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Jitter": {
+     "type": "number",
+     "required": true,
+     "default": 0.35
+    },
+    "ScaleX": {
+     "type": "number",
+     "required": true,
+     "default": 40
+    },
+    "ScaleY": {
+     "type": "number",
+     "required": true,
+     "default": 40
+    },
+    "ScaleZ": {
+     "type": "number",
+     "required": true,
+     "default": 40
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": "A"
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PointGenerator",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MeshPointGeneratorAsset"
+  },
+  "PositionProvider:Anchor": {
+   "nodeType": "Anchor",
+   "displayName": "Anchor",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Reversed": {
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AnchorPositionProviderAsset"
+  },
+  "PositionProvider:BaseHeight": {
+   "nodeType": "BaseHeight",
+   "displayName": "BaseHeight",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "MinYRead": {
+     "type": "number",
+     "required": false,
+     "default": -1
+    },
+    "MaxYRead": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "BedName": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "BaseHeightPositionProviderAsset"
+  },
+  "PositionProvider:Bound": {
+   "nodeType": "Bound",
+   "displayName": "Bound",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Bounds": {
+     "type": "DecimalBounds3d",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "BoundPositionProviderAsset"
+  },
+  "PositionProvider:Cache": {
+   "nodeType": "Cache",
+   "displayName": "Cache",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SectionSize": {
+     "type": "integer",
+     "required": true,
+     "default": 32
+    },
+    "CacheSize": {
+     "type": "integer",
+     "required": true,
+     "default": 100
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CachedPositionProviderAsset"
+  },
+  "PositionProvider:Clusters": {
+   "nodeType": "Clusters",
+   "displayName": "Clusters",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ClusterBounds": {
+     "type": "DecimalBounds3d",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Cluster",
+     "handleType": "PositionProvider",
+     "label": "Cluster"
+    },
+    {
+     "id": "Distributor",
+     "handleType": "PositionProvider",
+     "label": "Distributor"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ClustersPositionProviderAsset"
+  },
+  "PositionProvider:DirectionalJitter": {
+   "nodeType": "DirectionalJitter",
+   "displayName": "DirectionalJitter",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Magnitude": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "IsBidirectional": {
+     "type": "boolean",
+     "required": true,
+     "default": true
+    },
+    "Direction": {
+     "type": "Vector3d",
+     "required": true
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DirectionalJitterPositionProviderAsset"
+  },
+  "PositionProvider:FieldFunction": {
+   "nodeType": "FieldFunction",
+   "displayName": "FieldFunction",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Min": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Max": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "FieldFunction",
+     "handleType": "Density",
+     "label": "FieldFunction"
+    },
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "FieldFunctionPositionProviderAsset"
+  },
+  "PositionProvider:Framework": {
+   "nodeType": "Framework",
+   "displayName": "Framework",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "FrameworkPositionProviderAsset"
+  },
+  "PositionProvider:Graph": {
+   "nodeType": "Graph",
+   "displayName": "Graph",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "GraphGenerator": {
+     "type": "GraphGenerator",
+     "required": true
+    },
+    "ContentLayer": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "GraphPositionProviderAsset"
+  },
+  "PositionProvider:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedPositionProviderAsset"
+  },
+  "PositionProvider:Jitter2d": {
+   "nodeType": "Jitter2d",
+   "displayName": "Jitter2d",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Magnitude": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Jitter2dPositionProviderAsset"
+  },
+  "PositionProvider:Jitter3d": {
+   "nodeType": "Jitter3d",
+   "displayName": "Jitter3d",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Magnitude": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Jitter3dPositionProviderAsset"
+  },
+  "PositionProvider:List": {
+   "nodeType": "List",
+   "displayName": "List",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Positions": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "X": {
+     "type": "number",
+     "required": true
+    },
+    "Y": {
+     "type": "number",
+     "required": true
+    },
+    "Z": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ListPositionProviderAsset"
+  },
+  "PositionProvider:Mesh2D": {
+   "nodeType": "Mesh2D",
+   "displayName": "Mesh2D",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "PointsY": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "PointGenerator",
+     "handleType": "PointGenerator",
+     "label": "PointGenerator"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Mesh2DPositionProviderAsset"
+  },
+  "PositionProvider:Mesh3D": {
+   "nodeType": "Mesh3D",
+   "displayName": "Mesh3D",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "PointGenerator",
+     "handleType": "PointGenerator",
+     "label": "PointGenerator"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Mesh3DPositionProviderAsset"
+  },
+  "PositionProvider:Occurrence": {
+   "nodeType": "Occurrence",
+   "displayName": "Occurrence",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "FieldFunction",
+     "handleType": "Density",
+     "label": "FieldFunction"
+    },
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "FieldFunctionOccurrencePositionProviderAsset"
+  },
+  "PositionProvider:Offset": {
+   "nodeType": "Offset",
+   "displayName": "Offset",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Offset": {
+     "type": "Vector3d",
+     "required": true
+    },
+    "OffsetX": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    "OffsetY": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    "OffsetZ": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OffsetPositionProviderAsset"
+  },
+  "PositionProvider:Scaler": {
+   "nodeType": "Scaler",
+   "displayName": "Scaler",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Scale": {
+     "type": "Vector3d",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ScalerPositionProviderAsset"
+  },
+  "PositionProvider:SimpleHorizontal": {
+   "nodeType": "SimpleHorizontal",
+   "displayName": "SimpleHorizontal",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "RangeY": {
+     "type": "RangeDouble",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SimpleHorizontalPositionProviderAsset"
+  },
+  "PositionProvider:SquareGrid2d": {
+   "nodeType": "SquareGrid2d",
+   "displayName": "SquareGrid2d",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SquareGrid2dPositionProviderAsset"
+  },
+  "PositionProvider:SquareGrid3d": {
+   "nodeType": "SquareGrid3d",
+   "displayName": "SquareGrid3d",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SquareGrid3dPositionProviderAsset"
+  },
+  "PositionProvider:TriangularGrid2d": {
+   "nodeType": "TriangularGrid2d",
+   "displayName": "TriangularGrid2d",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "TriangularGrid2dPositionProviderAsset"
+  },
+  "PositionProvider:Union": {
+   "nodeType": "Union",
+   "displayName": "Union",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "UnionPositionProviderAsset"
+  },
+  "PositionProvider:VectorOffset": {
+   "nodeType": "VectorOffset",
+   "displayName": "VectorOffset",
+   "category": "PositionProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "MovementBounds": {
+     "type": "DecimalBounds3d",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    },
+    {
+     "id": "VectorProvider",
+     "handleType": "VectorProvider",
+     "label": "VectorProvider"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PositionProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "VectorOffsetPositionProviderAsset"
+  },
+  "Positions3D": {
+   "nodeType": "Positions3D",
+   "displayName": "Positions3D",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "MaxDistance": {
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    },
+    {
+     "id": "DistanceCurve",
+     "handleType": "Curve",
+     "label": "DistanceCurve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Positions3DDensityAsset"
+  },
+  "PositionsCellNoise": {
+   "nodeType": "PositionsCellNoise",
+   "displayName": "PositionsCellNoise",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "MaxDistance": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    },
+    {
+     "id": "ReturnType",
+     "handleType": "ReturnType",
+     "label": "ReturnType"
+    },
+    {
+     "id": "DistanceFunction",
+     "handleType": "DistanceFunction",
+     "label": "DistanceFunction"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PositionsCellNoiseDensityAsset"
+  },
+  "PositionsPinch": {
+   "nodeType": "PositionsPinch",
+   "displayName": "PositionsPinch",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "MaxDistance": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "NormalizeDistance": {
+     "type": "boolean",
+     "required": true,
+     "default": true
+    },
+    "HorizontalPinch": {
+     "type": "boolean",
+     "required": false,
+     "default": true
+    },
+    "PositionsMinY": {
+     "type": "number",
+     "required": false,
+     "default": 0
+    },
+    "PositionsMaxY": {
+     "type": "number",
+     "required": false,
+     "default": 0.000001
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    },
+    {
+     "id": "PinchCurve",
+     "handleType": "Curve",
+     "label": "PinchCurve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PositionsPinchDensityAsset"
+  },
+  "PositionsTwist": {
+   "nodeType": "PositionsTwist",
+   "displayName": "PositionsTwist",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "TwistAxis": {
+     "type": "Vector3d",
+     "required": true
+    },
+    "MaxDistance": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "NormalizeDistance": {
+     "type": "boolean",
+     "required": true,
+     "default": true
+    },
+    "ZeroPositionsY": {
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    },
+    {
+     "id": "TwistCurve",
+     "handleType": "Curve",
+     "label": "TwistCurve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PositionsTwistDensityAsset"
+  },
+  "Pow": {
+   "nodeType": "Pow",
+   "displayName": "Pow",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Exponent": {
+     "type": "number",
+     "required": true,
+     "default": 2
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PowDensityAsset"
+  },
+  "Prop:Box": {
+   "nodeType": "Box",
+   "displayName": "Box",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "Vector3i",
+     "required": true
+    },
+    "Material": {
+     "type": "Material",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    },
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "BoxPropAsset"
+  },
+  "Prop:Cluster": {
+   "nodeType": "Cluster",
+   "displayName": "Cluster",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "integer",
+     "required": false,
+     "default": 0
+    },
+    "Seed": {
+     "type": "string",
+     "required": false,
+     "default": "A"
+    },
+    "WeightedProps": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Weight": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "DistanceCurve",
+     "handleType": "Curve",
+     "label": "DistanceCurve"
+    },
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    },
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    },
+    {
+     "id": "ColumnProp",
+     "handleType": "Prop",
+     "label": "ColumnProp"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ClusterPropAsset"
+  },
+  "Prop:Column": {
+   "nodeType": "Column",
+   "displayName": "Column",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ColumnBlocks": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "BlockMask": {
+     "type": "BlockMask",
+     "required": false
+    },
+    "Y": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "Material": {
+     "type": "Material",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Directionality",
+     "handleType": "Directionality",
+     "label": "Directionality"
+    },
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ColumnPropAsset"
+  },
+  "Prop:Cuboid": {
+   "nodeType": "Cuboid",
+   "displayName": "Cuboid",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Bounds": {
+     "type": "IntegerBounds3d",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CuboidPropAsset"
+  },
+  "Prop:Density": {
+   "nodeType": "Density",
+   "displayName": "Density",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Bounds": {
+     "type": "IntegerBounds3d",
+     "required": true
+    },
+    "Range": {
+     "type": "Vector3i",
+     "required": true
+    },
+    "PlacementMask": {
+     "type": "BlockMask",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    },
+    {
+     "id": "Material",
+     "handleType": "MaterialProvider",
+     "label": "Material"
+    },
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    },
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DensityPropAsset"
+  },
+  "Prop:DensitySelector": {
+   "nodeType": "DensitySelector",
+   "displayName": "DensitySelector",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "RangeDouble",
+     "required": true
+    },
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    }
+   },
+   "inputs": [
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    },
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DensitySelectorPropAsset"
+  },
+  "Prop:Empty": {
+   "nodeType": "Empty",
+   "displayName": "Empty",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "EmptyPropAsset"
+  },
+  "Prop:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedPropAsset"
+  },
+  "Prop:Locator": {
+   "nodeType": "Locator",
+   "displayName": "Locator",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "PlacementCap": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    },
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    },
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "LocatorPropAsset"
+  },
+  "Prop:Manual": {
+   "nodeType": "Manual",
+   "displayName": "Manual",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Position": {
+     "type": "Vector3i",
+     "required": true
+    },
+    "Material": {
+     "type": "Material",
+     "required": true
+    },
+    "Blocks": {
+     "type": "array",
+     "required": true,
+     "default": []
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ManualPropAsset"
+  },
+  "Prop:Mask": {
+   "nodeType": "Mask",
+   "displayName": "Mask",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Mask": {
+     "type": "BlockMask",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MaskPropAsset"
+  },
+  "Prop:Offset": {
+   "nodeType": "Offset",
+   "displayName": "Offset",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Offset": {
+     "type": "Vector3i",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OffsetPropAsset"
+  },
+  "Prop:Orienter": {
+   "nodeType": "Orienter",
+   "displayName": "Orienter",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Rotations": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "SelectionMode": {
+     "type": "enum",
+     "required": true,
+     "enum": [
+      "ALL_VALID",
+      "FIRST_VALID",
+      "RANDOM_VALID"
+     ]
+    },
+    "Seed": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    },
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    },
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OrienterPropAsset"
+  },
+  "Prop:PondFiller": {
+   "nodeType": "PondFiller",
+   "displayName": "PondFiller",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "BarrierBlockSet": {
+     "type": "MaterialSet",
+     "required": true
+    },
+    "Bounds": {
+     "type": "IntegerBounds3d",
+     "required": true
+    },
+    "BoundingMin": {
+     "type": "Vector3i",
+     "required": true
+    },
+    "BoundingMax": {
+     "type": "Vector3i",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "FillMaterial",
+     "handleType": "MaterialProvider",
+     "label": "FillMaterial"
+    },
+    {
+     "id": "Pattern",
+     "handleType": "Pattern",
+     "label": "Pattern"
+    },
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PondFillerPropAsset"
+  },
+  "Prop:Prefab": {
+   "nodeType": "Prefab",
+   "displayName": "Prefab",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Weight": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "Path": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "WeightedPrefabPaths": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "LegacyPath": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    "BlockMask": {
+     "type": "BlockMask",
+     "required": false
+    },
+    "MoldingDirection": {
+     "type": "MoldingDirection",
+     "required": false
+    },
+    "MoldingChildren": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    "LoadEntities": {
+     "type": "boolean",
+     "required": false,
+     "default": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Directionality",
+     "handleType": "Directionality",
+     "label": "Directionality"
+    },
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    },
+    {
+     "id": "MoldingPattern",
+     "handleType": "Pattern",
+     "label": "MoldingPattern"
+    },
+    {
+     "id": "MoldingScanner",
+     "handleType": "Scanner",
+     "label": "MoldingScanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PrefabPropAsset"
+  },
+  "Prop:Queue": {
+   "nodeType": "Queue",
+   "displayName": "Queue",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Props",
+     "handleType": "Prop",
+     "label": "Props"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "QueuePropAsset"
+  },
+  "Prop:RandomRotator": {
+   "nodeType": "RandomRotator",
+   "displayName": "RandomRotator",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Rotations": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "HorizontalRotations": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RandomRotatorPropAsset"
+  },
+  "Prop:StaticRotator": {
+   "nodeType": "StaticRotator",
+   "displayName": "StaticRotator",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Rotation": {
+     "type": "OrthogonalRotation",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "StaticRotatorPropAsset"
+  },
+  "Prop:Union": {
+   "nodeType": "Union",
+   "displayName": "Union",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Props",
+     "handleType": "Prop",
+     "label": "Props"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "UnionPropAsset"
+  },
+  "Prop:Weighted": {
+   "nodeType": "Weighted",
+   "displayName": "Weighted",
+   "category": "Prop",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Entries": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    "Weight": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Prop",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "WeightedPropAsset"
+  },
+  "PropDistribution:Anchor": {
+   "nodeType": "Anchor",
+   "displayName": "Anchor",
+   "category": "PropDistribution",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Reversed": {
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "PropDistribution",
+     "handleType": "PropDistribution",
+     "label": "PropDistribution"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PropDistribution",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AnchorPropDistributionAsset"
+  },
+  "PropDistribution:Assigned": {
+   "nodeType": "Assigned",
+   "displayName": "Assigned",
+   "category": "PropDistribution",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "OverrideAllProps": {
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "PropDistribution",
+     "handleType": "PropDistribution",
+     "label": "PropDistribution"
+    },
+    {
+     "id": "Assignments",
+     "handleType": "Assignment",
+     "label": "Assignments"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PropDistribution",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AssignedPropDistributionAsset"
+  },
+  "PropDistribution:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "PropDistribution",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    },
+    {
+     "id": "Prop",
+     "handleType": "Prop",
+     "label": "Prop"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PropDistribution",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantPropDistributionAsset"
+  },
+  "PropDistribution:Graph": {
+   "nodeType": "Graph",
+   "displayName": "Graph",
+   "category": "PropDistribution",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "GraphGenerator": {
+     "type": "GraphGenerator",
+     "required": true
+    },
+    "ContentLayer": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PropDistribution",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "GraphPropDistributionAsset"
+  },
+  "PropDistribution:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "PropDistribution",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PropDistribution",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedPropDistributionAsset"
+  },
+  "PropDistribution:None": {
+   "nodeType": "None",
+   "displayName": "None",
+   "category": "PropDistribution",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PropDistribution",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NoPropDistributionAsset"
+  },
+  "PropDistribution:Positions": {
+   "nodeType": "Positions",
+   "displayName": "Positions",
+   "category": "PropDistribution",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Positions",
+     "handleType": "PositionProvider",
+     "label": "Positions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PropDistribution",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PositionsPropDistributionAsset"
+  },
+  "PropDistribution:Union": {
+   "nodeType": "Union",
+   "displayName": "Union",
+   "category": "PropDistribution",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "PropDistributions",
+     "handleType": "PropDistribution",
+     "label": "PropDistributions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "PropDistribution",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "UnionPropDistributionAsset"
+  },
+  "ReturnType:CellValue": {
+   "nodeType": "CellValue",
+   "displayName": "CellValue",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "DefaultValue": {
+     "type": "number",
+     "required": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CellValueReturnTypeAsset"
+  },
+  "ReturnType:Curve": {
+   "nodeType": "Curve",
+   "displayName": "Curve",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Curve",
+     "handleType": "Curve",
+     "label": "Curve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CurveReturnTypeAsset"
+  },
+  "ReturnType:Density": {
+   "nodeType": "Density",
+   "displayName": "Density",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "DefaultValue": {
+     "type": "number",
+     "required": false,
+     "default": 0
+    },
+    "From": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "To": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "ChoiceDensity",
+     "handleType": "Density",
+     "label": "ChoiceDensity"
+    },
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DensityReturnTypeAsset"
+  },
+  "ReturnType:Distance": {
+   "nodeType": "Distance",
+   "displayName": "Distance",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DistanceReturnTypeAsset"
+  },
+  "ReturnType:Distance2": {
+   "nodeType": "Distance2",
+   "displayName": "Distance2",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Distance2ReturnTypeAsset"
+  },
+  "ReturnType:Distance2Add": {
+   "nodeType": "Distance2Add",
+   "displayName": "Distance2Add",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Distance2AddReturnTypeAsset"
+  },
+  "ReturnType:Distance2Div": {
+   "nodeType": "Distance2Div",
+   "displayName": "Distance2Div",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Distance2DivReturnTypeAsset"
+  },
+  "ReturnType:Distance2Mul": {
+   "nodeType": "Distance2Mul",
+   "displayName": "Distance2Mul",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Distance2MulReturnTypeAsset"
+  },
+  "ReturnType:Distance2Sub": {
+   "nodeType": "Distance2Sub",
+   "displayName": "Distance2Sub",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "Distance2SubReturnTypeAsset"
+  },
+  "ReturnType:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "ReturnType",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "ReturnType",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedReturnTypeAsset"
+  },
+  "Rotator": {
+   "nodeType": "Rotator",
+   "displayName": "Rotator",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "NewYAxis": {
+     "type": "Vector3d",
+     "required": true
+    },
+    "SpinAngle": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RotatorDensityAsset"
+  },
+  "Scale": {
+   "nodeType": "Scale",
+   "displayName": "Scale",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ScaleX": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "ScaleY": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    "ScaleZ": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ScaleDensityAsset"
+  },
+  "Scanner:Area": {
+   "nodeType": "Area",
+   "displayName": "Area",
+   "category": "Scanner",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "ResultCap": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "ScanShape": {
+     "type": "enum",
+     "required": false,
+     "enum": [
+      "CIRCLE",
+      "SQUARE"
+     ]
+    },
+    "ScanRange": {
+     "type": "integer",
+     "required": false,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "ChildScanner",
+     "handleType": "Scanner",
+     "label": "ChildScanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Scanner",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AreaScannerAsset"
+  },
+  "Scanner:ColumnLinear": {
+   "nodeType": "ColumnLinear",
+   "displayName": "ColumnLinear",
+   "category": "Scanner",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "MinY": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    "MaxY": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "ResultCap": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "TopDownOrder": {
+     "type": "boolean",
+     "required": false,
+     "default": true
+    },
+    "RelativeToPosition": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    "BaseHeightName": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Scanner",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ColumnLinearScannerAsset"
+  },
+  "Scanner:ColumnRandom": {
+   "nodeType": "ColumnRandom",
+   "displayName": "ColumnRandom",
+   "category": "Scanner",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "MinY": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    "MaxY": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "ResultCap": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": false,
+     "default": "A"
+    },
+    "Strategy": {
+     "type": "string",
+     "required": false,
+     "default": "DART_THROW"
+    },
+    "RelativeToPosition": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    "BaseHeightName": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Scanner",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ColumnRandomScannerAsset"
+  },
+  "Scanner:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "Scanner",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Scanner",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedScannerAsset"
+  },
+  "Scanner:Linear": {
+   "nodeType": "Linear",
+   "displayName": "Linear",
+   "category": "Scanner",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Axis": {
+     "type": "enum",
+     "required": true
+    },
+    "Range": {
+     "type": "RangeInt",
+     "required": true
+    },
+    "AscendingOrder": {
+     "type": "boolean",
+     "required": false,
+     "default": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Scanner",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "LinearScannerAsset"
+  },
+  "Scanner:Origin": {
+   "nodeType": "Origin",
+   "displayName": "Origin",
+   "category": "Scanner",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Scanner",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DirectScannerAsset"
+  },
+  "Scanner:Queue": {
+   "nodeType": "Queue",
+   "displayName": "Queue",
+   "category": "Scanner",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Scanners",
+     "handleType": "Scanner",
+     "label": "Scanners"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Scanner",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "QueueScannerAsset"
+  },
+  "Scanner:Radial": {
+   "nodeType": "Radial",
+   "displayName": "Radial",
+   "category": "Scanner",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Bounds": {
+     "type": "IntegerBounds3d",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Scanner",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RadialScannerAsset"
+  },
+  "Scanner:Random": {
+   "nodeType": "Random",
+   "displayName": "Random",
+   "category": "Scanner",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Axis": {
+     "type": "enum",
+     "required": true
+    },
+    "Range": {
+     "type": "RangeInt",
+     "required": true
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Scanner",
+     "handleType": "Scanner",
+     "label": "Scanner"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Scanner",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RandomScannerAsset"
+  },
+  "Selector": {
+   "nodeType": "Selector",
+   "displayName": "Selector",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SelectorDensityAsset"
+  },
+  "Shell": {
+   "nodeType": "Shell",
+   "displayName": "Shell",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Axis": {
+     "type": "Vector3d",
+     "required": true
+    },
+    "Mirror": {
+     "type": "boolean",
+     "required": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "AngleCurve",
+     "handleType": "Curve",
+     "label": "AngleCurve"
+    },
+    {
+     "id": "DistanceCurve",
+     "handleType": "Curve",
+     "label": "DistanceCurve"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ShellDensityAsset"
+  },
+  "SimplexNoise2D": {
+   "nodeType": "SimplexNoise2D",
+   "displayName": "SimplexNoise2D",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Lacunarity": {
+     "type": "number",
+     "required": true,
+     "default": 2
+    },
+    "Persistence": {
+     "type": "number",
+     "required": true,
+     "default": 0.5
+    },
+    "Scale": {
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    "Octaves": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SimplexNoise2dDensityAsset"
+  },
+  "SimplexNoise3D": {
+   "nodeType": "SimplexNoise3D",
+   "displayName": "SimplexNoise3D",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Lacunarity": {
+     "type": "number",
+     "required": true,
+     "default": 2
+    },
+    "Persistence": {
+     "type": "number",
+     "required": true,
+     "default": 0.5
+    },
+    "ScaleXZ": {
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    "ScaleY": {
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    "Octaves": {
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SimplexNoise3DDensityAsset"
+  },
+  "Slider": {
+   "nodeType": "Slider",
+   "displayName": "Slider",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SlideX": {
+     "type": "number",
+     "required": false,
+     "default": 0
+    },
+    "SlideY": {
+     "type": "number",
+     "required": false,
+     "default": 0
+    },
+    "SlideZ": {
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SliderDensityAsset"
+  },
+  "SmoothCeiling": {
+   "nodeType": "SmoothCeiling",
+   "displayName": "SmoothCeiling",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Limit": {
+     "type": "number",
+     "required": true
+    },
+    "SmoothRange": {
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothCeilingDensityAsset"
+  },
+  "SmoothClamp": {
+   "nodeType": "SmoothClamp",
+   "displayName": "SmoothClamp",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "WallA": {
+     "type": "number",
+     "required": true,
+     "default": -1
+    },
+    "WallB": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "Range": {
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothClampDensityAsset"
+  },
+  "SmoothFloor": {
+   "nodeType": "SmoothFloor",
+   "displayName": "SmoothFloor",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Limit": {
+     "type": "number",
+     "required": true
+    },
+    "SmoothRange": {
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothFloorDensityAsset"
+  },
+  "SmoothMax": {
+   "nodeType": "SmoothMax",
+   "displayName": "SmoothMax",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothMaxDensityAsset"
+  },
+  "SmoothMin": {
+   "nodeType": "SmoothMin",
+   "displayName": "SmoothMin",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Range": {
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SmoothMinDensityAsset"
+  },
+  "Sqrt": {
+   "nodeType": "Sqrt",
+   "displayName": "Sqrt",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SqrtDensityAsset"
+  },
+  "Sum": {
+   "nodeType": "Sum",
+   "displayName": "Sum",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SumDensityAsset"
+  },
+  "Switch": {
+   "nodeType": "Switch",
+   "displayName": "Switch",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SwitchCases": {
+     "type": "array",
+     "required": false,
+     "default": []
+    },
+    "CaseState": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    },
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SwitchDensityAsset"
+  },
+  "SwitchState": {
+   "nodeType": "SwitchState",
+   "displayName": "SwitchState",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SwitchState": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SwitchStateDensityAsset"
+  },
+  "Terrain": {
+   "nodeType": "Terrain",
+   "displayName": "Terrain",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "TerrainDensityAsset"
+  },
+  "Terrain:DAOTerrain": {
+   "nodeType": "DAOTerrain",
+   "displayName": "DAOTerrain",
+   "category": "Terrain",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Terrain",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DensityTerrainAsset"
+  },
+  "TintProvider:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "TintProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Color": {
+     "type": "color",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "TintProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantTintProviderAsset"
+  },
+  "TintProvider:DensityDelimited": {
+   "nodeType": "DensityDelimited",
+   "displayName": "DensityDelimited",
+   "category": "TintProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Delimiters": {
+     "type": "array",
+     "required": true,
+     "default": []
+    },
+    "Range": {
+     "type": "RangeDouble",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    },
+    {
+     "id": "Tint",
+     "handleType": "TintProvider",
+     "label": "Tint"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "TintProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DensityDelimitedTintProviderAsset"
+  },
+  "TintProvider:Mix": {
+   "nodeType": "Mix",
+   "displayName": "Mix",
+   "category": "TintProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    },
+    {
+     "id": "TintA",
+     "handleType": "TintProvider",
+     "label": "TintA"
+    },
+    {
+     "id": "TintB",
+     "handleType": "TintProvider",
+     "label": "TintB"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "TintProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MixTintProviderAsset"
+  },
+  "Trig": {
+   "nodeType": "Trig",
+   "displayName": "Trig",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Function": {
+     "type": "enum",
+     "required": false,
+     "enum": [
+      "Sin",
+      "Cos",
+      "Tan",
+      "Asin",
+      "Acos",
+      "Atan"
+     ]
+    },
+    "InputScale": {
+     "type": "number",
+     "required": false,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "TrigDensityAsset"
+  },
+  "VectorProvider:Adder": {
+   "nodeType": "Adder",
+   "displayName": "Adder",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Vectors",
+     "handleType": "VectorProvider",
+     "label": "Vectors"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "AdderVectorProviderAsset"
+  },
+  "VectorProvider:Cache": {
+   "nodeType": "Cache",
+   "displayName": "Cache",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Vector",
+     "handleType": "VectorProvider",
+     "label": "Vector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CacheVectorProviderAsset"
+  },
+  "VectorProvider:Constant": {
+   "nodeType": "Constant",
+   "displayName": "Constant",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Vector": {
+     "type": "Vector3d",
+     "required": true
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ConstantVectorProviderAsset"
+  },
+  "VectorProvider:Cross": {
+   "nodeType": "Cross",
+   "displayName": "Cross",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "VectorA",
+     "handleType": "VectorProvider",
+     "label": "VectorA"
+    },
+    {
+     "id": "VectorB",
+     "handleType": "VectorProvider",
+     "label": "VectorB"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "CrossVectorProviderAsset"
+  },
+  "VectorProvider:DensityGradient": {
+   "nodeType": "DensityGradient",
+   "displayName": "DensityGradient",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SampleDistance": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   },
+   "inputs": [
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "DensityGradientVectorProviderAsset"
+  },
+  "VectorProvider:Exported": {
+   "nodeType": "Exported",
+   "displayName": "Exported",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SingleInstance": {
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   },
+   "inputs": [
+    {
+     "id": "VectorProvider",
+     "handleType": "VectorProvider",
+     "label": "VectorProvider"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ExportedVectorProviderAsset"
+  },
+  "VectorProvider:Imported": {
+   "nodeType": "Imported",
+   "displayName": "Imported",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Name": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ImportedVectorProviderAsset"
+  },
+  "VectorProvider:Multiplier": {
+   "nodeType": "Multiplier",
+   "displayName": "Multiplier",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Vectors",
+     "handleType": "VectorProvider",
+     "label": "Vectors"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "MultiplierVectorProviderAsset"
+  },
+  "VectorProvider:Normalizer": {
+   "nodeType": "Normalizer",
+   "displayName": "Normalizer",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Magnitude",
+     "handleType": "Density",
+     "label": "Magnitude"
+    },
+    {
+     "id": "Vector",
+     "handleType": "VectorProvider",
+     "label": "Vector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "NormalizerVectorProviderAsset"
+  },
+  "VectorProvider:OpposedToGraphEdges": {
+   "nodeType": "OpposedToGraphEdges",
+   "displayName": "OpposedToGraphEdges",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "OpposedToGraphEdgesVectorProviderAsset"
+  },
+  "VectorProvider:PlaneProjector": {
+   "nodeType": "PlaneProjector",
+   "displayName": "PlaneProjector",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Vector",
+     "handleType": "VectorProvider",
+     "label": "Vector"
+    },
+    {
+     "id": "PlaneA",
+     "handleType": "VectorProvider",
+     "label": "PlaneA"
+    },
+    {
+     "id": "PlaneB",
+     "handleType": "VectorProvider",
+     "label": "PlaneB"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "PlaneProjectorVectorProviderAsset"
+  },
+  "VectorProvider:Random": {
+   "nodeType": "Random",
+   "displayName": "Random",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "RandomVectorProviderAsset"
+  },
+  "VectorProvider:ScalarMultiplier": {
+   "nodeType": "ScalarMultiplier",
+   "displayName": "ScalarMultiplier",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Scalar",
+     "handleType": "Density",
+     "label": "Scalar"
+    },
+    {
+     "id": "Vector",
+     "handleType": "VectorProvider",
+     "label": "Vector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ScalarMultiplierVectorProviderAsset"
+  },
+  "VectorProvider:SetX": {
+   "nodeType": "SetX",
+   "displayName": "SetX",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Value",
+     "handleType": "Density",
+     "label": "Value"
+    },
+    {
+     "id": "Vector",
+     "handleType": "VectorProvider",
+     "label": "Vector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SetXVectorProviderAsset"
+  },
+  "VectorProvider:SetY": {
+   "nodeType": "SetY",
+   "displayName": "SetY",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Value",
+     "handleType": "Density",
+     "label": "Value"
+    },
+    {
+     "id": "Vector",
+     "handleType": "VectorProvider",
+     "label": "Vector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SetYVectorProviderAsset"
+  },
+  "VectorProvider:SetZ": {
+   "nodeType": "SetZ",
+   "displayName": "SetZ",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Value",
+     "handleType": "Density",
+     "label": "Value"
+    },
+    {
+     "id": "Vector",
+     "handleType": "VectorProvider",
+     "label": "Vector"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SetZVectorProviderAsset"
+  },
+  "VectorProvider:Subtracter": {
+   "nodeType": "Subtracter",
+   "displayName": "Subtracter",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Minuend",
+     "handleType": "VectorProvider",
+     "label": "Minuend"
+    },
+    {
+     "id": "Subtrahend",
+     "handleType": "VectorProvider",
+     "label": "Subtrahend"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "SubtracterVectorProviderAsset"
+  },
+  "VectorProvider:VectorProjector": {
+   "nodeType": "VectorProjector",
+   "displayName": "VectorProjector",
+   "category": "VectorProvider",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Source",
+     "handleType": "VectorProvider",
+     "label": "Source"
+    },
+    {
+     "id": "Target",
+     "handleType": "VectorProvider",
+     "label": "Target"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "VectorProvider",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "VectorProjectorVectorProviderAsset"
+  },
+  "VectorWarp": {
+   "nodeType": "VectorWarp",
+   "displayName": "VectorWarp",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "WarpFactor": {
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    "WarpVector": {
+     "type": "Vector3d",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "VectorWarpDensityAsset"
+  },
+  "WhiteNoise": {
+   "nodeType": "WhiteNoise",
+   "displayName": "WhiteNoise",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Seed": {
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "WhiteNoiseDensityAsset"
+  },
+  "WorldStructure:NoiseRange": {
+   "nodeType": "NoiseRange",
+   "displayName": "NoiseRange",
+   "category": "WorldStructure",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "DefaultTransitionDistance": {
+     "type": "integer",
+     "required": true,
+     "default": 32
+    },
+    "MaxBiomeEdgeDistance": {
+     "type": "integer",
+     "required": true,
+     "default": 0
+    }
+   },
+   "inputs": [
+    {
+     "id": "Density",
+     "handleType": "Density",
+     "label": "Density"
+    },
+    {
+     "id": "Framework",
+     "handleType": "Framework",
+     "label": "Framework"
+    },
+    {
+     "id": "SpawnPositions",
+     "handleType": "PositionProvider",
+     "label": "SpawnPositions"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "WorldStructure",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "BasicWorldStructureAsset"
+  },
+  "XOverride": {
+   "nodeType": "XOverride",
+   "displayName": "XOverride",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "XOverrideDensityAsset"
+  },
+  "XValue": {
+   "nodeType": "XValue",
+   "displayName": "XValue",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "XValueDensityAsset"
+  },
+  "Xor": {
+   "nodeType": "Xor",
+   "displayName": "Xor",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "XorDensityAsset"
+  },
+  "YOverride": {
+   "nodeType": "YOverride",
+   "displayName": "YOverride",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "YOverrideDensityAsset"
+  },
+  "YSampled": {
+   "nodeType": "YSampled",
+   "displayName": "YSampled",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "SampleDistance": {
+     "type": "number",
+     "required": true,
+     "default": 4
+    },
+    "SampleOffset": {
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    "Interpolate": {
+     "type": "boolean",
+     "required": true,
+     "default": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "YSampledDensityAsset"
+  },
+  "YValue": {
+   "nodeType": "YValue",
+   "displayName": "YValue",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "YValueDensityAsset"
+  },
+  "ZOverride": {
+   "nodeType": "ZOverride",
+   "displayName": "ZOverride",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {
+    "Value": {
+     "type": "number",
+     "required": true
+    }
+   },
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ZOverrideDensityAsset"
+  },
+  "ZValue": {
+   "nodeType": "ZValue",
+   "displayName": "ZValue",
+   "category": "Density",
+   "subcategory": "",
+   "description": "",
+   "fields": {},
+   "inputs": [
+    {
+     "id": "Inputs",
+     "handleType": "Density",
+     "label": "Inputs"
+    }
+   ],
+   "outputs": [
+    {
+     "id": "output",
+     "handleType": "Density",
+     "label": "output"
+    }
+   ],
+   "derivedFrom": "ZValueDensityAsset"
+  }
+ }
+}

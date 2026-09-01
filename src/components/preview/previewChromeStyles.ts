@@ -14,4 +14,8 @@ export {
   previewHudButtonClass,
   previewHudSelectClass,
   previewModeToggleTrackClass,
+  hudStackGap,
+  hudGroupGap,
+  hudRowMinHeight,
+  hudRowPad,
 } from "@/components/ui/surfaceStyles";

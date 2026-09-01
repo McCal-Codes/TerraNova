@@ -3,6 +3,12 @@ import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } f
 import { useShallow } from "zustand/react/shallow";
 import { useNonPassiveWheel } from "@/hooks/useNonPassiveWheel";
 import { usePreviewStore } from "@/stores/previewStore";
+import {
+  HYTALE_MAP_COLOR_FALLBACK,
+  computeHytaleShade,
+  normalisedToBlockHeights,
+  parseMapColor,
+} from "@/utils/hytaleMapStyle";
 import { useEditorStore } from "@/stores/editorStore";
 import {
   detectHydrographyContext,
@@ -73,7 +79,7 @@ const Heatmap2DInner = forwardRef<HTMLCanvasElement, Heatmap2DProps>(function He
     positionOverlaySize,
     showHillShade,
     yLevel,
-    usgsTopoStyle,
+    mapStyle,
     showThresholdView,
     showShapePreview,
     showCellBoundaries,
@@ -106,7 +112,7 @@ const Heatmap2DInner = forwardRef<HTMLCanvasElement, Heatmap2DProps>(function He
       positionOverlaySize: s.positionOverlaySize,
       showHillShade: s.showHillShade,
       yLevel: s.yLevel,
-      usgsTopoStyle: s.usgsTopoStyle,
+      mapStyle: s.mapStyle,
       showThresholdView: s.showThresholdView,
       showShapePreview: s.showShapePreview,
       showCellBoundaries: s.showCellBoundaries,
@@ -118,6 +124,12 @@ const Heatmap2DInner = forwardRef<HTMLCanvasElement, Heatmap2DProps>(function He
       shapePreviewMeshPoints: s.shapePreviewMeshPoints,
     })),
   );
+  // Most of this component predates the third style and still asks "is this the
+  // topo map?". Deriving the old boolean keeps those reads honest; only the base
+  // image below needs to know about "hytale".
+  const usgsTopoStyle = mapStyle === "usgs";
+  const hytaleStyle = mapStyle === "hytale";
+
   const setCanvasTransform = usePreviewStore((s) => s.setCanvasTransform);
   const {
     layerRef: transformLayerRef,
@@ -128,6 +140,7 @@ const Heatmap2DInner = forwardRef<HTMLCanvasElement, Heatmap2DProps>(function He
   const resetCanvasTransform = usePreviewStore((s) => s.resetCanvasTransform);
   const setRange = usePreviewStore((s) => s.setRange);
   const setCrossSectionLine = usePreviewStore((s) => s.setCrossSectionLine);
+  const biomeMapColor = useEditorStore((s) => s.biomeConfig?.MapColor);
   const materialConfig = useEditorStore((s) => s.materialConfig);
   const contentFields = useEditorStore((s) => s.contentFields);
 
@@ -210,6 +223,14 @@ const Heatmap2DInner = forwardRef<HTMLCanvasElement, Heatmap2DProps>(function He
       }
     }
 
+    // Hytale colours the whole biome with its MapColor and lets the relief
+    // shading do the rest, so there is one base colour for the entire image.
+    const hytaleBase = hytaleStyle
+      ? parseMapColor(biomeMapColor) ?? HYTALE_MAP_COLOR_FALLBACK
+      : HYTALE_MAP_COLOR_FALLBACK;
+    const hytaleHeights =
+      hytaleStyle && normalized ? normalisedToBlockHeights(normalized) : null;
+
     // Hill-shade light direction (NW sun, cartographic standard)
     const azimuth = 315 * Math.PI / 180;
     const altitude = 45 * Math.PI / 180;
@@ -224,12 +245,21 @@ const Heatmap2DInner = forwardRef<HTMLCanvasElement, Heatmap2DProps>(function He
       for (let col = 0; col < n; col++) {
         const i = row * n + col;
         const norm = isFlat ? 0.5 : Math.max(0, Math.min(1, (values[i] - lo) / range));
-        const [r, g, b] = usgsTopoStyle
-          ? sampleUsgsHypsometricTint(norm)
-          : cm.ramp(norm);
+        const [r, g, b] = hytaleStyle
+          ? hytaleBase
+          : usgsTopoStyle
+            ? sampleUsgsHypsometricTint(norm)
+            : cm.ramp(norm);
         const pixel = i * 4;
 
-        if (normalized && showHillShade) {
+        if (hytaleStyle) {
+          // The ported shading replaces the generic hillshade entirely — its
+          // light direction, dy and ambient/diffuse split are the game's.
+          const shade = hytaleHeights ? computeHytaleShade(hytaleHeights, n, col, row) : 1;
+          imageData.data[pixel] = Math.min(255, r * shade);
+          imageData.data[pixel + 1] = Math.min(255, g * shade);
+          imageData.data[pixel + 2] = Math.min(255, b * shade);
+        } else if (normalized && showHillShade) {
           // Central differences with proper one-sided fallback at boundaries
           const colL = col > 0 ? col - 1 : col;
           const colR = col < n - 1 ? col + 1 : col;
@@ -282,7 +312,7 @@ const Heatmap2DInner = forwardRef<HTMLCanvasElement, Heatmap2DProps>(function He
     }
 
     ctx.putImageData(imageData, 0, 0);
-  }, [values, minValue, maxValue, p02Value, p98Value, colormap, showHillShade, usgsTopoStyle, hydroSlice]);
+  }, [values, minValue, maxValue, p02Value, p98Value, colormap, showHillShade, usgsTopoStyle, hytaleStyle, biomeMapColor, hydroSlice]);
 
   // ── Memoize contour data separately from drawing ──
   const contourData = useMemo(() => {

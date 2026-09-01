@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { PreviewMode } from "@/stores/previewStore";
+import type { MapStyle, PreviewMode } from "@/stores/previewStore";
 import type { ShapePreviewHint } from "@/utils/shapePreview/shapePreviewHints";
 import {
   previewHudButtonClass,
@@ -7,6 +7,10 @@ import {
   previewHudChipClass,
   previewHudSelectClass,
   previewModeToggleTrackClass,
+  hudGroupGap,
+  hudRowMinHeight,
+  hudRowPad,
+  hudStackGap,
 } from "@/components/preview/previewChromeStyles";
 import { previewCalloutClasses } from "@/components/ui/surfaceStyles";
 
@@ -15,7 +19,7 @@ export const previewChipClass = previewHudChipClass;
 export const previewChipActiveClass = previewHudChipActiveClass;
 
 export const previewCheckboxLabelClass =
-  "flex items-center gap-2 min-h-[28px] text-[11px] text-tn-text-muted cursor-pointer rounded px-1 -mx-1 hover:bg-tn-surface";
+  `flex items-center gap-2 ${hudRowMinHeight} text-[11px] text-tn-text-muted cursor-pointer rounded ${hudRowPad} hover:bg-tn-surface`;
 
 export const previewSelectClass = previewHudSelectClass;
 
@@ -40,7 +44,7 @@ export function PreviewSidebarSection({
 }: PreviewSidebarSectionProps) {
   return (
     <section
-      className={`flex flex-col gap-2 border-t border-tn-border/80 pt-2.5 ${className}`}
+      className={`flex flex-col ${hudStackGap} border-t border-tn-border/80 pt-3 ${className}`}
       aria-labelledby={headingId}
     >
       <h3 id={headingId} className="text-[11px] font-medium uppercase tracking-wide text-tn-text-muted/90">
@@ -48,6 +52,30 @@ export function PreviewSidebarSection({
       </h3>
       {children}
     </section>
+  );
+}
+
+/**
+ * A labelled group of related controls.
+ *
+ * Replaces the hand-rolled `<fieldset className="... gap-0.5 border-0 p-0 m-0">`
+ * that had been copied into every control panel, so the group spacing is set in
+ * one place and a long stack reads as groups rather than one flat list.
+ */
+export function PreviewControlGroup({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <fieldset className={`m-0 flex min-w-0 flex-col ${hudGroupGap} border-0 p-0 ${className}`}>
+      <legend className="mb-1 px-0 text-[10px] font-medium text-tn-text-muted">{label}</legend>
+      {children}
+    </fieldset>
   );
 }
 
@@ -210,6 +238,54 @@ export function PreviewModeToggleGroup({
           aria-label="Evaluating preview"
         />
       ) : null}
+    </div>
+  );
+}
+
+const MAP_STYLES: { id: MapStyle; label: string; title: string }[] = [
+  { id: "heat", label: "Heat", title: "Density colormap" },
+  { id: "usgs", label: "Topo", title: "Printed topo map — parchment, brown index contours" },
+  {
+    id: "hytale",
+    label: "Hytale",
+    title: "The world map Hytale renders — biome MapColor under relief shading",
+  },
+];
+
+/**
+ * Single-choice map style picker. One control rather than a chip per style, so
+ * the toolbar does not grow every time a style is added, and so it is obvious
+ * that the styles are alternatives rather than layers.
+ */
+export function MapStyleToggleGroup({
+  style,
+  onStyleChange,
+}: {
+  style: MapStyle;
+  onStyleChange: (style: MapStyle) => void;
+}) {
+  return (
+    <div className={previewModeToggleTrackClass} role="radiogroup" aria-label="Map style">
+      {MAP_STYLES.map((m) => {
+        const active = style === m.id;
+        return (
+          <button
+            key={m.id}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            title={m.title}
+            onClick={() => onStyleChange(m.id)}
+            className={`px-2.5 py-1 text-[11px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent ${
+              active
+                ? "rounded bg-tn-accent/25 font-medium text-tn-text"
+                : "text-tn-text-muted hover:bg-tn-panel hover:text-tn-text"
+            }`}
+          >
+            {m.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

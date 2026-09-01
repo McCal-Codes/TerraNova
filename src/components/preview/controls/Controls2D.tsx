@@ -1,7 +1,10 @@
 import { usePreviewStore } from "@/stores/previewStore";
+import { useEditorStore } from "@/stores/editorStore";
+import { parseMapColor } from "@/utils/hytaleMapStyle";
 import { MAX_2D_PREVIEW_RES } from "@/utils/previewResolution";
 import { SliderField } from "@/components/properties/SliderField";
 import {
+  MapStyleToggleGroup,
   PreviewCheckbox,
   PreviewSidebarSection,
   previewButtonClass,
@@ -21,8 +24,9 @@ export function Controls2D() {
   const resetCanvasTransform = usePreviewStore((s) => s.resetCanvasTransform);
   const showHillShade = usePreviewStore((s) => s.showHillShade);
   const setShowHillShade = usePreviewStore((s) => s.setShowHillShade);
-  const usgsTopoStyle = usePreviewStore((s) => s.usgsTopoStyle);
-  const setUsgsTopoStyle = usePreviewStore((s) => s.setUsgsTopoStyle);
+  const mapStyle = usePreviewStore((s) => s.mapStyle);
+  const setMapStyle = usePreviewStore((s) => s.setMapStyle);
+  const biomeMapColor = useEditorStore((s) => s.biomeConfig?.MapColor);
   const showThresholdView = usePreviewStore((s) => s.showThresholdView);
   const setShowThresholdView = usePreviewStore((s) => s.setShowThresholdView);
   const showCrossSection = usePreviewStore((s) => s.showCrossSection);
@@ -53,12 +57,17 @@ export function Controls2D() {
 
       <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0">
         <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">Display</legend>
-        <PreviewCheckbox
-          checked={usgsTopoStyle}
-          onChange={setUsgsTopoStyle}
-          label="USGS topo style"
-          description="Hypsometric tint, woodland/water washes, brown index contours."
-        />
+        <div className="mb-1 flex flex-col gap-1">
+          <span className="text-[10px] text-tn-text-muted">Map style</span>
+          <MapStyleToggleGroup style={mapStyle} onStyleChange={setMapStyle} />
+          {mapStyle === "hytale" && !parseMapColor(biomeMapColor) ? (
+            // Worth saying out loud: a missing MapColor is a real gap in the
+            // biome, and the grey it falls back to is not what the game draws.
+            <p className="text-[9px] leading-snug text-tn-text-muted">
+              This biome has no <code>MapColor</code>, so the map is drawn in neutral grey.
+            </p>
+          ) : null}
+        </div>
         <PreviewCheckbox
           checked={showHillShade}
           onChange={setShowHillShade}

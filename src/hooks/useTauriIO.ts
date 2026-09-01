@@ -315,6 +315,9 @@ async function extractBiomeSections(
     Name: (wrapper.Name as string) ?? "",
     EnvironmentProvider: (wrapper.EnvironmentProvider as Record<string, unknown>) ?? {},
     TintProvider: (wrapper.TintProvider as Record<string, unknown>) ?? {},
+    // Left undefined when absent rather than defaulted — the preview needs to
+    // be able to tell "no MapColor" apart from a colour someone chose.
+    MapColor: typeof wrapper.MapColor === "string" ? wrapper.MapColor : undefined,
     propMeta: Array.isArray(props)
       ? (props as Record<string, unknown>[]).map((p) => ({
           Runtime: (p.Runtime as number) ?? 0,

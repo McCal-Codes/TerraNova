@@ -23,6 +23,14 @@ export interface BiomeConfig {
   Name: string;
   EnvironmentProvider: Record<string, unknown>;
   TintProvider: Record<string, unknown>;
+  /**
+   * The biome's colour on Hytale's world map, as a `#rrggbb` string.
+   *
+   * `BiomeJsonLoader.KEY_MAP_COLOR`; most shipped biomes define it. Read-only
+   * here — export rebuilds the document from `originalWrapper`, which already
+   * carries the field, so nothing writes it back.
+   */
+  MapColor?: string;
   propMeta: Array<{ Runtime: number; Skip: boolean }>;
 }
 

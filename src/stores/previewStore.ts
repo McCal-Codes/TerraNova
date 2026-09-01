@@ -18,6 +18,8 @@ export type PreviewMode = "2d" | "3d" | "voxel" | "world" | "prefab";
 export type PropPreviewMode = "placement" | "prefab3d";
 export type ViewMode = "graph" | "preview" | "split" | "compare" | "json";
 export type SplitDirection = "horizontal" | "vertical";
+/** 2D map rendering style; see `PreviewState.mapStyle`. */
+export type MapStyle = "heat" | "usgs" | "hytale";
 
 export interface AtmosphereSettings {
   skyHorizon: string;
@@ -174,8 +176,16 @@ interface PreviewState {
   showSSAO: boolean;
   showEdgeOutline: boolean;
   showHillShade: boolean;
-  /** USGS-style parchment map: brown contours, green wash, relief shading. */
-  usgsTopoStyle: boolean;
+  /**
+   * Which map the 2D preview draws.
+   *
+   * - `heat`   — the raw colormap ramp.
+   * - `usgs`   — printed-topo pastiche: parchment, brown contours, green wash.
+   *              Kept because it is the best way to read exact elevations.
+   * - `hytale` — the world map Hytale itself renders: biome `MapColor` under the
+   *              relief shading ported in `utils/hytaleMapStyle.ts`.
+   */
+  mapStyle: MapStyle;
 
   autoFitYEnabled: boolean;
   /** Automatically run fit-to-content when the graph changes (wide 3D probe). */
@@ -330,7 +340,7 @@ interface PreviewState {
   setShowSSAO: (show: boolean) => void;
   setShowEdgeOutline: (show: boolean) => void;
   setShowHillShade: (show: boolean) => void;
-  setUsgsTopoStyle: (enabled: boolean) => void;
+  setMapStyle: (style: MapStyle) => void;
 
   setAutoFitYEnabled: (enabled: boolean) => void;
   setAutoFitContentEnabled: (enabled: boolean) => void;
@@ -440,7 +450,7 @@ const PERSIST_MAP: Record<string, string> = {
   showSSAO: "tn-showSSAO",
   showEdgeOutline: "tn-showEdgeOutline",
   showHillShade: "tn-showHillShade",
-  usgsTopoStyle: "tn-usgsTopoStyle",
+  mapStyle: "tn-mapStyle",
   autoFitYEnabled: "tn-autoFitYEnabled",
   autoFitContentEnabled: "tn-autoFitContentEnabled",
   terrainRefUseBaseY: "tn-terrainRefUseBaseY",
@@ -502,6 +512,17 @@ function getStoredCutawayPreset(key: string, fallback: CutawayPreset): CutawayPr
   return isCutawayPreset(v) ? v : fallback;
 }
 
+/**
+ * `mapStyle` replaced the older `tn-usgsTopoStyle` boolean. Anyone who had the
+ * topo style on lands on "usgs"; anyone who had it off lands on "heat", which is
+ * what that boolean meant.
+ */
+function hydrateMapStyle(): MapStyle {
+  const stored = getStored("tn-mapStyle");
+  if (stored === "heat" || stored === "usgs" || stored === "hytale") return stored;
+  return getStoredBool("tn-usgsTopoStyle", true) ? "usgs" : "heat";
+}
+
 function hydratePersistedState() {
   const configDefaults = readStoredPreviewDefaults();
   return {
@@ -547,7 +568,7 @@ function hydratePersistedState() {
     showSSAO: getStoredBool("tn-showSSAO", false),
     showEdgeOutline: getStoredBool("tn-showEdgeOutline", false),
     showHillShade: getStoredBool("tn-showHillShade", true),
-    usgsTopoStyle: getStoredBool("tn-usgsTopoStyle", true),
+    mapStyle: hydrateMapStyle(),
     autoFitYEnabled: getStoredBool("tn-autoFitYEnabled", true),
     autoFitContentEnabled: getStoredBool("tn-autoFitContentEnabled", true),
     // Terrain graphs read best when anchored to Base Y (ContentFields) by default.
@@ -847,11 +868,16 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setShowSSAO: (showSSAO) => persistedSet({ showSSAO }),
     setShowEdgeOutline: (showEdgeOutline) => persistedSet({ showEdgeOutline }),
     setShowHillShade: (showHillShade) => persistedSet({ showHillShade }),
-    setUsgsTopoStyle: (usgsTopoStyle) => {
-      if (usgsTopoStyle) {
-        persistedSet({ usgsTopoStyle: true, showContours: true, showHillShade: true });
+    setMapStyle: (mapStyle) => {
+      // The topo map is unreadable without its contours and relief, so entering
+      // it turns both on. Leaving does not turn them back off — by then they may
+      // be what the user actually wants.
+      if (mapStyle === "usgs") {
+        persistedSet({ mapStyle, showContours: true, showHillShade: true });
+      } else if (mapStyle === "hytale") {
+        persistedSet({ mapStyle, showHillShade: true });
       } else {
-        persistedSet({ usgsTopoStyle: false });
+        persistedSet({ mapStyle });
       }
     },
     setAutoFitYEnabled: (autoFitYEnabled) => persistedSet({ autoFitYEnabled }),

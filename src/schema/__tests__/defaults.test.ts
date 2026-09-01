@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ALL_DEFAULTS, DENSITY_DEFAULTS, CURVE_DEFAULTS, getDefaults, getLegacyDefaultsForType } from "../defaults";
+import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 import { AssetCategory } from "../types";
 
 describe("V2 CODEC default alignment", () => {
@@ -94,13 +95,55 @@ describe("getDefaults() — schema-driven API", () => {
   });
 
   it("keeps schema-only category entries canonical in ALL_DEFAULTS", () => {
-    const propDistributionAssigned = ALL_DEFAULTS.filter((entry) => entry.type === "PropDistribution:Assigned");
+    // `type` holds the bare name and `category` carries the prefix, matching
+    // the hand-written entries. resolveNodeTypeKey turns the pair back into the
+    // editor key, so a bare name here is not a loss of information.
+    const propDistributionAssigned = ALL_DEFAULTS.filter(
+      (entry) => entry.type === "Assigned" && entry.category === AssetCategory.PropDistribution,
+    );
     expect(propDistributionAssigned).toHaveLength(1);
-    expect(propDistributionAssigned[0].category).toBe(AssetCategory.PropDistribution);
+    expect(resolveNodeTypeKey(propDistributionAssigned[0])).toBe("PropDistribution:Assigned");
 
     const alwaysTrueCondition = ALL_DEFAULTS.filter((entry) => entry.type === "AlwaysTrueCondition");
     expect(alwaysTrueCondition).toHaveLength(1);
     expect(alwaysTrueCondition[0].category).toBe(AssetCategory.Condition);
+  });
+
+  it("lets a hand-written default outrank a generated one", () => {
+    // Generated defaults are Java field initialisers, which are often the inert
+    // value. Jitter2d initialises Magnitude to 0 — a jitter that does nothing —
+    // while the legacy map holds 14. Curated bundle > legacy > generated.
+    expect(getDefaults("Position:Jitter2d").Magnitude).toBe(14);
+    expect(getDefaults("Prop:RandomRotator").Seed).toBe("A");
+    expect(getDefaults("Prop:RandomRotator").HorizontalRotations).toBe(true);
+  });
+
+  it("still takes fields the hand-written defaults never had", () => {
+    // Ranking generated defaults lower must not mean ignoring them: these are
+    // real codec fields that had no entry before.
+    expect(getDefaults("Prop:Weighted")).toMatchObject({ Weight: 1 });
+    expect(getDefaults("Curve:Ceiling")).toMatchObject({ Ceiling: 0 });
+    // An array field has no Java initialiser to read, so it is seeded empty
+    // rather than left absent.
+    expect(getDefaults("Prop:Weighted").Entries).toEqual([]);
+  });
+
+  it("gives every entry an editor key that carries its category", () => {
+    // A schema-derived entry that kept its bundle prefix would produce
+    // "VectorProvider:Adder" here instead of the editor's "Vector:Adder", and
+    // would show that raw key in the palette.
+    const adder = ALL_DEFAULTS.find(
+      (e) => e.type === "Adder" && e.category === AssetCategory.VectorProvider,
+    );
+    expect(adder).toBeDefined();
+    expect(resolveNodeTypeKey(adder!)).toBe("Vector:Adder");
+
+    const doublePrefixed = ALL_DEFAULTS.filter((e) => e.type.includes(":"));
+    // Only the handful of entries whose bundle key genuinely has no category
+    // prefix to strip should still contain a colon.
+    for (const e of doublePrefixed) {
+      expect(resolveNodeTypeKey(e)).toBe(e.type);
+    }
   });
 });
 

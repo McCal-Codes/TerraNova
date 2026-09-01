@@ -25,7 +25,15 @@ export const EDITOR_PREFIX_TO_BUNDLE_CATEGORY: Record<string, string> = {
   CaveGenerator: "CaveGenerator",
   Generator: "Generator",
   Biome: "Biome",
-  WorldStructure: "WorldStructure",
+  Noise: "Noise",
+  DistanceFunction: "DistanceFunction",
+  ContentSupplier: "ContentSupplier",
+  ReturnType: "ReturnType",
+  GraphPass: "GraphPass",
+  NodeSelector: "NodeSelector",
+  NodeAction: "NodeAction",
+  EdgeSelector: "EdgeSelector",
+  EdgeAction: "EdgeAction",
 };
 
 /** Editor short prefix with colon → bundle full prefix with colon */
@@ -63,7 +71,15 @@ export const CATEGORY_TO_EDITOR_PREFIX: Partial<Record<AssetCategory, string>> =
   [AssetCategory.CaveGenerator]: "CaveGenerator",
   [AssetCategory.Generator]: "Generator",
   [AssetCategory.Biome]: "Biome",
-  [AssetCategory.WorldStructure]: "WorldStructure",
+  [AssetCategory.Noise]: "Noise",
+  [AssetCategory.DistanceFunction]: "DistanceFunction",
+  [AssetCategory.ContentSupplier]: "ContentSupplier",
+  [AssetCategory.ReturnType]: "ReturnType",
+  [AssetCategory.GraphPass]: "GraphPass",
+  [AssetCategory.NodeSelector]: "NodeSelector",
+  [AssetCategory.NodeAction]: "NodeAction",
+  [AssetCategory.EdgeSelector]: "EdgeSelector",
+  [AssetCategory.EdgeAction]: "EdgeAction",
 };
 
 /** Bundle category string → AssetCategory enum */
@@ -89,7 +105,15 @@ export const BUNDLE_CATEGORY_TO_ASSET: Record<string, AssetCategory> = {
   CaveGenerator: AssetCategory.CaveGenerator,
   Generator: AssetCategory.Generator,
   Biome: AssetCategory.Biome,
-  WorldStructure: AssetCategory.WorldStructure,
+  Noise: AssetCategory.Noise,
+  DistanceFunction: AssetCategory.DistanceFunction,
+  ContentSupplier: AssetCategory.ContentSupplier,
+  ReturnType: AssetCategory.ReturnType,
+  GraphPass: AssetCategory.GraphPass,
+  NodeSelector: AssetCategory.NodeSelector,
+  NodeAction: AssetCategory.NodeAction,
+  EdgeSelector: AssetCategory.EdgeSelector,
+  EdgeAction: AssetCategory.EdgeAction,
 };
 
 /**

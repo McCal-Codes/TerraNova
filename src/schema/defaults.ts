@@ -11,6 +11,7 @@ import {
   getNodeDefaults,
   getAllSchemaTypes,
   getSchemaCategory,
+  isDerivedSchemaNode,
 } from "./schemaLoader";
 import { BUNDLE_CATEGORY_TO_ASSET } from "./categoryPrefixes";
 
@@ -447,7 +448,14 @@ export function getDefaults(typeKey: string): DefaultFields {
         return { ...legacy };
       }
     }
-    return { ...legacy, ...bundleDefaults };
+    // A curated bundle entry outranks the legacy map — that is the long-standing
+    // contract. A generated one does not: its values are the Java field
+    // initialisers, which are frequently the inert choice (Jitter magnitude 0,
+    // an empty Seed) where the legacy map holds a usable starting value. Merging
+    // it underneath still contributes fields the legacy map never had.
+    return isDerivedSchemaNode(typeKey)
+      ? { ...bundleDefaults, ...legacy }
+      : { ...legacy, ...bundleDefaults };
   }
 
   return legacy;
@@ -618,8 +626,18 @@ function buildSchemaEntries(): CategoryDefaultsEntry[] {
     seenTypeSet.add(canonicalTypeKey);
 
 
+    // Store the bare name, the way buildLocalEntries does. `type` is what the
+    // palette shows and what resolveNodeTypeKey turns into the editor key, so a
+    // stored "VectorProvider:Adder" would both display as that and produce a
+    // node keyed on the bundle prefix instead of the editor's "Vector:".
+    const bundlePrefix = CATEGORY_TO_BUNDLE_PREFIX[category];
+    const bareType =
+      bundlePrefix && nodeType.startsWith(`${bundlePrefix}:`)
+        ? nodeType.slice(bundlePrefix.length + 1)
+        : nodeType;
+
     entries.push({
-      type: nodeType,
+      type: bareType,
       category,
       defaults: getDefaults(nodeType),
     });

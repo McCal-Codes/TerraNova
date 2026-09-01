@@ -9,6 +9,7 @@
  */
 
 import bundleJson from "../data/terranova-bundle.json";
+import registryNodesJson from "../data/hytale-update6-nodes.json";
 import type { HandleDef } from "@/nodes/shared/handles";
 import {
   expectedBundleCategory,
@@ -47,6 +48,8 @@ interface BundleNode {
   inputs: BundlePort[];
   outputs: BundlePort[];
   isSubType?: boolean;
+  /** Present on definitions generated from Hytale's asset registry. */
+  derivedFrom?: string;
 }
 
 /* ── Exported types for new accessors ────────────────────────────── */
@@ -67,7 +70,21 @@ export interface FieldDef {
   enum?: string[];
 }
 
-const nodes = (bundleJson as { nodes: Record<string, BundleNode> }).nodes;
+const curatedNodes = (bundleJson as { nodes: Record<string, BundleNode> }).nodes;
+
+/**
+ * Node definitions derived from Hytale's own asset registry
+ * (`scripts/extract-hytale-schema.mjs`). They cover every registered type,
+ * including the ones the curated bundle never had entries for.
+ *
+ * Curated entries win on conflict. They carry things the codec cannot: prose
+ * descriptions, subcategories, and semantic port names — `Mix` reads as
+ * a/b/factor in the editor while the codec only knows an `Inputs` array.
+ * Derived entries fill the gap rather than overwrite that work.
+ */
+const registryNodes = (registryNodesJson as { nodes: Record<string, BundleNode> }).nodes;
+
+const nodes: Record<string, BundleNode> = { ...registryNodes, ...curatedNodes };
 
 function nodeMatchesExpectedCategory(node: BundleNode, typeKey: string): boolean {
   const expected = expectedBundleCategory(typeKey);
@@ -127,12 +144,22 @@ const HANDLE_TYPE_TO_CATEGORY: Record<string, AssetCategory> = {
   PropDistribution: AssetCategory.PropDistribution,
   Biome: AssetCategory.Biome,
   WorldStructure: AssetCategory.WorldStructure,
+  Framework: AssetCategory.Framework,
   Condition: AssetCategory.Condition,
   Layer: AssetCategory.Layer,
   PointGenerator: AssetCategory.PointGenerator,
   Terrain: AssetCategory.Terrain,
   CaveGenerator: AssetCategory.CaveGenerator,
   Generator: AssetCategory.Generator,
+  Noise: AssetCategory.Noise,
+  DistanceFunction: AssetCategory.DistanceFunction,
+  ContentSupplier: AssetCategory.ContentSupplier,
+  ReturnType: AssetCategory.ReturnType,
+  GraphPass: AssetCategory.GraphPass,
+  NodeSelector: AssetCategory.NodeSelector,
+  NodeAction: AssetCategory.NodeAction,
+  EdgeSelector: AssetCategory.EdgeSelector,
+  EdgeAction: AssetCategory.EdgeAction,
 };
 
 function mapCategory(handleType: string): AssetCategory {
@@ -277,6 +304,33 @@ export function getSchemaNodeDescription(nodeType: string): string | null {
  */
 export function getAllSchemaTypes(): string[] {
   return Object.keys(nodes);
+}
+
+/**
+ * Whether this type's definition came from the registry generator rather than
+ * from the curated bundle.
+ *
+ * The distinction matters for defaults. A curated default is a value someone
+ * chose as a good starting point; a derived one is whatever the Java field
+ * happened to be initialised to, which is often the inert value — a Jitter of
+ * 0, an empty Seed. So a derived definition must not outrank the hand-written
+ * defaults the way a curated one does.
+ */
+export function isDerivedSchemaNode(nodeType: string): boolean {
+  const node = resolveNodeKey(nodeType);
+  return node !== undefined && "derivedFrom" in node;
+}
+
+/**
+ * Whether the schema knows this node type at all.
+ *
+ * Distinct from having a bespoke React component: most types render through
+ * GenericNode, driven entirely by their schema fields and handles. Diagnostics
+ * should ask this rather than looking in the component registry, or every
+ * generically-rendered node reports itself as unknown.
+ */
+export function hasSchemaNode(nodeType: string): boolean {
+  return resolveNodeKey(nodeType) !== undefined;
 }
 
 /**

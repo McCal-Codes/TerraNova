@@ -207,6 +207,8 @@ export interface EvaluationFingerprintInput {
   nodes: Node[];
   edges: Edge[];
   contentFields?: Record<string, unknown>;
+  /** SeedBox root — changing it changes every seeded node, so it must invalidate. */
+  worldSeed?: string;
   rootNodeId?: string | null;
   /** How the preview root was chosen — must match evaluation for cache identity. */
   rootSource?: string;
@@ -226,7 +228,8 @@ export function computeEvaluationFingerprint(input: EvaluationFingerprintInput):
   const rootSource = input.rootSource ?? "";
   const content = input.contentFields ? JSON.stringify(input.contentFields) : "";
   const material = input.materialConfig ? JSON.stringify(input.materialConfig) : "";
-  return `rev:${PREVIEW_EVAL_ENGINE_REV}|${base}|r:${root}|rs:${rootSource}|c:${content}|m:${material}`;
+  const seed = input.worldSeed ?? "";
+  return `rev:${PREVIEW_EVAL_ENGINE_REV}|${base}|r:${root}|rs:${rootSource}|c:${content}|m:${material}|s:${seed}`;
 }
 
 // ---------------------------------------------------------------------------

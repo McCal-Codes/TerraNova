@@ -1,0 +1,1 @@
+{ "Type": "SimplexNoise3D", "ScaleXZ": 90, "ScaleY": 50, "Octaves": 2, "Persistence": 0.09, "Lacunarity": 4, "Seed": "Skyreach_Caves_Density" }

@@ -15,10 +15,19 @@ import { HytaleSky, HytaleFog, GroundShadow } from "./SceneEnvironment";
 import { BufferAttribute, Vector2 } from "three";
 import type { Mesh } from "three";
 import { VoxelMeshGroup } from "./VoxelMeshGroup";
-import { buildCutawayClipPlane } from "@/utils/previewCutaway";
+import {
+  buildCutawayClipPlane,
+  buildCutawayVolume,
+  presetSupportsClipPlanePreview,
+  type CutawayPreset,
+} from "@/utils/previewCutaway";
+import { reextractVoxelsWithCutaway } from "@/utils/finishVoxelFromVolume";
 import { WebGLContextRecovery } from "./WebGLContextRecovery";
 import { PreviewSceneCameraFit } from "./PreviewSceneCameraFit";
 import { previewHudChipClass, previewHudPanelClass } from "./previewChromeStyles";
+
+/** Delay before a cutaway change is settled into real capped geometry. */
+const CUTAWAY_SETTLE_MS = 150;
 
 function Heightfield({ wireframe }: { wireframe: boolean }) {
   const { values, minValue, maxValue, p02Value, p98Value, colormap, heightScale3D } = usePreviewStore(
@@ -164,6 +173,8 @@ function VolumeScene({ wireframe }: { wireframe: boolean }) {
     voxelMeshData,
     cutawayEnabled,
     cutawayLevel,
+    cutawayPreset,
+    showVoidView,
     rangeMin,
     rangeMax,
     voxelYMin,
@@ -176,6 +187,8 @@ function VolumeScene({ wireframe }: { wireframe: boolean }) {
       voxelMeshData: s.voxelMeshData,
       cutawayEnabled: s.cutawayEnabled,
       cutawayLevel: s.cutawayLevel,
+      cutawayPreset: s.cutawayPreset,
+      showVoidView: s.showVoidView,
       rangeMin: s.rangeMin,
       rangeMax: s.rangeMax,
       voxelYMin: s.voxelYMin,
@@ -186,8 +199,18 @@ function VolumeScene({ wireframe }: { wireframe: boolean }) {
     })),
   );
 
+  const activePreset: CutawayPreset = cutawayEnabled ? cutawayPreset : "off";
+
+  /**
+   * Live GPU preview, "top" only.
+   *
+   * A corner cut is the intersection of three half-spaces, which needs
+   * `clipIntersection: true` — and that makes three.js reinitialise materials every
+   * frame for a large FPS cost. Corner relies on the re-extraction below instead,
+   * which also caps the cut properly rather than leaving it hollow.
+   */
   const clippingPlanes = useMemo(() => {
-    if (!cutawayEnabled) return undefined;
+    if (!presetSupportsClipPlanePreview(activePreset)) return undefined;
     return [
       buildCutawayClipPlane(cutawayLevel, {
         rangeMin,
@@ -198,7 +221,35 @@ function VolumeScene({ wireframe }: { wireframe: boolean }) {
         ySlices: voxelYSlices,
       }),
     ];
-  }, [cutawayEnabled, cutawayLevel, rangeMin, rangeMax, voxelYMin, voxelYMax, voxelResolution, voxelYSlices]);
+  }, [activePreset, cutawayLevel, rangeMin, rangeMax, voxelYMin, voxelYMax, voxelResolution, voxelYSlices]);
+
+  /**
+   * Settle the cut into real capped geometry once the user stops adjusting it.
+   *
+   * Debounced because re-extraction walks the whole volume; the clip plane covers the
+   * dragging interval for "top", and "corner" simply updates a beat later. Guarded by
+   * a signature ref so re-entering the same cut does not rebuild the mesh.
+   */
+  const lastCutSignature = useRef<string | null>(null);
+  useEffect(() => {
+    const dims = {
+      resolution: voxelResolution,
+      ySlices: voxelYSlices,
+      voxelYMin,
+      voxelYMax,
+    };
+    const cut = buildCutawayVolume(activePreset, cutawayLevel, dims);
+    // showVoidView participates because it swaps the material palette, which is
+    // resolved inside re-extraction.
+    const signature = JSON.stringify({ cut, dims, showVoidView });
+    if (signature === lastCutSignature.current) return;
+
+    const timer = setTimeout(() => {
+      lastCutSignature.current = signature;
+      reextractVoxelsWithCutaway(cut);
+    }, CUTAWAY_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [activePreset, cutawayLevel, voxelResolution, voxelYSlices, voxelYMin, voxelYMax, showVoidView]);
 
   if (!voxelMeshData?.length) return null;
 

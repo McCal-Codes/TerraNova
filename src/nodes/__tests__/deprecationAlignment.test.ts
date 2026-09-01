@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import bundle from "../../data/terranova-bundle.json";
+import { hasSchemaNode } from "@/schema/schemaLoader";
 import { nodeTypes } from "../index";
 import { getHandles } from "../handleRegistry";
 import { getNodeFields } from "@/schema/schemaLoader";
@@ -42,9 +43,13 @@ describe("Deprecation alignment", () => {
     }
   });
 
-  it("every replacement target is registered in nodeTypes", () => {
+  it("every replacement target is a type the editor can actually place", () => {
+    // Not "has a bespoke React component": most types render through
+    // GenericNode from their schema alone, so requiring a nodeTypes entry would
+    // rule out perfectly placeable replacements such as PointGenerator:Mesh.
     for (const [, replacement] of LEGACY_TYPE_REPLACEMENTS) {
-      expect(nodeTypes[replacement], `Missing registry entry for replacement ${replacement}`).toBeDefined();
+      const placeable = replacement in nodeTypes || hasSchemaNode(replacement);
+      expect(placeable, `Replacement ${replacement} is not placeable`).toBe(true);
     }
   });
 

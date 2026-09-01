@@ -1,0 +1,5 @@
+{ "Type": "YSampled", "SampleDistance": 4, "SampleOffset": 0, "Interpolate": true, "Inputs": [
+  { "Type": "Scale", "ScaleX": 0.8, "ScaleY": 0.8, "ScaleZ": 0.8, "Inputs": [
+    { "Type": "Slider", "SlideX": -10, "SlideY": 0, "SlideZ": -10, "Inputs": [
+      { "Type": "YOverride", "Value": 0, "Inputs": [
+        { "Type": "SimplexNoise3D", "ScaleXZ": 120, "ScaleY": 60, "Octaves": 2, "Seed": "warp" } ] } ] } ] } ] }

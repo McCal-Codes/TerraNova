@@ -43,6 +43,10 @@ export const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {
   WeightedSum: ["Inputs[0]", "Inputs[1]"],
   // 3-input types (V2 names)
   Mix: ["InputA", "InputB", "Factor"],
+  // MultiMix is overloaded: TerraNova's BlendCurve exports as a 3-input
+  // MultiMix + Curve, while Hytale's own N-input form carries a Keys array of
+  // {Value, DensityIndex}. These named handles apply only to the former —
+  // jsonToGraph skips them when object-shaped Keys are present.
   MultiMix: ["InputA", "InputB", "Factor"],
   // 3-input types (legacy pre-V2 names, kept for old save file compat)
   Blend: ["InputA", "InputB", "Factor"],

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useAccountStore, preferredPlayerUuid } from "@/stores/accountStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import { useProjectStore } from "@/stores/projectStore";
 import {
@@ -111,7 +112,7 @@ export function useBridge() {
     const { setLastError } = useBridgeStore.getState();
     setLastError(null);
     try {
-      return await bridgePlayerInfo();
+      return await bridgePlayerInfo(preferredPlayerUuid(useAccountStore.getState()));
     } catch (err) {
       setLastError(`Player info failed: ${err}`);
       return null;

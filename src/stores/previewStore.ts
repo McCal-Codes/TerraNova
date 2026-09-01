@@ -11,12 +11,15 @@ import { readStoredPreviewDefaults } from "@/stores/configStore";
 import { initial2dPreviewResolution, clamp2dPreviewResolution } from "@/utils/previewResolution";
 import { safeStoredJson } from "@/utils/safeLocalStorage";
 import type { PreviewRootResolution } from "@/utils/previewRootResolver";
+import { isCutawayPreset, type CutawayPreset } from "@/utils/previewCutaway";
 import type { PrefabPreviewMeshData } from "@/utils/hytaleBlockAssets/buildPrefabPreviewMesh";
 
 export type PreviewMode = "2d" | "3d" | "voxel" | "world" | "prefab";
 export type PropPreviewMode = "placement" | "prefab3d";
 export type ViewMode = "graph" | "preview" | "split" | "compare" | "json";
 export type SplitDirection = "horizontal" | "vertical";
+/** 2D map rendering style; see `PreviewState.mapStyle`. */
+export type MapStyle = "heat" | "usgs" | "hytale";
 
 export interface AtmosphereSettings {
   skyHorizon: string;
@@ -119,6 +122,19 @@ interface PreviewState {
   /** Hide voxel geometry above this world Y (cutaway). */
   cutawayEnabled: boolean;
   cutawayLevel: number;
+  /**
+   * Shape of the cut. "top" is previewable with a GPU clip plane while dragging;
+   * "corner" is re-extraction only (clipIntersection tanks the frame rate).
+   */
+  cutawayPreset: CutawayPreset;
+  /**
+   * Colour solid voxels by the kind of air they enclose (sealed cave / cave mouth /
+   * open surface) instead of by material. Answers "did my cave generate, and did it
+   * punch through?" without hunting through the mesh.
+   */
+  showVoidView: boolean;
+  /** Void counts from the last extraction, for the caves hint. */
+  voidStats: { enclosed: number; breaching: number } | null;
   /** 3D heightfield vs underground volume mesh (reuses voxel pipeline). */
   show3DVolumeView: boolean;
 
@@ -142,6 +158,8 @@ interface PreviewState {
   /** Material names hidden from voxel mesh (legend toggles). */
   hiddenVoxelMaterialNames: string[];
   _voxelSurfaceData: import("@/utils/voxelExtractor").VoxelData | null;
+  /** Fluid config used for the last extraction, so a cutaway re-extract stays faithful. */
+  _voxelFluidConfig: import("@/utils/voxelExtractor").FluidConfig | null;
   _voxelVolumeMaterialIds: Uint8Array | null;
   _voxelVolumeRes: number | null;
   _voxelVolumeYSlices: number | null;
@@ -158,8 +176,16 @@ interface PreviewState {
   showSSAO: boolean;
   showEdgeOutline: boolean;
   showHillShade: boolean;
-  /** USGS-style parchment map: brown contours, green wash, relief shading. */
-  usgsTopoStyle: boolean;
+  /**
+   * Which map the 2D preview draws.
+   *
+   * - `heat`   — the raw colormap ramp.
+   * - `usgs`   — printed-topo pastiche: parchment, brown contours, green wash.
+   *              Kept because it is the best way to read exact elevations.
+   * - `hytale` — the world map Hytale itself renders: biome `MapColor` under the
+   *              relief shading ported in `utils/hytaleMapStyle.ts`.
+   */
+  mapStyle: MapStyle;
 
   autoFitYEnabled: boolean;
   /** Automatically run fit-to-content when the graph changes (wide 3D probe). */
@@ -291,6 +317,8 @@ interface PreviewState {
   setVerticalSectionLoading: (loading: boolean) => void;
   setCutawayEnabled: (enabled: boolean) => void;
   setCutawayLevel: (level: number) => void;
+  setCutawayPreset: (preset: CutawayPreset) => void;
+  setShowVoidView: (enabled: boolean) => void;
   setShow3DVolumeView: (show: boolean) => void;
 
   setVoxelYMin: (y: number) => void;
@@ -312,7 +340,7 @@ interface PreviewState {
   setShowSSAO: (show: boolean) => void;
   setShowEdgeOutline: (show: boolean) => void;
   setShowHillShade: (show: boolean) => void;
-  setUsgsTopoStyle: (enabled: boolean) => void;
+  setMapStyle: (style: MapStyle) => void;
 
   setAutoFitYEnabled: (enabled: boolean) => void;
   setAutoFitContentEnabled: (enabled: boolean) => void;
@@ -408,6 +436,8 @@ const PERSIST_MAP: Record<string, string> = {
   crossSectionProfileMode: "tn-crossSectionProfileMode",
   cutawayEnabled: "tn-cutawayEnabled",
   cutawayLevel: "tn-cutawayLevel",
+  cutawayPreset: "tn-cutawayPreset",
+  showVoidView: "tn-showVoidView",
   show3DVolumeView: "tn-show3DVolumeView",
   voxelYMin: "tn-voxelYMin",
   voxelYMax: "tn-voxelYMax",
@@ -420,7 +450,7 @@ const PERSIST_MAP: Record<string, string> = {
   showSSAO: "tn-showSSAO",
   showEdgeOutline: "tn-showEdgeOutline",
   showHillShade: "tn-showHillShade",
-  usgsTopoStyle: "tn-usgsTopoStyle",
+  mapStyle: "tn-mapStyle",
   autoFitYEnabled: "tn-autoFitYEnabled",
   autoFitContentEnabled: "tn-autoFitContentEnabled",
   terrainRefUseBaseY: "tn-terrainRefUseBaseY",
@@ -473,6 +503,26 @@ function getStoredFloat(key: string, fallback: number): number {
   return isNaN(n) ? fallback : n;
 }
 
+/**
+ * Validated read: a stale or hand-edited localStorage value must not put the store
+ * into a preset that no longer exists.
+ */
+function getStoredCutawayPreset(key: string, fallback: CutawayPreset): CutawayPreset {
+  const v = getStored(key);
+  return isCutawayPreset(v) ? v : fallback;
+}
+
+/**
+ * `mapStyle` replaced the older `tn-usgsTopoStyle` boolean. Anyone who had the
+ * topo style on lands on "usgs"; anyone who had it off lands on "heat", which is
+ * what that boolean meant.
+ */
+function hydrateMapStyle(): MapStyle {
+  const stored = getStored("tn-mapStyle");
+  if (stored === "heat" || stored === "usgs" || stored === "hytale") return stored;
+  return getStoredBool("tn-usgsTopoStyle", true) ? "usgs" : "heat";
+}
+
 function hydratePersistedState() {
   const configDefaults = readStoredPreviewDefaults();
   return {
@@ -503,6 +553,8 @@ function hydratePersistedState() {
     })(),
     cutawayEnabled: getStoredBool("tn-cutawayEnabled", false),
     cutawayLevel: getStoredFloat("tn-cutawayLevel", 60),
+    cutawayPreset: getStoredCutawayPreset("tn-cutawayPreset", "off"),
+    showVoidView: getStoredBool("tn-showVoidView", false),
     show3DVolumeView: getStoredBool("tn-show3DVolumeView", false),
     // Default voxel window should be tall enough to include terrain peaks by default.
     voxelYMin: getStoredFloat("tn-voxelYMin", 0),
@@ -516,7 +568,7 @@ function hydratePersistedState() {
     showSSAO: getStoredBool("tn-showSSAO", false),
     showEdgeOutline: getStoredBool("tn-showEdgeOutline", false),
     showHillShade: getStoredBool("tn-showHillShade", true),
-    usgsTopoStyle: getStoredBool("tn-usgsTopoStyle", true),
+    mapStyle: hydrateMapStyle(),
     autoFitYEnabled: getStoredBool("tn-autoFitYEnabled", true),
     autoFitContentEnabled: getStoredBool("tn-autoFitContentEnabled", true),
     // Terrain graphs read best when anchored to Base Y (ContentFields) by default.
@@ -639,6 +691,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     voxelPalette: [],
     hiddenVoxelMaterialNames: [],
     _voxelSurfaceData: null,
+    _voxelFluidConfig: null,
+    voidStats: null,
     _voxelVolumeMaterialIds: null,
     _voxelVolumeRes: null,
     _voxelVolumeYSlices: null,
@@ -728,6 +782,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setVerticalSectionLoading: (isVerticalSectionLoading) => originalSet({ isVerticalSectionLoading }),
     setCutawayEnabled: (cutawayEnabled) => persistedSet({ cutawayEnabled }),
     setCutawayLevel: (cutawayLevel) => persistedSet({ cutawayLevel }),
+    setCutawayPreset: (cutawayPreset: CutawayPreset) => persistedSet({ cutawayPreset }),
+    setShowVoidView: (showVoidView: boolean) => persistedSet({ showVoidView }),
     setShow3DVolumeView: (show3DVolumeView) => persistedSet({ show3DVolumeView }),
     setVoxelDensities: (voxelDensities) => originalSet({ voxelDensities }),
     setVoxelLoading: (isVoxelLoading) => originalSet({ isVoxelLoading }),
@@ -749,6 +805,7 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
               surfaceVoxelCount: null,
               voxelDensityStats: null,
               _voxelSurfaceData: null,
+    _voxelFluidConfig: null,
               _voxelVolumeMaterialIds: null,
               _voxelVolumeRes: null,
               _voxelVolumeYSlices: null,
@@ -811,11 +868,16 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setShowSSAO: (showSSAO) => persistedSet({ showSSAO }),
     setShowEdgeOutline: (showEdgeOutline) => persistedSet({ showEdgeOutline }),
     setShowHillShade: (showHillShade) => persistedSet({ showHillShade }),
-    setUsgsTopoStyle: (usgsTopoStyle) => {
-      if (usgsTopoStyle) {
-        persistedSet({ usgsTopoStyle: true, showContours: true, showHillShade: true });
+    setMapStyle: (mapStyle) => {
+      // The topo map is unreadable without its contours and relief, so entering
+      // it turns both on. Leaving does not turn them back off — by then they may
+      // be what the user actually wants.
+      if (mapStyle === "usgs") {
+        persistedSet({ mapStyle, showContours: true, showHillShade: true });
+      } else if (mapStyle === "hytale") {
+        persistedSet({ mapStyle, showHillShade: true });
       } else {
-        persistedSet({ usgsTopoStyle: false });
+        persistedSet({ mapStyle });
       }
     },
     setAutoFitYEnabled: (autoFitYEnabled) => persistedSet({ autoFitYEnabled }),

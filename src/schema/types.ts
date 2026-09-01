@@ -24,6 +24,20 @@ export enum AssetCategory {
   Terrain = "Terrain",
   CaveGenerator = "CaveGenerator",
   Generator = "Generator",
+
+  // The world-structure graph subsystem. These are registered in Hytale's asset
+  // registry exactly like the categories above; TerraNova simply had no
+  // definitions for them until the registry was read directly.
+  Noise = "Noise",
+  ContentPredicate = "ContentPredicate",
+  DistanceFunction = "DistanceFunction",
+  ContentSupplier = "ContentSupplier",
+  ReturnType = "ReturnType",
+  GraphPass = "GraphPass",
+  NodeSelector = "NodeSelector",
+  NodeAction = "NodeAction",
+  EdgeSelector = "EdgeSelector",
+  EdgeAction = "EdgeAction",
 }
 
 /** Base fields shared by most V2 asset types */
@@ -96,4 +110,16 @@ export const CATEGORY_COLORS: Record<AssetCategory, string> = {
   [AssetCategory.Terrain]: "#6E8F58",
   [AssetCategory.CaveGenerator]: "#6F6B9E",
   [AssetCategory.Generator]: "#6D7F8F",
+  // Graph subsystem — a related family, so a common hue with the node/edge
+  // halves separated by lightness rather than nine unrelated colours.
+  [AssetCategory.Noise]: "#4A90D9",
+  [AssetCategory.ContentPredicate]: "#8C8878",
+  [AssetCategory.DistanceFunction]: "#5AACA6",
+  [AssetCategory.ContentSupplier]: "#A08258",
+  [AssetCategory.ReturnType]: "#8C8878",
+  [AssetCategory.GraphPass]: "#7E7BA8",
+  [AssetCategory.NodeSelector]: "#6E86B8",
+  [AssetCategory.NodeAction]: "#5C74A6",
+  [AssetCategory.EdgeSelector]: "#9A86C0",
+  [AssetCategory.EdgeAction]: "#8874AE",
 };

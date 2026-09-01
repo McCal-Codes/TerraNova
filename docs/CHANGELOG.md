@@ -4,7 +4,121 @@ All notable changes to [TerraNova](https://github.com/McCal-Codes/TerraNova) are
 
 ## Unreleased
 
-_Next alpha cycle — add bullets here as features land._
+_Next build's changes go here._
+
+## [0.1.8-alpha.6] — 2026-09-01 — Closed alpha
+
+Sixth **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.6`.  
+**Updates:** Users on `v0.1.8-alpha.4` receive this build via the in-app updater (~3s after launch when auto-check is on). `v0.1.8-alpha.5` was prepared but never published, so everything listed under it ships here too.
+
+### Highlights
+
+- **The map Hytale actually draws** — the 2D preview can now render a biome's `MapColor` under the game's own relief shading, ported from Hytale's source rather than approximated.
+- **110 node types you could not build before** — the editor's node set is now derived from Hytale's asset registry, so every type Update 6 registers is available, including the whole world-structure graph subsystem.
+- **Amplitude works again** — it had been hidden as a legacy node and offered a replacement that changed what it did.
+- **No more glass** — the last translucent, blurred panels are opaque.
+
+### 2D map
+
+- **Hytale map style** joins Heat and Topo in a single map-style picker. Colour comes from the biome's `MapColor` — the field `BiomeJsonLoader` documents as "the color to be used on the world map for this biome", which most shipped biomes define and which the editor had been ignoring.
+- Relief shading is a direct port of `ImageBuilder.shadeFromHeights`: bilinear cardinal and diagonal gradients with the cardinals weighted twice, a fixed `dy` of 3, and the game's own light direction and ambient/diffuse split. These are not tunable, because they are not tunable in Hytale. Tests pin them against output from the Java method itself.
+- A biome with no `MapColor` renders in neutral grey and says so, rather than being given an invented colour.
+- The printed-topo style stays — it is still the best way to read exact elevations. Existing users keep it; the old `usgsTopoStyle` preference migrates across.
+
+### Nodes and schema
+
+- The node schema is now generated from `AssetManager.java`'s registry and each asset's codec — 313 types, 1299 fields, with enum fields resolved to their constants so they offer a choice instead of free text.
+- **Vector providers went from 5 to 18**, position providers from 24 to 27, materials from 14 to 17, prop distributions from 5 to 8, props from 22 to 23, density functions from 81 to 98.
+- Ten categories that had no editor support at all — node and edge selectors and actions, graph passes, return types, content predicates and suppliers, distance functions and noise — are grouped below the terrain categories under one **World structure graph** heading, collapsed by default.
+- Types are keyed by category rather than by name. Forty-eight type names are registered under more than one category, `Imported` under nineteen of them.
+- Nodes with no bespoke editor component no longer report themselves as "not in the TerraNova palette".
+- **Eighteen node types that the generator would reject are no longer offered** — prefixed Environment and Tint spellings, `Environment:Imported`, `Tint:Imported`, `Position:Mesh` and others. Each was checked against the registry and against every shipped asset file before being retired; existing graphs still open them, with a badge and a suggested replacement where one exists.
+- Hand-written node defaults are kept where they exist; generated ones only fill gaps. A generated default is whatever the Java field was initialised to, which is often the inert value.
+
+### Interface
+
+- Every remaining `backdrop-blur` is gone, and the translucent backgrounds under them are solid. A lint rule keeps them from creeping back.
+- Voxel preview controls are grouped — Density range, Volume, Framing, Materials and Scene — instead of eleven checkboxes under one heading, with the framing buttons beside the settings they act on.
+
+## [0.1.8-alpha.5] — 2026-08-01 — Closed alpha
+
+Fifth **McCal-Codes** closed-alpha build. **Install:** [Releases](https://github.com/McCal-Codes/TerraNova/releases) — tag `v0.1.8-alpha.5`.  
+**Updates:** Users on `v0.1.8-alpha.4` receive this build via the in-app updater (~3s after launch when auto-check is on).
+
+### Highlights
+
+- **Terrain now matches Hytale's generator** — Noise, fBm and seed derivation reimplemented against Java's RNG, including Update 6's WhiteNoise, so previews line up with what the game actually generates.
+- **World seed** — Set a seed in preview settings and see the terrain the game would produce for it.
+- **Native macOS menu bar** — File, Edit, View, Window and Help, with Settings at `Cmd+,`. Copy, paste and undo now behave correctly in text fields.
+- **Settings, rebuilt** — Search across every setting, see what you've changed, and reset any of it. Ten focused categories replacing card grids.
+- **Cave and void view, cutaway presets** — Separate enclosed caves from voids that breach the surface, and slice terrain by preset.
+- **Sign in with Hytale** — Bridge targets your signed-in player by default.
+
+### Worldgen accuracy
+
+- Noise, fBm, combinators and overrides reimplemented against Java semantics, with a `JavaRandom` port (`javaStringHashCode`, `deriveNodeSeed`, per-octave offset draws) so seeds derive the way Hytale derives them.
+- Update 6: WhiteNoise implemented bit-exact; MultiMix's keyed inputs wired positionally; V2's Constant vector provider read correctly.
+- Parity harnesses for fBm, cell noise, noise defaults and seed chaining, rebaselined on the Update 6 jar.
+- **World seed** threaded through the density and voxel evaluation paths and into the evaluation fingerprint, so changing it re-evaluates rather than reusing a cached result.
+
+### Preview
+
+- **Void classification** separates enclosed caves from voids that breach the surface, with counts and a dedicated colouring.
+- **Cutaway presets** replace hand-positioning a plane; the fluid config from the last extraction is retained so a cutaway re-extract stays faithful.
+- Voxel extraction, mesh building, material resolution and auto-fit updated to match.
+
+### macOS
+
+- **Native menu bar** — TerraNova, File, Edit, View, Window and Help. The Edit menu is not cosmetic: macOS routes copy, paste and undo through menu items, so text fields now behave correctly in the desktop app.
+- **Blank windows recover on their own** — if the interface stops responding for 20 seconds the view reloads, at most twice per session, and always records why. Turn it off with Developer → "Recover automatically from a blank window".
+
+### Settings
+
+- **Search** every setting by name, description or synonym (`autosave` finds Instant save), with `@modified`, `@developer`, `@experimental`, `@advanced`, `@restart`, `@user` and `@project` filters that combine with free text. `Ctrl`/`Cmd`+`F` to focus.
+- **Modified indicators and reset** — changed settings show a badge and a reset button; each category offers "Reset section", and the sidebar shows how many differ from defaults.
+- **Ten categories** — General, Editor, Preview & performance, Files & backups, Hytale assets, Shortcuts, Account, Developer, Updates, About. Old deep links to the `system` tab still resolve.
+- **Real controls** — toggles, radio groups and number fields instead of full-width cards that read like navigation.
+- **Operations separated from preferences** — asset sync, backups, cache repair and diagnostics moved beside the settings that configure them rather than into the settings list.
+- Reachable from Home with `Cmd+,`; previously only from the editor or first-run onboarding, so with no project open there was no way in.
+- The panel no longer resizes when switching categories.
+- **Launch opens to Home** rather than reopening the last pack; reopening is opt-in under General.
+- The sidebar follows the WAI-ARIA tabs pattern — one Tab stop, arrow-key navigation, and arrows move focus without activating (previously, arrowing past a category fired its hardware detection and asset staleness checks).
+- Fixed deep links to the Account tab, which were silently ignored.
+
+### Diagnostics
+
+- Crashes are written to `~/Library/Logs/TerraNova/crash.log` at the moment they happen, so a force quit still leaves evidence and the log survives the reload that used to erase it.
+- A blank window explains itself instead of sitting empty: the error and component stack are shown in-app, and a stalled startup, a lost WebGL context, or a splash overlay that never lifted are each named rather than looking identical.
+
+### Bridge
+
+- The sidecar starts on macOS and Linux, not only Windows.
+- Compare a chunk generated by the game against local evaluation, to find where they diverge.
+- Live player resolution prefers a signed-in player's UUID, falling back to the newest save file, and reports which path it took.
+- Plugin builds against Update 6.
+
+### Account
+
+- Sign in with a Hytale account from Settings → Account, with the signed-in player used as the bridge target by default. The OAuth callback handles real browser behaviour.
+
+### Performance
+
+- Settings are parsed once at startup instead of 23 times, and changing a setting no longer re-serialises the entire store on every keystroke. Pending writes flush on quit.
+
+### Developer
+
+- **Dev Lab** — developer-only workspace at `?dev-lab=1` (dev builds only) for running density cases against the evaluator.
+- Evaluation fingerprint coverage guard: adding a field to the fingerprint input without accounting for it now fails to compile, catching the class of bug where new state reaches the evaluator but not the cache key and the feature silently does nothing.
+- Hytale asset smoke suite runs on macOS and Linux, covering every shipped Examples biome.
+
+### Developer workflow
+
+- One-command startup: `pnpm start` launches the desktop dev build after checking Node, pnpm, Rust and Cargo, installing dependencies only when stale, and verifying port 1420 is free.
+- Added `pnpm dev:web`, `pnpm dev:desktop`, `pnpm dev:lab`, and `pnpm dev:doctor`.
+- Fixed duplicate Vite dev servers: `dev.bat` started Vite and then ran `pnpm tauri dev`, whose `beforeDevCommand` started a second one. Tauri is now the only owner, and the launcher refuses to start when port 1420 is already serving.
+- Removed the `predev` hook that ran a full `pnpm install` on every dev start.
+- Double-click wrappers for all three platforms (`dev.bat`, `dev.command`, `dev.sh`), each delegating to `pnpm start`.
+- `pnpm sync:hytale` accepts `--channel release|pre-release`, and records the channel and sync time in the cache manifest.
 
 ## [0.1.8-alpha.4] — 2026-06-21 — Closed alpha
 

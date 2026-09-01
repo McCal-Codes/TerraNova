@@ -15,13 +15,49 @@ Thank you for helping improve TerraNova. This project edits **real Hytale World 
 ## Development
 
 ```bash
-pnpm install
-pnpm tauri dev
+pnpm start
 ```
 
-`pnpm tauri dev` starts Vite on port **1420** automatically (`beforeDevCommand`). On Windows you can also use `dev.bat`, which opens Vite in a separate window and then launches Tauri.
+That is the whole thing. `pnpm start` checks your toolchain, installs dependencies
+only when they are actually stale, verifies port **1420** is free, and launches the
+desktop dev build.
 
-`pnpm dev` runs Vite only (browser dev, no desktop shell).
+| Command | What it does |
+| --- | --- |
+| `pnpm start` | Desktop dev build (Tauri + Vite) |
+| `pnpm start --web` / `pnpm dev:web` | Browser-only Vite, no desktop shell |
+| `pnpm start --lab` / `pnpm dev:lab` | Desktop, opening straight into Dev Lab |
+| `pnpm start --install` | Force a dependency install first |
+| `pnpm start --sync release\|pre-release` | Sync Hytale assets before starting |
+| `pnpm dev:doctor` | Diagnose the environment and print remedies |
+
+Double-click wrappers delegate to `pnpm start` and contain no logic of their own:
+`dev.bat` (Windows), `dev.command` (macOS), `dev.sh` (Linux). On macOS the file needs
+the executable bit once before Finder will open it:
+
+```bash
+chmod +x dev.command
+```
+
+**Only Tauri starts Vite.** `src-tauri/tauri.conf.json` sets
+`beforeDevCommand: "pnpm dev"`, so nothing else should launch a dev server — starting
+one manually and then running `tauri dev` produces two Vite processes competing for
+port 1420, with the second silently landing elsewhere while `devUrl` still points at
+1420. The launcher refuses to start when the port is already serving.
+
+`pnpm dev` still runs Vite directly if you want it, but prefer `pnpm dev:web` so you
+get the same preflight checks.
+
+Dependencies are no longer installed on every start. The launcher fingerprints
+`pnpm-lock.yaml`, `package.json`, and your Node and pnpm versions, and only runs
+`pnpm install --frozen-lockfile` when that fingerprint changes, `node_modules` is
+missing, or you pass `--install`.
+
+If something will not start, run `pnpm dev:doctor` first — it reports Node, pnpm,
+Rust, Cargo, the Tauri CLI, dependency freshness, port 1420, both Hytale channel
+sources, and asset cache state, each with a remediation command. Paths are shown
+relative to the repository or with your home directory replaced by `~`, so the output
+is safe to paste into an issue.
 
 For block icons and validation against real game data: **Settings → Assets** → point at your Hytale **release** install (`...\install\release\package\game\latest` or `Assets.zip`) and sync. See [Importing from Hytale assets](src/docs/guides/world/environments-and-weather.md#importing-from-hytale-assets).
 

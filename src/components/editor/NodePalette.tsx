@@ -104,7 +104,36 @@ const CATEGORY_LABELS: Partial<Record<AssetCategory, string>> = {
   [AssetCategory.Generator]: "Generator",
   [AssetCategory.Biome]: "Biome",
   [AssetCategory.WorldStructure]: "World Structure",
+  [AssetCategory.Noise]: "Noise",
+  [AssetCategory.ContentPredicate]: "Content Predicate",
+  [AssetCategory.DistanceFunction]: "Distance Function",
+  [AssetCategory.ContentSupplier]: "Content Supplier",
+  [AssetCategory.ReturnType]: "Return Type",
+  [AssetCategory.GraphPass]: "Graph Pass",
+  [AssetCategory.NodeSelector]: "Node Selector",
+  [AssetCategory.NodeAction]: "Node Action",
+  [AssetCategory.EdgeSelector]: "Edge Selector",
+  [AssetCategory.EdgeAction]: "Edge Action",
 };
+
+/**
+ * Categories belonging to the world-structure graph system rather than to
+ * terrain shaping. They sit below the rest under their own heading: they are
+ * real Hytale categories, but someone editing a biome never needs them, and
+ * mixing them into the main list would double its length for no one's benefit.
+ */
+const GRAPH_SUBSYSTEM_CATEGORIES: readonly AssetCategory[] = [
+  AssetCategory.GraphPass,
+  AssetCategory.NodeSelector,
+  AssetCategory.NodeAction,
+  AssetCategory.EdgeSelector,
+  AssetCategory.EdgeAction,
+  AssetCategory.ContentSupplier,
+  AssetCategory.ContentPredicate,
+  AssetCategory.ReturnType,
+  AssetCategory.DistanceFunction,
+  AssetCategory.Noise,
+];
 
 /** Category order for display */
 const CATEGORY_ORDER: AssetCategory[] = [
@@ -130,6 +159,10 @@ const CATEGORY_ORDER: AssetCategory[] = [
   AssetCategory.Generator,
   AssetCategory.Biome,
   AssetCategory.WorldStructure,
+  // Framework had no place in the order and was landing after the graph
+  // heading, which read as though it belonged to that section.
+  AssetCategory.Framework,
+  ...GRAPH_SUBSYSTEM_CATEGORIES,
 ];
 
 /** Group entries by category */
@@ -272,6 +305,13 @@ export function NodePalette() {
       ? [contextCategory, ...baseCategoryOrder.filter((c) => c !== contextCategory)]
       : baseCategoryOrder;
   }, [grouped, contextCategory]);
+
+  // The heading goes above whichever graph category actually has entries, so a
+  // section that renders nothing does not leave a stranded label.
+  const firstGraphCategory = useMemo(
+    () => sortedCategoryOrder.find((c) => GRAPH_SUBSYSTEM_CATEGORIES.includes(c) && grouped.has(c)),
+    [sortedCategoryOrder, grouped],
+  );
 
   useEffect(() => {
     if (!contextCategory || hasSearch) return;
@@ -445,8 +485,18 @@ export function NodePalette() {
           const isContextMatch = contextCategory === cat;
           const isDimmed = contextCategory !== null && !isContextMatch && !hasSearch;
 
+          const startsGraphSection = cat === firstGraphCategory && !hasSearch;
+
           return (
             <div key={cat} className="mb-1" style={{ opacity: isDimmed ? 0.75 : 1 }}>
+              {startsGraphSection && (
+                <div className="mt-3 mb-1 flex items-center gap-2 px-2">
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-tn-text-muted">
+                    World structure graph
+                  </span>
+                  <span className="h-px flex-1 bg-tn-border" />
+                </div>
+              )}
               {/* Category header */}
               <button
                 onClick={() => toggleCategory(cat)}

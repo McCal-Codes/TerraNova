@@ -1,0 +1,6 @@
+{ "Type": "Mix", "Inputs": [
+  { "Type": "SimplexNoise2D", "Scale": 250, "Octaves": 2, "Seed": "band" },
+  { "Type": "Constant", "Value": -1 },
+  { "Type": "CurveMapper",
+    "Curve": { "Type": "Manual", "Points": [ {"In": 210.1, "Out": 1}, {"In": 210, "Out": 0}, {"In": 30, "Out": 0}, {"In": 29.9, "Out": 1} ] },
+    "Inputs": [ { "Type": "BaseHeight", "BaseHeightName": "Base", "Distance": true } ] } ] }

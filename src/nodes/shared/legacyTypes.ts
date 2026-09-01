@@ -35,7 +35,11 @@ export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
   "SurfaceDensity", "TerrainBoolean", "TerrainMask",
   "GradientDensity", "BeardDensity", "ColumnDensity", "CaveDensity",
   "SplineFunction", "FlatCache", "Wrap",
-  "Zero", "One", "Debug", "Passthrough", "YGradient", "Amplitude",
+  "Zero", "One", "Debug", "Passthrough", "YGradient",
+  // "Amplitude" was here, and should not have been: Update 6 registers
+  // AmplitudeDensityAsset and a shipped biome uses it. It takes a FunctionForY
+  // curve, so the old rewrite to AmplitudeConstant (Scale/Offset) was not an
+  // equivalent either. `update6Legacy.test.ts` now catches this class of error.
   // Density — old names replaced by V2 names
   "Product", "Negate", "SquareRoot", "ImportedValue", "LinearTransform",
   "CoordinateX", "CoordinateY", "CoordinateZ", "CurveFunction",
@@ -58,12 +62,32 @@ export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
   "Position:Conditional", "Position:DensityBased",
   // Props (4)
   "Prop:Surface", "Prop:Cave", "Prop:Conditional", "Prop:Exported",
-  // Environment (1 — Environment:Imported is an active V2 type)
+  // Environment (1)
   "Environment:Exported",
-  // Tint (1 — Tint:Imported is an active V2 type)
+  // Tint (1)
   "Tint:Exported",
   // Directionality (3)
   "Directionality:Uniform", "Directionality:Directional", "Directionality:Normal",
+
+  // ── Checked against Update 6's registry and the shipped assets ──────────
+  // None of these is registered for its category, and none appears in any of
+  // the 26,871 shipped asset files under the field its category occupies.
+  // (Category-scoped: a bare name search is worthless here — "Single" matches
+  // 2,734 item-drop containers that have nothing to do with worldgen.)
+  //
+  // Environment and Tint register only Constant and DensityDelimited (plus Mix
+  // for Tint). The prefixed spellings never existed in the format, and Imported
+  // — registered for nineteen other categories — is not one of theirs.
+  "Environment:EnvironmentConstant", "Environment:EnvironmentDensityDelimited",
+  "Environment:Biome", "Environment:Default", "Environment:Imported",
+  "Tint:TintConstant", "Tint:TintDensityDelimited",
+  "Tint:Gradient", "Tint:Imported",
+  // Mesh is registered, but as a PointGenerator, not a PositionProvider.
+  "Position:Mesh", "Position:Positions", "Position:Empty",
+  "Prop:Curve", "Prop:UniquePrefab", "Prop:WeightedRandom",
+  "Material:WeightedRandom",
+  "Pattern:Gap",
+  "Scanner:Direct",
 ]);
 
 /**
@@ -173,7 +197,6 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ["FlatCache",           "Cache"],
   ["Zero",                "Constant"],
   ["One",                 "Constant"],
-  ["Amplitude",           "AmplitudeConstant"],
   ["VoronoiNoise2D",     "CellNoise2D"],
   ["VoronoiNoise3D",     "CellNoise3D"],
   ["Cache2D",             "Cache"],
@@ -214,6 +237,16 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   // Editor keys that lost category prefix on import (e.g. $DisconnectedTrees roots)
   ["Manual",              "Curve:Manual"],
   ["Curve:Mix",           "Mix"],
+  // Update 6 spellings for the prefixed Environment/Tint names.
+  ["Environment:EnvironmentConstant",         "Environment:Constant"],
+  ["Environment:EnvironmentDensityDelimited", "Environment:DensityDelimited"],
+  ["Tint:TintConstant",                       "Tint:Constant"],
+  ["Tint:TintDensityDelimited",               "Tint:DensityDelimited"],
+  // Same node, filed under the category that actually registers it.
+  ["Position:Mesh",                           "PointGenerator:Mesh"],
+  // Weighted selection kept the behaviour and dropped "Random" from the name.
+  ["Prop:WeightedRandom",                     "Prop:Weighted"],
+  ["Material:WeightedRandom",                 "Material:Weighted"],
 ]);
 
 /**

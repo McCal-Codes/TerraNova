@@ -2,12 +2,14 @@ import { describe, it, expect } from "vitest";
 import { isLegacyTypeKey, isPaletteTypeKeyVisible } from "../shared/legacyTypes";
 
 describe("legacy type corrections", () => {
-  it("Environment:Imported is not legacy (active V2 type)", () => {
-    expect(isLegacyTypeKey("Environment:Imported")).toBe(false);
-  });
-
-  it("Tint:Imported is not legacy (active V2 type)", () => {
-    expect(isLegacyTypeKey("Tint:Imported")).toBe(false);
+  it("Environment:Imported and Tint:Imported are legacy after all", () => {
+    // These were listed as active V2 types. Update 6's registry says otherwise:
+    // Imported is registered for nineteen categories, and EnvironmentProvider
+    // and TintProvider are not among them — they register only Constant and
+    // DensityDelimited (plus Mix for Tint). Neither name appears in any of the
+    // 26,871 shipped asset files under an environment or tint field.
+    expect(isLegacyTypeKey("Environment:Imported")).toBe(true);
+    expect(isLegacyTypeKey("Tint:Imported")).toBe(true);
   });
 
   it("Environment:Exported is still legacy", () => {

@@ -8,7 +8,7 @@ import {
 } from "@/utils/topoMapStyle";
 
 const panelSurface =
-  "rounded-md border bg-[#faf6eb]/97 shadow-sm backdrop-blur-[1px] border-[#c4b89a]";
+  "rounded-md border bg-[#faf6eb] shadow-sm border-[#c4b89a]";
 
 function HudPanel({
   title,

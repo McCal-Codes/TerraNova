@@ -1,0 +1,9901 @@
+{
+ "format": "hytale-registry@1",
+ "source": "HytaleServer/builtin/HytaleGenerator AssetManager.java",
+ "categories": [
+  "Assignments",
+  "Condition",
+  "ContentPredicate",
+  "ContentSupplier",
+  "Curve",
+  "Density",
+  "Directionality",
+  "DistanceFunction",
+  "EdgeAction",
+  "EdgeSelector",
+  "EnvironmentProvider",
+  "Framework",
+  "GraphPass",
+  "Layer",
+  "MaterialProvider",
+  "NodeAction",
+  "NodeSelector",
+  "Noise",
+  "Pattern",
+  "PointGenerator",
+  "PositionProvider",
+  "Prop",
+  "PropDistribution",
+  "ReturnType",
+  "Scanner",
+  "Terrain",
+  "TintProvider",
+  "VectorProvider",
+  "WorldStructure"
+ ],
+ "typesByCategory": {
+  "Density": [
+   "Abs",
+   "Amplitude",
+   "AmplitudeConstant",
+   "Anchor",
+   "And",
+   "Angle",
+   "Axis",
+   "BaseHeight",
+   "Cache",
+   "Cache2D",
+   "Ceiling",
+   "CellNoise2D",
+   "CellNoise3D",
+   "CellWallDistance",
+   "Clamp",
+   "Comparator",
+   "Constant",
+   "Cube",
+   "Cuboid",
+   "CurveMapper",
+   "Cylinder",
+   "Distance",
+   "DistanceToBiomeEdge",
+   "DistanceToGraphEdge",
+   "Ellipsoid",
+   "Equal",
+   "Exported",
+   "FastGradientWarp",
+   "Floor",
+   "Gradient",
+   "GradientWarp",
+   "Graph",
+   "GreaterOrEqual",
+   "GreaterThan",
+   "Imported",
+   "Inverter",
+   "LessOrEqual",
+   "LessThan",
+   "Max",
+   "Min",
+   "Mix",
+   "MultiMix",
+   "Multiplier",
+   "Nor",
+   "Normalizer",
+   "Not",
+   "Offset",
+   "OffsetConstant",
+   "Or",
+   "Pipeline",
+   "Plane",
+   "Positions3D",
+   "PositionsCellNoise",
+   "PositionsPinch",
+   "PositionsTwist",
+   "Pow",
+   "Rotator",
+   "Scale",
+   "Selector",
+   "Shell",
+   "SimplexNoise2D",
+   "SimplexNoise3D",
+   "Slider",
+   "SmoothCeiling",
+   "SmoothClamp",
+   "SmoothFloor",
+   "SmoothMax",
+   "SmoothMin",
+   "Sqrt",
+   "Sum",
+   "Switch",
+   "SwitchState",
+   "Terrain",
+   "Trig",
+   "VectorWarp",
+   "WhiteNoise",
+   "XOverride",
+   "XValue",
+   "Xor",
+   "YOverride",
+   "YSampled",
+   "YValue",
+   "ZOverride",
+   "ZValue"
+  ],
+  "GraphPass": [
+   "EdgeAction",
+   "Empty",
+   "Imported",
+   "Manual",
+   "NodeAction",
+   "Positions"
+  ],
+  "NodeSelector": [
+   "All",
+   "And",
+   "ConnectionCount",
+   "Content",
+   "DensityDelimited",
+   "Imported",
+   "NeighborEdges",
+   "NeighborNodes",
+   "Not",
+   "Or",
+   "Random"
+  ],
+  "ContentPredicate": [
+   "And",
+   "Constant",
+   "Imported",
+   "Not",
+   "Or",
+   "Set"
+  ],
+  "ContentSupplier": [
+   "Constant",
+   "Imported",
+   "Weighted"
+  ],
+  "NodeAction": [
+   "ConnectedEdges",
+   "ConnectedNodes",
+   "Content",
+   "ContentCopy",
+   "Delete",
+   "Empty",
+   "Imported",
+   "Jitter2d",
+   "Jitter3d",
+   "Move",
+   "ProximityConnector",
+   "Selector",
+   "Spawner",
+   "Weighted"
+  ],
+  "EdgeSelector": [
+   "All",
+   "And",
+   "Angle",
+   "Imported",
+   "Length",
+   "Nodes",
+   "Not",
+   "Or",
+   "Random"
+  ],
+  "EdgeAction": [
+   "Delete",
+   "Empty",
+   "Imported",
+   "Nodes",
+   "Proxy",
+   "Selector",
+   "Splitter"
+  ],
+  "Framework": [
+   "DecimalConstants",
+   "Positions"
+  ],
+  "Terrain": [
+   "DAOTerrain"
+  ],
+  "Noise": [
+   "Cell",
+   "Simplex"
+  ],
+  "WorldStructure": [
+   "NoiseRange"
+  ],
+  "MaterialProvider": [
+   "Constant",
+   "DownwardDepth",
+   "DownwardSpace",
+   "FieldFunction",
+   "Graph",
+   "Imported",
+   "Queue",
+   "SimpleHorizontal",
+   "Solidity",
+   "SpaceAndDepth",
+   "Striped",
+   "TerrainDensity",
+   "Transparent",
+   "UpwardDepth",
+   "UpwardSpace",
+   "Weighted"
+  ],
+  "Layer": [
+   "ConstantThickness",
+   "NoiseThickness",
+   "RangeThickness",
+   "WeightedThickness"
+  ],
+  "Condition": [
+   "AlwaysTrueCondition",
+   "AndCondition",
+   "EqualsCondition",
+   "GreaterThanCondition",
+   "NotCondition",
+   "OrCondition",
+   "SmallerThanCondition"
+  ],
+  "PositionProvider": [
+   "Anchor",
+   "BaseHeight",
+   "Bound",
+   "Cache",
+   "Clusters",
+   "DirectionalJitter",
+   "FieldFunction",
+   "Framework",
+   "Graph",
+   "Imported",
+   "Jitter2d",
+   "Jitter3d",
+   "List",
+   "Mesh2D",
+   "Mesh3D",
+   "Occurrence",
+   "Offset",
+   "Scaler",
+   "SimpleHorizontal",
+   "SquareGrid2d",
+   "SquareGrid3d",
+   "TriangularGrid2d",
+   "Union",
+   "VectorOffset"
+  ],
+  "PointGenerator": [
+   "Mesh"
+  ],
+  "Assignments": [
+   "Constant",
+   "FieldFunction",
+   "Imported",
+   "Sandwich",
+   "Weighted"
+  ],
+  "Prop": [
+   "Box",
+   "Cluster",
+   "Column",
+   "Cuboid",
+   "Density",
+   "DensitySelector",
+   "Empty",
+   "Imported",
+   "Locator",
+   "Manual",
+   "Mask",
+   "Offset",
+   "Orienter",
+   "PondFiller",
+   "Prefab",
+   "Queue",
+   "RandomRotator",
+   "StaticRotator",
+   "Union",
+   "Weighted"
+  ],
+  "PropDistribution": [
+   "Anchor",
+   "Assigned",
+   "Constant",
+   "Graph",
+   "Imported",
+   "None",
+   "Positions",
+   "Union"
+  ],
+  "Directionality": [
+   "Imported",
+   "Pattern",
+   "Random",
+   "Static"
+  ],
+  "Pattern": [
+   "And",
+   "BlockSet",
+   "BlockType",
+   "Ceiling",
+   "Constant",
+   "Cuboid",
+   "FieldFunction",
+   "Floor",
+   "Imported",
+   "Not",
+   "Offset",
+   "Or",
+   "Rotator",
+   "Surface",
+   "Wall"
+  ],
+  "Scanner": [
+   "Area",
+   "ColumnLinear",
+   "ColumnRandom",
+   "Imported",
+   "Linear",
+   "Origin",
+   "Queue",
+   "Radial",
+   "Random"
+  ],
+  "Curve": [
+   "Ceiling",
+   "Clamp",
+   "Constant",
+   "DistanceExponential",
+   "DistanceS",
+   "Floor",
+   "Imported",
+   "Inverter",
+   "Manual",
+   "Max",
+   "Min",
+   "Multiplier",
+   "Not",
+   "SmoothCeiling",
+   "SmoothClamp",
+   "SmoothFloor",
+   "SmoothMax",
+   "SmoothMin",
+   "Sum"
+  ],
+  "ReturnType": [
+   "CellValue",
+   "Curve",
+   "Density",
+   "Distance",
+   "Distance2",
+   "Distance2Add",
+   "Distance2Div",
+   "Distance2Mul",
+   "Distance2Sub",
+   "Imported"
+  ],
+  "DistanceFunction": [
+   "Euclidean",
+   "Manhattan"
+  ],
+  "EnvironmentProvider": [
+   "Constant",
+   "DensityDelimited"
+  ],
+  "TintProvider": [
+   "Constant",
+   "DensityDelimited",
+   "Mix"
+  ],
+  "VectorProvider": [
+   "Adder",
+   "Cache",
+   "Constant",
+   "Cross",
+   "DensityGradient",
+   "Exported",
+   "Imported",
+   "Multiplier",
+   "Normalizer",
+   "OpposedToGraphEdges",
+   "PlaneProjector",
+   "Random",
+   "ScalarMultiplier",
+   "SetX",
+   "SetY",
+   "SetZ",
+   "Subtracter",
+   "VectorProjector"
+  ]
+ },
+ "types": {
+  "Assignments:Constant": {
+   "category": "Assignments",
+   "type": "Constant",
+   "assetClass": "ConstantAssignmentsAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    }
+   ]
+  },
+  "Assignments:FieldFunction": {
+   "category": "Assignments",
+   "type": "FieldFunction",
+   "assetClass": "FieldFunctionAssignmentsAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "FieldFunction",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Assignments",
+     "type": "Assignments",
+     "required": true
+    },
+    {
+     "name": "Min",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "Max",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Assignments:Imported": {
+   "category": "Assignments",
+   "type": "Imported",
+   "assetClass": "ImportedAssignmentsAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Assignments:Sandwich": {
+   "category": "Assignments",
+   "type": "Sandwich",
+   "assetClass": "SandwichAssignmentsAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "Assignments",
+     "type": "Assignments",
+     "required": true
+    },
+    {
+     "name": "MinY",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "MaxY",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Assignments:Weighted": {
+   "category": "Assignments",
+   "type": "Weighted",
+   "assetClass": "WeightedAssignmentsAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "SkipChance",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "WeightedAssignments",
+     "type": "WeightedAssets[]",
+     "required": true
+    },
+    {
+     "name": "Weight",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Assignments",
+     "type": "Assignments",
+     "required": true
+    }
+   ]
+  },
+  "Condition:AlwaysTrueCondition": {
+   "category": "Condition",
+   "type": "AlwaysTrueCondition",
+   "assetClass": "AlwaysTrueConditionAsset",
+   "fields": []
+  },
+  "Condition:AndCondition": {
+   "category": "Condition",
+   "type": "AndCondition",
+   "assetClass": "AndConditionAsset",
+   "fields": [
+    {
+     "name": "Conditions",
+     "type": "Condition[]",
+     "required": true
+    }
+   ]
+  },
+  "Condition:EqualsCondition": {
+   "category": "Condition",
+   "type": "EqualsCondition",
+   "assetClass": "EqualsConditionAsset",
+   "fields": [
+    {
+     "name": "ContextToCheck",
+     "type": "ConditionParameter",
+     "required": true
+    },
+    {
+     "name": "Value",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Condition:GreaterThanCondition": {
+   "category": "Condition",
+   "type": "GreaterThanCondition",
+   "assetClass": "GreaterThanConditionAsset",
+   "fields": [
+    {
+     "name": "ContextToCheck",
+     "type": "ConditionParameter",
+     "required": true
+    },
+    {
+     "name": "Threshold",
+     "type": "integer",
+     "required": true
+    }
+   ]
+  },
+  "Condition:NotCondition": {
+   "category": "Condition",
+   "type": "NotCondition",
+   "assetClass": "NotConditionAsset",
+   "fields": [
+    {
+     "name": "Condition",
+     "type": "Condition",
+     "required": true
+    }
+   ]
+  },
+  "Condition:OrCondition": {
+   "category": "Condition",
+   "type": "OrCondition",
+   "assetClass": "OrConditionAsset",
+   "fields": [
+    {
+     "name": "Conditions",
+     "type": "Condition[]",
+     "required": true
+    }
+   ]
+  },
+  "Condition:SmallerThanCondition": {
+   "category": "Condition",
+   "type": "SmallerThanCondition",
+   "assetClass": "SmallerThanConditionAsset",
+   "fields": [
+    {
+     "name": "ContextToCheck",
+     "type": "ConditionParameter",
+     "required": true
+    },
+    {
+     "name": "Threshold",
+     "type": "integer",
+     "required": true
+    }
+   ]
+  },
+  "ContentPredicate:And": {
+   "category": "ContentPredicate",
+   "type": "And",
+   "assetClass": "AndContentPredicateAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ContentPredicates",
+     "type": "ContentPredicate[]",
+     "required": true
+    }
+   ]
+  },
+  "ContentPredicate:Constant": {
+   "category": "ContentPredicate",
+   "type": "Constant",
+   "assetClass": "ConstantContentPredicateAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "boolean",
+     "required": true,
+     "default": true
+    }
+   ]
+  },
+  "ContentPredicate:Imported": {
+   "category": "ContentPredicate",
+   "type": "Imported",
+   "assetClass": "ImportedContentPredicateAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "ContentPredicate:Not": {
+   "category": "ContentPredicate",
+   "type": "Not",
+   "assetClass": "NotContentPredicateAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ContentPredicate",
+     "type": "ContentPredicate",
+     "required": true
+    }
+   ]
+  },
+  "ContentPredicate:Or": {
+   "category": "ContentPredicate",
+   "type": "Or",
+   "assetClass": "OrContentPredicateAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ContentPredicates",
+     "type": "ContentPredicate[]",
+     "required": true
+    }
+   ]
+  },
+  "ContentPredicate:Set": {
+   "category": "ContentPredicate",
+   "type": "Set",
+   "assetClass": "SetContentPredicateAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ContentTags",
+     "type": "string[]",
+     "required": true
+    }
+   ]
+  },
+  "ContentSupplier:Constant": {
+   "category": "ContentSupplier",
+   "type": "Constant",
+   "assetClass": "ConstantContentSupplierAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Content",
+     "type": "GraphContent",
+     "required": true
+    }
+   ]
+  },
+  "ContentSupplier:Imported": {
+   "category": "ContentSupplier",
+   "type": "Imported",
+   "assetClass": "ImportedContentSupplierAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "ContentSupplier:Weighted": {
+   "category": "ContentSupplier",
+   "type": "Weighted",
+   "assetClass": "WeightedContentSupplierAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Entries",
+     "type": "Entry[]",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Weight",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "ContentSupplier",
+     "type": "ContentSupplier",
+     "required": true
+    }
+   ]
+  },
+  "Curve:Ceiling": {
+   "category": "Curve",
+   "type": "Ceiling",
+   "assetClass": "CeilingCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "Ceiling",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Curve:Clamp": {
+   "category": "Curve",
+   "type": "Clamp",
+   "assetClass": "ClampCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": false
+    },
+    {
+     "name": "WallA",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "WallB",
+     "type": "number",
+     "required": false,
+     "default": -1
+    }
+   ]
+  },
+  "Curve:Constant": {
+   "category": "Curve",
+   "type": "Constant",
+   "assetClass": "ConstantCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Curve:DistanceExponential": {
+   "category": "Curve",
+   "type": "DistanceExponential",
+   "assetClass": "DistanceExponentialCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Exponent",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   ]
+  },
+  "Curve:DistanceS": {
+   "category": "Curve",
+   "type": "DistanceS",
+   "assetClass": "DistanceSCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ExponentA",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "ExponentB",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Transition",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "TransitionSmooth",
+     "type": "number",
+     "required": false,
+     "default": 1
+    }
+   ]
+  },
+  "Curve:Floor": {
+   "category": "Curve",
+   "type": "Floor",
+   "assetClass": "FloorCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "Floor",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Curve:Imported": {
+   "category": "Curve",
+   "type": "Imported",
+   "assetClass": "ImportedCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true
+    }
+   ]
+  },
+  "Curve:Inverter": {
+   "category": "Curve",
+   "type": "Inverter",
+   "assetClass": "InverterCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    }
+   ]
+  },
+  "Curve:Manual": {
+   "category": "Curve",
+   "type": "Manual",
+   "assetClass": "ManualCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Points",
+     "type": "PointInOut[]",
+     "required": true
+    }
+   ]
+  },
+  "Curve:Max": {
+   "category": "Curve",
+   "type": "Max",
+   "assetClass": "MaxCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curves",
+     "type": "Curve[]",
+     "required": true
+    }
+   ]
+  },
+  "Curve:Min": {
+   "category": "Curve",
+   "type": "Min",
+   "assetClass": "MinCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curves",
+     "type": "Curve[]",
+     "required": true
+    }
+   ]
+  },
+  "Curve:Multiplier": {
+   "category": "Curve",
+   "type": "Multiplier",
+   "assetClass": "MultiplierCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curves",
+     "type": "Curve[]",
+     "required": true
+    }
+   ]
+  },
+  "Curve:Not": {
+   "category": "Curve",
+   "type": "Not",
+   "assetClass": "NotCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    }
+   ]
+  },
+  "Curve:SmoothCeiling": {
+   "category": "Curve",
+   "type": "SmoothCeiling",
+   "assetClass": "SmoothCeilingCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Ceiling",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Curve:SmoothClamp": {
+   "category": "Curve",
+   "type": "SmoothClamp",
+   "assetClass": "SmoothClampCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": false
+    },
+    {
+     "name": "WallA",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "WallB",
+     "type": "number",
+     "required": false,
+     "default": -1
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   ]
+  },
+  "Curve:SmoothFloor": {
+   "category": "Curve",
+   "type": "SmoothFloor",
+   "assetClass": "SmoothFloorCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Floor",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Curve:SmoothMax": {
+   "category": "Curve",
+   "type": "SmoothMax",
+   "assetClass": "SmoothMaxCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "CurveA",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "CurveB",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Curve:SmoothMin": {
+   "category": "Curve",
+   "type": "SmoothMin",
+   "assetClass": "SmoothMinCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "CurveA",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "CurveB",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Curve:Sum": {
+   "category": "Curve",
+   "type": "Sum",
+   "assetClass": "SumCurveAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curves",
+     "type": "Curve[]",
+     "required": true
+    }
+   ]
+  },
+  "Density:Abs": {
+   "category": "Density",
+   "type": "Abs",
+   "assetClass": "AbsDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Amplitude": {
+   "category": "Density",
+   "type": "Amplitude",
+   "assetClass": "AmplitudeDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "FunctionForY",
+     "type": "NodeFunctionYOut",
+     "required": true
+    }
+   ]
+  },
+  "Density:AmplitudeConstant": {
+   "category": "Density",
+   "type": "AmplitudeConstant",
+   "assetClass": "AmplitudeConstantAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Density:Anchor": {
+   "category": "Density",
+   "type": "Anchor",
+   "assetClass": "AnchorDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Reversed",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    }
+   ]
+  },
+  "Density:And": {
+   "category": "Density",
+   "type": "And",
+   "assetClass": "AndDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Angle": {
+   "category": "Density",
+   "type": "Angle",
+   "assetClass": "AngleDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "VectorProvider",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "Vector",
+     "type": "Vector3d",
+     "required": true
+    },
+    {
+     "name": "IsAxis",
+     "type": "boolean",
+     "required": true
+    }
+   ]
+  },
+  "Density:Axis": {
+   "category": "Density",
+   "type": "Axis",
+   "assetClass": "AxisDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "IsAnchored",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "Axis",
+     "type": "Vector3d",
+     "required": false
+    }
+   ]
+  },
+  "Density:BaseHeight": {
+   "category": "Density",
+   "type": "BaseHeight",
+   "assetClass": "BaseHeightDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "BaseHeightName",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Distance",
+     "type": "boolean",
+     "required": false,
+     "default": true
+    }
+   ]
+  },
+  "Density:Cache": {
+   "category": "Density",
+   "type": "Cache",
+   "assetClass": "CacheDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Capacity",
+     "type": "integer",
+     "required": true
+    }
+   ]
+  },
+  "Density:Cache2D": {
+   "category": "Density",
+   "type": "Cache2D",
+   "assetClass": "Cache2dDensityAsset_Deprecated",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Y",
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   ]
+  },
+  "Density:Ceiling": {
+   "category": "Density",
+   "type": "Ceiling",
+   "assetClass": "CeilingDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Limit",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Density:CellNoise2D": {
+   "category": "Density",
+   "type": "CellNoise2D",
+   "assetClass": "CellNoise2DDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ScaleX",
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    {
+     "name": "ScaleZ",
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    {
+     "name": "Jitter",
+     "type": "number",
+     "required": true,
+     "default": 0.3
+    },
+    {
+     "name": "Octaves",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "CellType",
+     "type": "enum:FastNoiseLite.CellularReturnType",
+     "required": true,
+     "enum": [
+      "CellValue",
+      "Distance",
+      "Distance2",
+      "Distance2Add",
+      "Distance2Sub",
+      "Distance2Mul",
+      "Distance2Div"
+     ]
+    }
+   ]
+  },
+  "Density:CellNoise3D": {
+   "category": "Density",
+   "type": "CellNoise3D",
+   "assetClass": "CellNoise3DDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ScaleX",
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    {
+     "name": "ScaleY",
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    {
+     "name": "ScaleZ",
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    {
+     "name": "Jitter",
+     "type": "number",
+     "required": true,
+     "default": 0.3
+    },
+    {
+     "name": "Octaves",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "CellType",
+     "type": "enum:FastNoiseLite.CellularReturnType",
+     "required": true,
+     "enum": [
+      "CellValue",
+      "Distance",
+      "Distance2",
+      "Distance2Add",
+      "Distance2Sub",
+      "Distance2Mul",
+      "Distance2Div"
+     ]
+    }
+   ]
+  },
+  "Density:CellWallDistance": {
+   "category": "Density",
+   "type": "CellWallDistance",
+   "assetClass": "CellWallDistanceDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Clamp": {
+   "category": "Density",
+   "type": "Clamp",
+   "assetClass": "ClampDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "WallA",
+     "type": "number",
+     "required": true,
+     "default": -1
+    },
+    {
+     "name": "WallB",
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   ]
+  },
+  "Density:Comparator": {
+   "category": "Density",
+   "type": "Comparator",
+   "assetClass": "ComparatorDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Constant": {
+   "category": "Density",
+   "type": "Constant",
+   "assetClass": "ConstantDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Density:Cube": {
+   "category": "Density",
+   "type": "Cube",
+   "assetClass": "CubeDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": false
+    }
+   ]
+  },
+  "Density:Cuboid": {
+   "category": "Density",
+   "type": "Cuboid",
+   "assetClass": "CuboidDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "Scale",
+     "type": "Vector3d",
+     "required": false
+    },
+    {
+     "name": "NewYAxis",
+     "type": "Vector3d",
+     "required": false
+    },
+    {
+     "name": "Spin",
+     "type": "number",
+     "required": false
+    }
+   ]
+  },
+  "Density:CurveMapper": {
+   "category": "Density",
+   "type": "CurveMapper",
+   "assetClass": "CurveMapperDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    }
+   ]
+  },
+  "Density:Cylinder": {
+   "category": "Density",
+   "type": "Cylinder",
+   "assetClass": "CylinderDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "RadialCurve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "AxialCurve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "NewYAxis",
+     "type": "Vector3d",
+     "required": false
+    },
+    {
+     "name": "Spin",
+     "type": "number",
+     "required": false
+    }
+   ]
+  },
+  "Density:Distance": {
+   "category": "Density",
+   "type": "Distance",
+   "assetClass": "DistanceDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": false
+    }
+   ]
+  },
+  "Density:DistanceToBiomeEdge": {
+   "category": "Density",
+   "type": "DistanceToBiomeEdge",
+   "assetClass": "DistanceToBiomeEdgeDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:DistanceToGraphEdge": {
+   "category": "Density",
+   "type": "DistanceToGraphEdge",
+   "assetClass": "DistanceToGraphEdgeDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Ellipsoid": {
+   "category": "Density",
+   "type": "Ellipsoid",
+   "assetClass": "EllipsoidDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "Scale",
+     "type": "Vector3d",
+     "required": false
+    },
+    {
+     "name": "NewYAxis",
+     "type": "Vector3d",
+     "required": false
+    },
+    {
+     "name": "Spin",
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   ]
+  },
+  "Density:Equal": {
+   "category": "Density",
+   "type": "Equal",
+   "assetClass": "EqualDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Epsilon",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Density:Exported": {
+   "category": "Density",
+   "type": "Exported",
+   "assetClass": "ExportedDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "SingleInstance",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    }
+   ]
+  },
+  "Density:FastGradientWarp": {
+   "category": "Density",
+   "type": "FastGradientWarp",
+   "assetClass": "FastGradientWarpDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "WarpScale",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "WarpOctaves",
+     "type": "integer",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "WarpLacunarity",
+     "type": "number",
+     "required": false,
+     "default": 2
+    },
+    {
+     "name": "WarpPersistence",
+     "type": "number",
+     "required": false,
+     "default": 0.5
+    },
+    {
+     "name": "WarpFactor",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": false,
+     "default": "A"
+    }
+   ]
+  },
+  "Density:Floor": {
+   "category": "Density",
+   "type": "Floor",
+   "assetClass": "FloorDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Limit",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Density:Gradient": {
+   "category": "Density",
+   "type": "Gradient",
+   "assetClass": "GradientDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Axis",
+     "type": "Vector3d",
+     "required": false
+    },
+    {
+     "name": "SampleRange",
+     "type": "number",
+     "required": false,
+     "default": 1
+    }
+   ]
+  },
+  "Density:GradientWarp": {
+   "category": "Density",
+   "type": "GradientWarp",
+   "assetClass": "GradientWarpDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "SampleRange",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "WarpFactor",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "2D",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "YFor2D",
+     "type": "number",
+     "required": false
+    }
+   ]
+  },
+  "Density:Graph": {
+   "category": "Density",
+   "type": "Graph",
+   "assetClass": "GraphDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "GraphGenerator",
+     "type": "GraphGenerator",
+     "required": true
+    },
+    {
+     "name": "ContentLayer",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "BackgroundValue",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "TransitionSlope",
+     "type": "number",
+     "required": true,
+     "default": 2.5
+    },
+    {
+     "name": "TransitionOffset",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "TransitionSmooth",
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    },
+    {
+     "name": "QueryBufferCapacity",
+     "type": "integer",
+     "required": true,
+     "default": 3
+    }
+   ]
+  },
+  "Density:GreaterOrEqual": {
+   "category": "Density",
+   "type": "GreaterOrEqual",
+   "assetClass": "GreaterOrEqualDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:GreaterThan": {
+   "category": "Density",
+   "type": "GreaterThan",
+   "assetClass": "GreaterThanDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Imported": {
+   "category": "Density",
+   "type": "Imported",
+   "assetClass": "ImportedDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Inverter": {
+   "category": "Density",
+   "type": "Inverter",
+   "assetClass": "InverterDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:LessOrEqual": {
+   "category": "Density",
+   "type": "LessOrEqual",
+   "assetClass": "LessOrEqualDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:LessThan": {
+   "category": "Density",
+   "type": "LessThan",
+   "assetClass": "LessThanDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Max": {
+   "category": "Density",
+   "type": "Max",
+   "assetClass": "MaxDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Min": {
+   "category": "Density",
+   "type": "Min",
+   "assetClass": "MinDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Mix": {
+   "category": "Density",
+   "type": "Mix",
+   "assetClass": "MixDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:MultiMix": {
+   "category": "Density",
+   "type": "MultiMix",
+   "assetClass": "MultiMixDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Keys",
+     "type": "Key[]",
+     "required": true
+    },
+    {
+     "name": "Value",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "DensityIndex",
+     "type": "integer",
+     "required": true
+    }
+   ]
+  },
+  "Density:Multiplier": {
+   "category": "Density",
+   "type": "Multiplier",
+   "assetClass": "MultiplierDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Nor": {
+   "category": "Density",
+   "type": "Nor",
+   "assetClass": "NorDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Normalizer": {
+   "category": "Density",
+   "type": "Normalizer",
+   "assetClass": "NormalizerDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "FromMin",
+     "type": "number",
+     "required": true,
+     "default": -1
+    },
+    {
+     "name": "FromMax",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "ToMin",
+     "type": "number",
+     "required": true,
+     "default": -1
+    },
+    {
+     "name": "ToMax",
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   ]
+  },
+  "Density:Not": {
+   "category": "Density",
+   "type": "Not",
+   "assetClass": "NotDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Offset": {
+   "category": "Density",
+   "type": "Offset",
+   "assetClass": "OffsetDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "FunctionForY",
+     "type": "NodeFunctionYOut",
+     "required": true
+    }
+   ]
+  },
+  "Density:OffsetConstant": {
+   "category": "Density",
+   "type": "OffsetConstant",
+   "assetClass": "OffsetConstantAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Density:Or": {
+   "category": "Density",
+   "type": "Or",
+   "assetClass": "OrDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Pipeline": {
+   "category": "Density",
+   "type": "Pipeline",
+   "assetClass": "PipelineDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Pipeline",
+     "type": "Density[]",
+     "required": false
+    }
+   ]
+  },
+  "Density:Plane": {
+   "category": "Density",
+   "type": "Plane",
+   "assetClass": "PlaneDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "IsAnchored",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "PlaneNormal",
+     "type": "Vector3d",
+     "required": false
+    }
+   ]
+  },
+  "Density:Positions3D": {
+   "category": "Density",
+   "type": "Positions3D",
+   "assetClass": "Positions3DDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "DistanceCurve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "MaxDistance",
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   ]
+  },
+  "Density:PositionsCellNoise": {
+   "category": "Density",
+   "type": "PositionsCellNoise",
+   "assetClass": "PositionsCellNoiseDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "ReturnType",
+     "type": "ReturnType",
+     "required": true
+    },
+    {
+     "name": "DistanceFunction",
+     "type": "DistanceFunction",
+     "required": true
+    },
+    {
+     "name": "MaxDistance",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Density:PositionsPinch": {
+   "category": "Density",
+   "type": "PositionsPinch",
+   "assetClass": "PositionsPinchDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "PinchCurve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "MaxDistance",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "NormalizeDistance",
+     "type": "boolean",
+     "required": true,
+     "default": true
+    },
+    {
+     "name": "HorizontalPinch",
+     "type": "boolean",
+     "required": false,
+     "default": true
+    },
+    {
+     "name": "PositionsMinY",
+     "type": "number",
+     "required": false,
+     "default": 0
+    },
+    {
+     "name": "PositionsMaxY",
+     "type": "number",
+     "required": false,
+     "default": 0.000001
+    }
+   ]
+  },
+  "Density:PositionsTwist": {
+   "category": "Density",
+   "type": "PositionsTwist",
+   "assetClass": "PositionsTwistDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "TwistCurve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "TwistAxis",
+     "type": "Vector3d",
+     "required": true
+    },
+    {
+     "name": "MaxDistance",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "NormalizeDistance",
+     "type": "boolean",
+     "required": true,
+     "default": true
+    },
+    {
+     "name": "ZeroPositionsY",
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   ]
+  },
+  "Density:Pow": {
+   "category": "Density",
+   "type": "Pow",
+   "assetClass": "PowDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Exponent",
+     "type": "number",
+     "required": true,
+     "default": 2
+    }
+   ]
+  },
+  "Density:Rotator": {
+   "category": "Density",
+   "type": "Rotator",
+   "assetClass": "RotatorDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NewYAxis",
+     "type": "Vector3d",
+     "required": true
+    },
+    {
+     "name": "SpinAngle",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Density:Scale": {
+   "category": "Density",
+   "type": "Scale",
+   "assetClass": "ScaleDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ScaleX",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "ScaleY",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "ScaleZ",
+     "type": "number",
+     "required": false,
+     "default": 1
+    }
+   ]
+  },
+  "Density:Selector": {
+   "category": "Density",
+   "type": "Selector",
+   "assetClass": "SelectorDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Shell": {
+   "category": "Density",
+   "type": "Shell",
+   "assetClass": "ShellDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Axis",
+     "type": "Vector3d",
+     "required": true
+    },
+    {
+     "name": "Mirror",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "AngleCurve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "DistanceCurve",
+     "type": "Curve",
+     "required": true
+    }
+   ]
+  },
+  "Density:SimplexNoise2D": {
+   "category": "Density",
+   "type": "SimplexNoise2D",
+   "assetClass": "SimplexNoise2dDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Lacunarity",
+     "type": "number",
+     "required": true,
+     "default": 2
+    },
+    {
+     "name": "Persistence",
+     "type": "number",
+     "required": true,
+     "default": 0.5
+    },
+    {
+     "name": "Scale",
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    {
+     "name": "Octaves",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Density:SimplexNoise3D": {
+   "category": "Density",
+   "type": "SimplexNoise3D",
+   "assetClass": "SimplexNoise3DDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Lacunarity",
+     "type": "number",
+     "required": true,
+     "default": 2
+    },
+    {
+     "name": "Persistence",
+     "type": "number",
+     "required": true,
+     "default": 0.5
+    },
+    {
+     "name": "ScaleXZ",
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    {
+     "name": "ScaleY",
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    {
+     "name": "Octaves",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Slider": {
+   "category": "Density",
+   "type": "Slider",
+   "assetClass": "SliderDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "SlideX",
+     "type": "number",
+     "required": false,
+     "default": 0
+    },
+    {
+     "name": "SlideY",
+     "type": "number",
+     "required": false,
+     "default": 0
+    },
+    {
+     "name": "SlideZ",
+     "type": "number",
+     "required": false,
+     "default": 0
+    }
+   ]
+  },
+  "Density:SmoothCeiling": {
+   "category": "Density",
+   "type": "SmoothCeiling",
+   "assetClass": "SmoothCeilingDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Limit",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "SmoothRange",
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   ]
+  },
+  "Density:SmoothClamp": {
+   "category": "Density",
+   "type": "SmoothClamp",
+   "assetClass": "SmoothClampDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "WallA",
+     "type": "number",
+     "required": true,
+     "default": -1
+    },
+    {
+     "name": "WallB",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   ]
+  },
+  "Density:SmoothFloor": {
+   "category": "Density",
+   "type": "SmoothFloor",
+   "assetClass": "SmoothFloorDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Limit",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "SmoothRange",
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   ]
+  },
+  "Density:SmoothMax": {
+   "category": "Density",
+   "type": "SmoothMax",
+   "assetClass": "SmoothMaxDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   ]
+  },
+  "Density:SmoothMin": {
+   "category": "Density",
+   "type": "SmoothMin",
+   "assetClass": "SmoothMinDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true,
+     "default": 0.2
+    }
+   ]
+  },
+  "Density:Sqrt": {
+   "category": "Density",
+   "type": "Sqrt",
+   "assetClass": "SqrtDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Sum": {
+   "category": "Density",
+   "type": "Sum",
+   "assetClass": "SumDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Switch": {
+   "category": "Density",
+   "type": "Switch",
+   "assetClass": "SwitchDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "SwitchCases",
+     "type": "SwitchCase[]",
+     "required": false
+    },
+    {
+     "name": "CaseState",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    }
+   ]
+  },
+  "Density:SwitchState": {
+   "category": "Density",
+   "type": "SwitchState",
+   "assetClass": "SwitchStateDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "SwitchState",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Terrain": {
+   "category": "Density",
+   "type": "Terrain",
+   "assetClass": "TerrainDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Trig": {
+   "category": "Density",
+   "type": "Trig",
+   "assetClass": "TrigDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Function",
+     "type": "enum:TrigDensity.Function",
+     "required": false,
+     "enum": [
+      "Sin",
+      "Cos",
+      "Tan",
+      "Asin",
+      "Acos",
+      "Atan"
+     ]
+    },
+    {
+     "name": "InputScale",
+     "type": "number",
+     "required": false,
+     "default": 1
+    }
+   ]
+  },
+  "Density:VectorWarp": {
+   "category": "Density",
+   "type": "VectorWarp",
+   "assetClass": "VectorWarpDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "WarpFactor",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "WarpVector",
+     "type": "Vector3d",
+     "required": true
+    }
+   ]
+  },
+  "Density:WhiteNoise": {
+   "category": "Density",
+   "type": "WhiteNoise",
+   "assetClass": "WhiteNoiseDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Density:XOverride": {
+   "category": "Density",
+   "type": "XOverride",
+   "assetClass": "XOverrideDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Density:XValue": {
+   "category": "Density",
+   "type": "XValue",
+   "assetClass": "XValueDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:Xor": {
+   "category": "Density",
+   "type": "Xor",
+   "assetClass": "XorDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:YOverride": {
+   "category": "Density",
+   "type": "YOverride",
+   "assetClass": "YOverrideDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Density:YSampled": {
+   "category": "Density",
+   "type": "YSampled",
+   "assetClass": "YSampledDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "SampleDistance",
+     "type": "number",
+     "required": true,
+     "default": 4
+    },
+    {
+     "name": "SampleOffset",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Interpolate",
+     "type": "boolean",
+     "required": true,
+     "default": true
+    }
+   ]
+  },
+  "Density:YValue": {
+   "category": "Density",
+   "type": "YValue",
+   "assetClass": "YValueDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Density:ZOverride": {
+   "category": "Density",
+   "type": "ZOverride",
+   "assetClass": "ZOverrideDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Density:ZValue": {
+   "category": "Density",
+   "type": "ZValue",
+   "assetClass": "ZValueDensityAsset",
+   "fields": [
+    {
+     "name": "Inputs",
+     "type": "Density[]",
+     "required": true
+    },
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Directionality:Imported": {
+   "category": "Directionality",
+   "type": "Imported",
+   "assetClass": "ImportedDirectionalityAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Directionality:Pattern": {
+   "category": "Directionality",
+   "type": "Pattern",
+   "assetClass": "PatternDirectionalityAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "InitialDirection",
+     "type": "OrthogonalDirection",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": "A"
+    },
+    {
+     "name": "NorthPattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "SouthPattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "EastPattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "WestPattern",
+     "type": "Pattern",
+     "required": true
+    }
+   ]
+  },
+  "Directionality:Random": {
+   "category": "Directionality",
+   "type": "Random",
+   "assetClass": "RandomDirectionalityAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": "A"
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    }
+   ]
+  },
+  "Directionality:Static": {
+   "category": "Directionality",
+   "type": "Static",
+   "assetClass": "StaticDirectionalityAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Rotation",
+     "type": "integer",
+     "required": false,
+     "default": 0
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    }
+   ]
+  },
+  "DistanceFunction:Euclidean": {
+   "category": "DistanceFunction",
+   "type": "Euclidean",
+   "assetClass": "EuclideanDistanceFunctionAsset",
+   "fields": []
+  },
+  "DistanceFunction:Manhattan": {
+   "category": "DistanceFunction",
+   "type": "Manhattan",
+   "assetClass": "ManhattanDistanceFunctionAsset",
+   "fields": []
+  },
+  "EdgeAction:Delete": {
+   "category": "EdgeAction",
+   "type": "Delete",
+   "assetClass": "DeleteEdgeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "EdgeAction:Empty": {
+   "category": "EdgeAction",
+   "type": "Empty",
+   "assetClass": "EmptyEdgeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "EdgeAction:Imported": {
+   "category": "EdgeAction",
+   "type": "Imported",
+   "assetClass": "ImportedEdgeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "EdgeAction:Nodes": {
+   "category": "EdgeAction",
+   "type": "Nodes",
+   "assetClass": "NodesEdgeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeAction",
+     "type": "NodeAction",
+     "required": true
+    }
+   ]
+  },
+  "EdgeAction:Proxy": {
+   "category": "EdgeAction",
+   "type": "Proxy",
+   "assetClass": "ProxyEdgeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "HostNodeSelector",
+     "type": "NodeSelector",
+     "required": true
+    },
+    {
+     "name": "Normal",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "AngleToNormal",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "SpinAngle",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "ProxyDistance",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "MaxProxyDistance",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "ProxyContent",
+     "type": "ContentSupplier",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "EdgeAction:Selector": {
+   "category": "EdgeAction",
+   "type": "Selector",
+   "assetClass": "SelectorEdgeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "EdgeSelector",
+     "type": "EdgeSelector",
+     "required": true
+    },
+    {
+     "name": "EdgeAction",
+     "type": "EdgeAction",
+     "required": true
+    }
+   ]
+  },
+  "EdgeAction:Splitter": {
+   "category": "EdgeAction",
+   "type": "Splitter",
+   "assetClass": "SplitterEdgeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeCount",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Content",
+     "type": "ContentSupplier",
+     "required": true
+    }
+   ]
+  },
+  "EdgeSelector:All": {
+   "category": "EdgeSelector",
+   "type": "All",
+   "assetClass": "AllEdgeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "EdgeSelector:And": {
+   "category": "EdgeSelector",
+   "type": "And",
+   "assetClass": "AndEdgeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "EdgeSelectors",
+     "type": "EdgeSelector[]",
+     "required": true
+    }
+   ]
+  },
+  "EdgeSelector:Angle": {
+   "category": "EdgeSelector",
+   "type": "Angle",
+   "assetClass": "AngleEdgeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Reference",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "Delimiters",
+     "type": "RangeDouble[]",
+     "required": true
+    }
+   ]
+  },
+  "EdgeSelector:Imported": {
+   "category": "EdgeSelector",
+   "type": "Imported",
+   "assetClass": "ImportedEdgeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "EdgeSelector:Length": {
+   "category": "EdgeSelector",
+   "type": "Length",
+   "assetClass": "LengthEdgeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Delimiters",
+     "type": "RangeDouble[]",
+     "required": true
+    }
+   ]
+  },
+  "EdgeSelector:Nodes": {
+   "category": "EdgeSelector",
+   "type": "Nodes",
+   "assetClass": "NodesEdgeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeSelector",
+     "type": "NodeSelector",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "enum:NodesEdgeSelector.Operator",
+     "required": true,
+     "enum": [
+      "AND"
+     ]
+    }
+   ]
+  },
+  "EdgeSelector:Not": {
+   "category": "EdgeSelector",
+   "type": "Not",
+   "assetClass": "NotEdgeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "EdgeSelector",
+     "type": "EdgeSelector",
+     "required": true
+    }
+   ]
+  },
+  "EdgeSelector:Or": {
+   "category": "EdgeSelector",
+   "type": "Or",
+   "assetClass": "OrEdgeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "EdgeSelectors",
+     "type": "EdgeSelector[]",
+     "required": true
+    }
+   ]
+  },
+  "EdgeSelector:Random": {
+   "category": "EdgeSelector",
+   "type": "Random",
+   "assetClass": "RandomEdgeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Chance",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "EnvironmentProvider:Constant": {
+   "category": "EnvironmentProvider",
+   "type": "Constant",
+   "assetClass": "ConstantEnvironmentProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Environment",
+     "type": "string",
+     "required": true,
+     "default": "Unknown"
+    }
+   ]
+  },
+  "EnvironmentProvider:DensityDelimited": {
+   "category": "EnvironmentProvider",
+   "type": "DensityDelimited",
+   "assetClass": "DensityDelimitedEnvironmentProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Range",
+     "type": "RangeDouble",
+     "required": true
+    },
+    {
+     "name": "Environment",
+     "type": "EnvironmentProvider",
+     "required": true
+    }
+   ]
+  },
+  "Framework:DecimalConstants": {
+   "category": "Framework",
+   "type": "DecimalConstants",
+   "assetClass": "DecimalConstantsFrameworkAsset",
+   "fields": [
+    {
+     "name": "Entries",
+     "type": "Entry[]",
+     "required": true
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "Framework:Positions": {
+   "category": "Framework",
+   "type": "Positions",
+   "assetClass": "PositionsFrameworkAsset",
+   "fields": [
+    {
+     "name": "Entries",
+     "type": "Entry[]",
+     "required": true
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "GraphPass:EdgeAction": {
+   "category": "GraphPass",
+   "type": "EdgeAction",
+   "assetClass": "EdgeActionGraphPassAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "EdgeAction",
+     "type": "EdgeAction",
+     "required": true
+    },
+    {
+     "name": "StatsLabel",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "GraphPass:Empty": {
+   "category": "GraphPass",
+   "type": "Empty",
+   "assetClass": "EmptyGraphPassAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "GraphPass:Imported": {
+   "category": "GraphPass",
+   "type": "Imported",
+   "assetClass": "ImportedGraphPassAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "GraphPass:Manual": {
+   "category": "GraphPass",
+   "type": "Manual",
+   "assetClass": "ManualGraphPassAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Nodes",
+     "type": "Node[]",
+     "required": true
+    },
+    {
+     "name": "StatsLabel",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Position",
+     "type": "Vector3d",
+     "required": true
+    },
+    {
+     "name": "Content",
+     "type": "GraphContent",
+     "required": true
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Connections",
+     "type": "string[]",
+     "required": false
+    }
+   ]
+  },
+  "GraphPass:NodeAction": {
+   "category": "GraphPass",
+   "type": "NodeAction",
+   "assetClass": "NodeActionGraphPassAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeAction",
+     "type": "NodeAction",
+     "required": true
+    },
+    {
+     "name": "StatsLabel",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "GraphPass:Positions": {
+   "category": "GraphPass",
+   "type": "Positions",
+   "assetClass": "PositionsGraphPassAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "StatsLabel",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Layer:ConstantThickness": {
+   "category": "Layer",
+   "type": "ConstantThickness",
+   "assetClass": "ConstantThicknessLayerAsset",
+   "fields": [
+    {
+     "name": "Thickness",
+     "type": "integer",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "Layer:NoiseThickness": {
+   "category": "Layer",
+   "type": "NoiseThickness",
+   "assetClass": "NoiseThicknessAsset",
+   "fields": [
+    {
+     "name": "ThicknessFunctionXZ",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "Layer:RangeThickness": {
+   "category": "Layer",
+   "type": "RangeThickness",
+   "assetClass": "RangeThicknessAsset",
+   "fields": [
+    {
+     "name": "RangeMin",
+     "type": "integer",
+     "required": true
+    },
+    {
+     "name": "RangeMax",
+     "type": "integer",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Layer:WeightedThickness": {
+   "category": "Layer",
+   "type": "WeightedThickness",
+   "assetClass": "WeightedThicknessLayerAsset",
+   "fields": [
+    {
+     "name": "PossibleThicknesses",
+     "type": "WeightedThickness[]",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Weight",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "Thickness",
+     "type": "integer",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:Constant": {
+   "category": "MaterialProvider",
+   "type": "Constant",
+   "assetClass": "ConstantMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Material",
+     "type": "Material",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:DownwardDepth": {
+   "category": "MaterialProvider",
+   "type": "DownwardDepth",
+   "assetClass": "DownwardDepthMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Depth",
+     "type": "integer",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:DownwardSpace": {
+   "category": "MaterialProvider",
+   "type": "DownwardSpace",
+   "assetClass": "DownwardSpaceMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Space",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:FieldFunction": {
+   "category": "MaterialProvider",
+   "type": "FieldFunction",
+   "assetClass": "FieldFunctionMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "FieldFunction",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "From",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "To",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:Graph": {
+   "category": "MaterialProvider",
+   "type": "Graph",
+   "assetClass": "GraphMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "GraphGenerator",
+     "type": "GraphGenerator",
+     "required": true
+    },
+    {
+     "name": "ContentLayer",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "QueryBufferCapacity",
+     "type": "integer",
+     "required": true,
+     "default": 3
+    }
+   ]
+  },
+  "MaterialProvider:Imported": {
+   "category": "MaterialProvider",
+   "type": "Imported",
+   "assetClass": "ImportedMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "MaterialProvider:Queue": {
+   "category": "MaterialProvider",
+   "type": "Queue",
+   "assetClass": "QueueMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Queue",
+     "type": "MaterialProvider[]",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:SimpleHorizontal": {
+   "category": "MaterialProvider",
+   "type": "SimpleHorizontal",
+   "assetClass": "SimpleHorizontalMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "TopY",
+     "type": "integer",
+     "required": true
+    },
+    {
+     "name": "BottomY",
+     "type": "integer",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    },
+    {
+     "name": "TopBaseHeight",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "BottomBaseHeight",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "MaterialProvider:Solidity": {
+   "category": "MaterialProvider",
+   "type": "Solidity",
+   "assetClass": "SolidityMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Solid",
+     "type": "MaterialProvider",
+     "required": true
+    },
+    {
+     "name": "Empty",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:SpaceAndDepth": {
+   "category": "MaterialProvider",
+   "type": "SpaceAndDepth",
+   "assetClass": "SpaceAndDepthMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "LayerContext",
+     "type": "LayerContextType",
+     "required": true
+    },
+    {
+     "name": "MaxExpectedDepth",
+     "type": "integer",
+     "required": true,
+     "default": 3
+    },
+    {
+     "name": "Condition",
+     "type": "Condition",
+     "required": false
+    },
+    {
+     "name": "Layers",
+     "type": "Layer[]",
+     "required": false
+    }
+   ]
+  },
+  "MaterialProvider:Striped": {
+   "category": "MaterialProvider",
+   "type": "Striped",
+   "assetClass": "StripedMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Stripes",
+     "type": "Stripe[]",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    },
+    {
+     "name": "TopY",
+     "type": "integer",
+     "required": true
+    },
+    {
+     "name": "BottomY",
+     "type": "integer",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:TerrainDensity": {
+   "category": "MaterialProvider",
+   "type": "TerrainDensity",
+   "assetClass": "TerrainDensityMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "From",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "To",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:Transparent": {
+   "category": "MaterialProvider",
+   "type": "Transparent",
+   "assetClass": "TransparentMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "MaterialProvider:UpwardDepth": {
+   "category": "MaterialProvider",
+   "type": "UpwardDepth",
+   "assetClass": "UpwardDepthMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Depth",
+     "type": "integer",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:UpwardSpace": {
+   "category": "MaterialProvider",
+   "type": "UpwardSpace",
+   "assetClass": "UpwardSpaceMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Space",
+     "type": "integer",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "MaterialProvider:Weighted": {
+   "category": "MaterialProvider",
+   "type": "Weighted",
+   "assetClass": "WeightedMaterialProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "WeightedMaterials",
+     "type": "WeightedMaterial[]",
+     "required": true
+    },
+    {
+     "name": "SkipChance",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Weight",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "NodeAction:ConnectedEdges": {
+   "category": "NodeAction",
+   "type": "ConnectedEdges",
+   "assetClass": "ConnectedEdgesNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "EdgeAction",
+     "type": "EdgeAction",
+     "required": true
+    },
+    {
+     "name": "Ratio",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "NodeAction:ConnectedNodes": {
+   "category": "NodeAction",
+   "type": "ConnectedNodes",
+   "assetClass": "ConnectedNodesNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeAction",
+     "type": "NodeAction",
+     "required": true
+    },
+    {
+     "name": "Ratio",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "NodeAction:Content": {
+   "category": "NodeAction",
+   "type": "Content",
+   "assetClass": "ContentNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Content",
+     "type": "ContentSupplier",
+     "required": true
+    }
+   ]
+  },
+  "NodeAction:ContentCopy": {
+   "category": "NodeAction",
+   "type": "ContentCopy",
+   "assetClass": "ContentCopyNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ContentPredicate",
+     "type": "ContentPredicate",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "NodeAction:Delete": {
+   "category": "NodeAction",
+   "type": "Delete",
+   "assetClass": "DeleteNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "NodeAction:Empty": {
+   "category": "NodeAction",
+   "type": "Empty",
+   "assetClass": "EmptyNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "NodeAction:Imported": {
+   "category": "NodeAction",
+   "type": "Imported",
+   "assetClass": "ImportedNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "NodeAction:Jitter2d": {
+   "category": "NodeAction",
+   "type": "Jitter2d",
+   "assetClass": "Jitter2dNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Magnitude",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "NodeAction:Jitter3d": {
+   "category": "NodeAction",
+   "type": "Jitter3d",
+   "assetClass": "Jitter3dNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Magnitude",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "NodeAction:Move": {
+   "category": "NodeAction",
+   "type": "Move",
+   "assetClass": "MoveNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Vector",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "MaxDistance",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "NodeAction:ProximityConnector": {
+   "category": "NodeAction",
+   "type": "ProximityConnector",
+   "assetClass": "ProximityConnectorNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Range",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "NodeSelector",
+     "type": "NodeSelector",
+     "required": true
+    },
+    {
+     "name": "Cap",
+     "type": "integer",
+     "required": false
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "NodeAction:Selector": {
+   "category": "NodeAction",
+   "type": "Selector",
+   "assetClass": "SelectorNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeSelector",
+     "type": "NodeSelector",
+     "required": true
+    },
+    {
+     "name": "NodeAction",
+     "type": "NodeAction",
+     "required": true
+    }
+   ]
+  },
+  "NodeAction:Spawner": {
+   "category": "NodeAction",
+   "type": "Spawner",
+   "assetClass": "SpawnerNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Offset",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "Content",
+     "type": "ContentSupplier",
+     "required": true
+    },
+    {
+     "name": "ClusterBounds",
+     "type": "DecimalBounds3d",
+     "required": true
+    },
+    {
+     "name": "MaxOffsetExclusive",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "CreateEdges",
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   ]
+  },
+  "NodeAction:Weighted": {
+   "category": "NodeAction",
+   "type": "Weighted",
+   "assetClass": "WeightedNodeActionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Entries",
+     "type": "Entry[]",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Weight",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "NodeAction",
+     "type": "NodeAction",
+     "required": true
+    }
+   ]
+  },
+  "NodeSelector:All": {
+   "category": "NodeSelector",
+   "type": "All",
+   "assetClass": "AllNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "NodeSelector:And": {
+   "category": "NodeSelector",
+   "type": "And",
+   "assetClass": "AndNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeSelectors",
+     "type": "NodeSelector[]",
+     "required": true
+    }
+   ]
+  },
+  "NodeSelector:ConnectionCount": {
+   "category": "NodeSelector",
+   "type": "ConnectionCount",
+   "assetClass": "ConnectionCountNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Counts",
+     "type": "integer[]",
+     "required": true
+    }
+   ]
+  },
+  "NodeSelector:Content": {
+   "category": "NodeSelector",
+   "type": "Content",
+   "assetClass": "ContentNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ContentPredicate",
+     "type": "ContentPredicate",
+     "required": true
+    }
+   ]
+  },
+  "NodeSelector:DensityDelimited": {
+   "category": "NodeSelector",
+   "type": "DensityDelimited",
+   "assetClass": "DensityDelimitedNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Delimiters",
+     "type": "RangeDouble[]",
+     "required": true
+    }
+   ]
+  },
+  "NodeSelector:Imported": {
+   "category": "NodeSelector",
+   "type": "Imported",
+   "assetClass": "ImportedNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "NodeSelector:NeighborEdges": {
+   "category": "NodeSelector",
+   "type": "NeighborEdges",
+   "assetClass": "NeighborEdgesNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "EdgeSelector",
+     "type": "EdgeSelector",
+     "required": true
+    },
+    {
+     "name": "SelectedNeighborsThreshold",
+     "type": "integer",
+     "required": true
+    }
+   ]
+  },
+  "NodeSelector:NeighborNodes": {
+   "category": "NodeSelector",
+   "type": "NeighborNodes",
+   "assetClass": "NeighborNodesNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeSelector",
+     "type": "NodeSelector",
+     "required": true
+    },
+    {
+     "name": "SelectedNeighborsThreshold",
+     "type": "integer",
+     "required": true
+    }
+   ]
+  },
+  "NodeSelector:Not": {
+   "category": "NodeSelector",
+   "type": "Not",
+   "assetClass": "NotNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeSelector",
+     "type": "NodeSelector",
+     "required": true
+    }
+   ]
+  },
+  "NodeSelector:Or": {
+   "category": "NodeSelector",
+   "type": "Or",
+   "assetClass": "OrNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "NodeSelectors",
+     "type": "NodeSelector[]",
+     "required": true
+    }
+   ]
+  },
+  "NodeSelector:Random": {
+   "category": "NodeSelector",
+   "type": "Random",
+   "assetClass": "RandomNodeSelectorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Chance",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Noise:Cell": {
+   "category": "Noise",
+   "type": "Cell",
+   "assetClass": "CellNoiseAsset",
+   "fields": [
+    {
+     "name": "WarpAmount",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "WarpScale",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Scale",
+     "type": "number",
+     "required": true,
+     "default": 50
+    },
+    {
+     "name": "Octaves",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": "A"
+    },
+    {
+     "name": "CellType",
+     "type": "string",
+     "required": true
+    }
+   ]
+  },
+  "Noise:Simplex": {
+   "category": "Noise",
+   "type": "Simplex",
+   "assetClass": "SimplexNoiseAsset",
+   "fields": [
+    {
+     "name": "Lacunarity",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Persistence",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Scale",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Octaves",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": "A"
+    }
+   ]
+  },
+  "Pattern:And": {
+   "category": "Pattern",
+   "type": "And",
+   "assetClass": "AndPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Patterns",
+     "type": "Pattern[]",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:BlockSet": {
+   "category": "Pattern",
+   "type": "BlockSet",
+   "assetClass": "BlockSetPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "BlockSet",
+     "type": "MaterialSet",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:BlockType": {
+   "category": "Pattern",
+   "type": "BlockType",
+   "assetClass": "MaterialPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Material",
+     "type": "Material",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:Ceiling": {
+   "category": "Pattern",
+   "type": "Ceiling",
+   "assetClass": "CeilingPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Ceiling",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Origin",
+     "type": "Pattern",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:Constant": {
+   "category": "Pattern",
+   "type": "Constant",
+   "assetClass": "ConstantPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   ]
+  },
+  "Pattern:Cuboid": {
+   "category": "Pattern",
+   "type": "Cuboid",
+   "assetClass": "CuboidPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "SubPattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Min",
+     "type": "Vector3i",
+     "required": true
+    },
+    {
+     "name": "Max",
+     "type": "Vector3i",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:FieldFunction": {
+   "category": "Pattern",
+   "type": "FieldFunction",
+   "assetClass": "DensityPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "FieldFunction",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Min",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "Max",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:Floor": {
+   "category": "Pattern",
+   "type": "Floor",
+   "assetClass": "FloorPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Floor",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Origin",
+     "type": "Pattern",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:Imported": {
+   "category": "Pattern",
+   "type": "Imported",
+   "assetClass": "ImportedPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Pattern:Not": {
+   "category": "Pattern",
+   "type": "Not",
+   "assetClass": "NotPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:Offset": {
+   "category": "Pattern",
+   "type": "Offset",
+   "assetClass": "OffsetPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Offset",
+     "type": "Vector3i",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:Or": {
+   "category": "Pattern",
+   "type": "Or",
+   "assetClass": "OrPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Patterns",
+     "type": "Pattern[]",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:Rotator": {
+   "category": "Pattern",
+   "type": "Rotator",
+   "assetClass": "RotatorPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Rotation",
+     "type": "OrthogonalRotation",
+     "required": true
+    }
+   ]
+  },
+  "Pattern:Surface": {
+   "category": "Pattern",
+   "type": "Surface",
+   "assetClass": "SurfacePatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Surface",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Medium",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "SurfaceRadius",
+     "type": "number",
+     "required": false
+    },
+    {
+     "name": "MediumRadius",
+     "type": "number",
+     "required": false
+    },
+    {
+     "name": "SurfaceGap",
+     "type": "integer",
+     "required": false
+    },
+    {
+     "name": "MediumGap",
+     "type": "integer",
+     "required": false
+    },
+    {
+     "name": "RequireAllFacings",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "Facings",
+     "type": "enum:SurfacePattern.Facing[]",
+     "required": true,
+     "enum": [
+      "U"
+     ]
+    }
+   ]
+  },
+  "Pattern:Wall": {
+   "category": "Pattern",
+   "type": "Wall",
+   "assetClass": "WallPatternAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Wall",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Origin",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "RequireAllDirections",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "Directions",
+     "type": "enum:WallPattern.WallDirection[]",
+     "required": true,
+     "enum": [
+      "N"
+     ]
+    }
+   ]
+  },
+  "PointGenerator:Mesh": {
+   "category": "PointGenerator",
+   "type": "Mesh",
+   "assetClass": "MeshPointGeneratorAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Jitter",
+     "type": "number",
+     "required": true,
+     "default": 0.35
+    },
+    {
+     "name": "ScaleX",
+     "type": "number",
+     "required": true,
+     "default": 40
+    },
+    {
+     "name": "ScaleY",
+     "type": "number",
+     "required": true,
+     "default": 40
+    },
+    {
+     "name": "ScaleZ",
+     "type": "number",
+     "required": true,
+     "default": 40
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": "A"
+    }
+   ]
+  },
+  "PositionProvider:Anchor": {
+   "category": "PositionProvider",
+   "type": "Anchor",
+   "assetClass": "AnchorPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Reversed",
+     "type": "boolean",
+     "required": true,
+     "default": false
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:BaseHeight": {
+   "category": "PositionProvider",
+   "type": "BaseHeight",
+   "assetClass": "BaseHeightPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "MinYRead",
+     "type": "number",
+     "required": false,
+     "default": -1
+    },
+    {
+     "name": "MaxYRead",
+     "type": "number",
+     "required": false,
+     "default": 1
+    },
+    {
+     "name": "BedName",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:Bound": {
+   "category": "PositionProvider",
+   "type": "Bound",
+   "assetClass": "BoundPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Bounds",
+     "type": "DecimalBounds3d",
+     "required": true
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:Cache": {
+   "category": "PositionProvider",
+   "type": "Cache",
+   "assetClass": "CachedPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "SectionSize",
+     "type": "integer",
+     "required": true,
+     "default": 32
+    },
+    {
+     "name": "CacheSize",
+     "type": "integer",
+     "required": true,
+     "default": 100
+    }
+   ]
+  },
+  "PositionProvider:Clusters": {
+   "category": "PositionProvider",
+   "type": "Clusters",
+   "assetClass": "ClustersPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Cluster",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "Distributor",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "ClusterBounds",
+     "type": "DecimalBounds3d",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:DirectionalJitter": {
+   "category": "PositionProvider",
+   "type": "DirectionalJitter",
+   "assetClass": "DirectionalJitterPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Magnitude",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "IsBidirectional",
+     "type": "boolean",
+     "required": true,
+     "default": true
+    },
+    {
+     "name": "Direction",
+     "type": "Vector3d",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:FieldFunction": {
+   "category": "PositionProvider",
+   "type": "FieldFunction",
+   "assetClass": "FieldFunctionPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "FieldFunction",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "Min",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Max",
+     "type": "number",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "PositionProvider:Framework": {
+   "category": "PositionProvider",
+   "type": "Framework",
+   "assetClass": "FrameworkPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "PositionProvider:Graph": {
+   "category": "PositionProvider",
+   "type": "Graph",
+   "assetClass": "GraphPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "GraphGenerator",
+     "type": "GraphGenerator",
+     "required": true
+    },
+    {
+     "name": "ContentLayer",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "PositionProvider:Imported": {
+   "category": "PositionProvider",
+   "type": "Imported",
+   "assetClass": "ImportedPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "PositionProvider:Jitter2d": {
+   "category": "PositionProvider",
+   "type": "Jitter2d",
+   "assetClass": "Jitter2dPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Magnitude",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:Jitter3d": {
+   "category": "PositionProvider",
+   "type": "Jitter3d",
+   "assetClass": "Jitter3dPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Magnitude",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:List": {
+   "category": "PositionProvider",
+   "type": "List",
+   "assetClass": "ListPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "Position[]",
+     "required": true
+    },
+    {
+     "name": "X",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "Y",
+     "type": "number",
+     "required": true
+    },
+    {
+     "name": "Z",
+     "type": "number",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:Mesh2D": {
+   "category": "PositionProvider",
+   "type": "Mesh2D",
+   "assetClass": "Mesh2DPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "PointGenerator",
+     "type": "PointGenerator",
+     "required": true
+    },
+    {
+     "name": "PointsY",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "PositionProvider:Mesh3D": {
+   "category": "PositionProvider",
+   "type": "Mesh3D",
+   "assetClass": "Mesh3DPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "PointGenerator",
+     "type": "PointGenerator",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:Occurrence": {
+   "category": "PositionProvider",
+   "type": "Occurrence",
+   "assetClass": "FieldFunctionOccurrencePositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "FieldFunction",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:Offset": {
+   "category": "PositionProvider",
+   "type": "Offset",
+   "assetClass": "OffsetPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "Offset",
+     "type": "Vector3d",
+     "required": true
+    },
+    {
+     "name": "OffsetX",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "OffsetY",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "OffsetZ",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    }
+   ]
+  },
+  "PositionProvider:Scaler": {
+   "category": "PositionProvider",
+   "type": "Scaler",
+   "assetClass": "ScalerPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Scale",
+     "type": "Vector3d",
+     "required": true
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:SimpleHorizontal": {
+   "category": "PositionProvider",
+   "type": "SimpleHorizontal",
+   "assetClass": "SimpleHorizontalPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "RangeY",
+     "type": "RangeDouble",
+     "required": true
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:SquareGrid2d": {
+   "category": "PositionProvider",
+   "type": "SquareGrid2d",
+   "assetClass": "SquareGrid2dPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "PositionProvider:SquareGrid3d": {
+   "category": "PositionProvider",
+   "type": "SquareGrid3d",
+   "assetClass": "SquareGrid3dPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "PositionProvider:TriangularGrid2d": {
+   "category": "PositionProvider",
+   "type": "TriangularGrid2d",
+   "assetClass": "TriangularGrid2dPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "PositionProvider:Union": {
+   "category": "PositionProvider",
+   "type": "Union",
+   "assetClass": "UnionPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider[]",
+     "required": true
+    }
+   ]
+  },
+  "PositionProvider:VectorOffset": {
+   "category": "PositionProvider",
+   "type": "VectorOffset",
+   "assetClass": "VectorOffsetPositionProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "VectorProvider",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "MovementBounds",
+     "type": "DecimalBounds3d",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Box": {
+   "category": "Prop",
+   "type": "Box",
+   "assetClass": "BoxPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Range",
+     "type": "Vector3i",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "Material",
+     "required": true
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Cluster": {
+   "category": "Prop",
+   "type": "Cluster",
+   "assetClass": "ClusterPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Range",
+     "type": "integer",
+     "required": false,
+     "default": 0
+    },
+    {
+     "name": "DistanceCurve",
+     "type": "Curve",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": false,
+     "default": "A"
+    },
+    {
+     "name": "WeightedProps",
+     "type": "WeightedEntry[]",
+     "required": true
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": false
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": false
+    },
+    {
+     "name": "Weight",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "ColumnProp",
+     "type": "Prop",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Column": {
+   "category": "Prop",
+   "type": "Column",
+   "assetClass": "ColumnPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ColumnBlocks",
+     "type": "ColumnBlock[]",
+     "required": true
+    },
+    {
+     "name": "BlockMask",
+     "type": "BlockMask",
+     "required": false
+    },
+    {
+     "name": "Directionality",
+     "type": "Directionality",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": true
+    },
+    {
+     "name": "Y",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Material",
+     "type": "Material",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Cuboid": {
+   "category": "Prop",
+   "type": "Cuboid",
+   "assetClass": "CuboidPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Bounds",
+     "type": "IntegerBounds3d",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Density": {
+   "category": "Prop",
+   "type": "Density",
+   "assetClass": "DensityPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "MaterialProvider",
+     "required": true
+    },
+    {
+     "name": "Bounds",
+     "type": "IntegerBounds3d",
+     "required": true
+    },
+    {
+     "name": "Range",
+     "type": "Vector3i",
+     "required": true
+    },
+    {
+     "name": "PlacementMask",
+     "type": "BlockMask",
+     "required": true
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": true
+    }
+   ]
+  },
+  "Prop:DensitySelector": {
+   "category": "Prop",
+   "type": "DensitySelector",
+   "assetClass": "DensitySelectorPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Range",
+     "type": "RangeDouble",
+     "required": true
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Empty": {
+   "category": "Prop",
+   "type": "Empty",
+   "assetClass": "EmptyPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Prop:Imported": {
+   "category": "Prop",
+   "type": "Imported",
+   "assetClass": "ImportedPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Prop:Locator": {
+   "category": "Prop",
+   "type": "Locator",
+   "assetClass": "LocatorPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": true
+    },
+    {
+     "name": "PlacementCap",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    }
+   ]
+  },
+  "Prop:Manual": {
+   "category": "Prop",
+   "type": "Manual",
+   "assetClass": "ManualPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Position",
+     "type": "Vector3i",
+     "required": true
+    },
+    {
+     "name": "Material",
+     "type": "Material",
+     "required": true
+    },
+    {
+     "name": "Blocks",
+     "type": "Block[]",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Mask": {
+   "category": "Prop",
+   "type": "Mask",
+   "assetClass": "MaskPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    },
+    {
+     "name": "Mask",
+     "type": "BlockMask",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Offset": {
+   "category": "Prop",
+   "type": "Offset",
+   "assetClass": "OffsetPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Offset",
+     "type": "Vector3i",
+     "required": true
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Orienter": {
+   "category": "Prop",
+   "type": "Orienter",
+   "assetClass": "OrienterPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    },
+    {
+     "name": "Rotations",
+     "type": "OrthogonalRotation[]",
+     "required": true
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": true
+    },
+    {
+     "name": "SelectionMode",
+     "type": "enum:OrienterProp.SelectionMode",
+     "required": true,
+     "enum": [
+      "ALL_VALID",
+      "FIRST_VALID",
+      "RANDOM_VALID"
+     ]
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Prop:PondFiller": {
+   "category": "Prop",
+   "type": "PondFiller",
+   "assetClass": "PondFillerPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "FillMaterial",
+     "type": "MaterialProvider",
+     "required": true
+    },
+    {
+     "name": "BarrierBlockSet",
+     "type": "MaterialSet",
+     "required": true
+    },
+    {
+     "name": "Bounds",
+     "type": "IntegerBounds3d",
+     "required": true
+    },
+    {
+     "name": "BoundingMin",
+     "type": "Vector3i",
+     "required": true
+    },
+    {
+     "name": "BoundingMax",
+     "type": "Vector3i",
+     "required": true
+    },
+    {
+     "name": "Pattern",
+     "type": "Pattern",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Prefab": {
+   "category": "Prop",
+   "type": "Prefab",
+   "assetClass": "PrefabPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Weight",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Path",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "WeightedPrefabPaths",
+     "type": "WeightedPath[]",
+     "required": true
+    },
+    {
+     "name": "LegacyPath",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "Directionality",
+     "type": "Directionality",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": true
+    },
+    {
+     "name": "BlockMask",
+     "type": "BlockMask",
+     "required": false
+    },
+    {
+     "name": "MoldingDirection",
+     "type": "MoldingDirection",
+     "required": false
+    },
+    {
+     "name": "MoldingPattern",
+     "type": "Pattern",
+     "required": false
+    },
+    {
+     "name": "MoldingScanner",
+     "type": "Scanner",
+     "required": false
+    },
+    {
+     "name": "MoldingChildren",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "LoadEntities",
+     "type": "boolean",
+     "required": false,
+     "default": true
+    }
+   ]
+  },
+  "Prop:Queue": {
+   "category": "Prop",
+   "type": "Queue",
+   "assetClass": "QueuePropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Props",
+     "type": "Prop[]",
+     "required": true
+    }
+   ]
+  },
+  "Prop:RandomRotator": {
+   "category": "Prop",
+   "type": "RandomRotator",
+   "assetClass": "RandomRotatorPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    },
+    {
+     "name": "Rotations",
+     "type": "OrthogonalRotation[]",
+     "required": true
+    },
+    {
+     "name": "HorizontalRotations",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Prop:StaticRotator": {
+   "category": "Prop",
+   "type": "StaticRotator",
+   "assetClass": "StaticRotatorPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    },
+    {
+     "name": "Rotation",
+     "type": "OrthogonalRotation",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Union": {
+   "category": "Prop",
+   "type": "Union",
+   "assetClass": "UnionPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Props",
+     "type": "Prop[]",
+     "required": true
+    }
+   ]
+  },
+  "Prop:Weighted": {
+   "category": "Prop",
+   "type": "Weighted",
+   "assetClass": "WeightedPropAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Entries",
+     "type": "Entry[]",
+     "required": true
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    },
+    {
+     "name": "Weight",
+     "type": "number",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    }
+   ]
+  },
+  "PropDistribution:Anchor": {
+   "category": "PropDistribution",
+   "type": "Anchor",
+   "assetClass": "AnchorPropDistributionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "PropDistribution",
+     "type": "PropDistribution",
+     "required": true
+    },
+    {
+     "name": "Reversed",
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   ]
+  },
+  "PropDistribution:Assigned": {
+   "category": "PropDistribution",
+   "type": "Assigned",
+   "assetClass": "AssignedPropDistributionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "PropDistribution",
+     "type": "PropDistribution",
+     "required": true
+    },
+    {
+     "name": "Assignments",
+     "type": "Assignments",
+     "required": true
+    },
+    {
+     "name": "OverrideAllProps",
+     "type": "boolean",
+     "required": true,
+     "default": false
+    }
+   ]
+  },
+  "PropDistribution:Constant": {
+   "category": "PropDistribution",
+   "type": "Constant",
+   "assetClass": "ConstantPropDistributionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    },
+    {
+     "name": "Prop",
+     "type": "Prop",
+     "required": true
+    }
+   ]
+  },
+  "PropDistribution:Graph": {
+   "category": "PropDistribution",
+   "type": "Graph",
+   "assetClass": "GraphPropDistributionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "GraphGenerator",
+     "type": "GraphGenerator",
+     "required": true
+    },
+    {
+     "name": "ContentLayer",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "PropDistribution:Imported": {
+   "category": "PropDistribution",
+   "type": "Imported",
+   "assetClass": "ImportedPropDistributionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "PropDistribution:None": {
+   "category": "PropDistribution",
+   "type": "None",
+   "assetClass": "NoPropDistributionAsset",
+   "fields": []
+  },
+  "PropDistribution:Positions": {
+   "category": "PropDistribution",
+   "type": "Positions",
+   "assetClass": "PositionsPropDistributionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Positions",
+     "type": "PositionProvider",
+     "required": true
+    }
+   ]
+  },
+  "PropDistribution:Union": {
+   "category": "PropDistribution",
+   "type": "Union",
+   "assetClass": "UnionPropDistributionAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "PropDistributions",
+     "type": "PropDistribution[]",
+     "required": true
+    }
+   ]
+  },
+  "ReturnType:CellValue": {
+   "category": "ReturnType",
+   "type": "CellValue",
+   "assetClass": "CellValueReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "DefaultValue",
+     "type": "number",
+     "required": false
+    }
+   ]
+  },
+  "ReturnType:Curve": {
+   "category": "ReturnType",
+   "type": "Curve",
+   "assetClass": "CurveReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Curve",
+     "type": "Curve",
+     "required": true
+    }
+   ]
+  },
+  "ReturnType:Density": {
+   "category": "ReturnType",
+   "type": "Density",
+   "assetClass": "DensityReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ChoiceDensity",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "DefaultValue",
+     "type": "number",
+     "required": false,
+     "default": 0
+    },
+    {
+     "name": "From",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "To",
+     "type": "number",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    }
+   ]
+  },
+  "ReturnType:Distance": {
+   "category": "ReturnType",
+   "type": "Distance",
+   "assetClass": "DistanceReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "ReturnType:Distance2": {
+   "category": "ReturnType",
+   "type": "Distance2",
+   "assetClass": "Distance2ReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "ReturnType:Distance2Add": {
+   "category": "ReturnType",
+   "type": "Distance2Add",
+   "assetClass": "Distance2AddReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "ReturnType:Distance2Div": {
+   "category": "ReturnType",
+   "type": "Distance2Div",
+   "assetClass": "Distance2DivReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "ReturnType:Distance2Mul": {
+   "category": "ReturnType",
+   "type": "Distance2Mul",
+   "assetClass": "Distance2MulReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "ReturnType:Distance2Sub": {
+   "category": "ReturnType",
+   "type": "Distance2Sub",
+   "assetClass": "Distance2SubReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "ReturnType:Imported": {
+   "category": "ReturnType",
+   "type": "Imported",
+   "assetClass": "ImportedReturnTypeAsset",
+   "fields": [
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Scanner:Area": {
+   "category": "Scanner",
+   "type": "Area",
+   "assetClass": "AreaScannerAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "ResultCap",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "ScanShape",
+     "type": "enum:AreaScanner.ScanShape",
+     "required": false,
+     "enum": [
+      "CIRCLE",
+      "SQUARE"
+     ]
+    },
+    {
+     "name": "ScanRange",
+     "type": "integer",
+     "required": false,
+     "default": 0
+    },
+    {
+     "name": "ChildScanner",
+     "type": "Scanner",
+     "required": false
+    }
+   ]
+  },
+  "Scanner:ColumnLinear": {
+   "category": "Scanner",
+   "type": "ColumnLinear",
+   "assetClass": "ColumnLinearScannerAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "MinY",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "MaxY",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "ResultCap",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "TopDownOrder",
+     "type": "boolean",
+     "required": false,
+     "default": true
+    },
+    {
+     "name": "RelativeToPosition",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "BaseHeightName",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Scanner:ColumnRandom": {
+   "category": "Scanner",
+   "type": "ColumnRandom",
+   "assetClass": "ColumnRandomScannerAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "MinY",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "MaxY",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "ResultCap",
+     "type": "integer",
+     "required": true,
+     "default": 1
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": false,
+     "default": "A"
+    },
+    {
+     "name": "Strategy",
+     "type": "string",
+     "required": false,
+     "default": "DART_THROW"
+    },
+    {
+     "name": "RelativeToPosition",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "BaseHeightName",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Scanner:Imported": {
+   "category": "Scanner",
+   "type": "Imported",
+   "assetClass": "ImportedScannerAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Scanner:Linear": {
+   "category": "Scanner",
+   "type": "Linear",
+   "assetClass": "LinearScannerAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Axis",
+     "type": "enum:Axis",
+     "required": true
+    },
+    {
+     "name": "Range",
+     "type": "RangeInt",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": false
+    },
+    {
+     "name": "AscendingOrder",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    }
+   ]
+  },
+  "Scanner:Origin": {
+   "category": "Scanner",
+   "type": "Origin",
+   "assetClass": "DirectScannerAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "Scanner:Queue": {
+   "category": "Scanner",
+   "type": "Queue",
+   "assetClass": "QueueScannerAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Scanners",
+     "type": "Scanner[]",
+     "required": true
+    }
+   ]
+  },
+  "Scanner:Radial": {
+   "category": "Scanner",
+   "type": "Radial",
+   "assetClass": "RadialScannerAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Bounds",
+     "type": "IntegerBounds3d",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": false
+    }
+   ]
+  },
+  "Scanner:Random": {
+   "category": "Scanner",
+   "type": "Random",
+   "assetClass": "RandomScannerAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Axis",
+     "type": "enum:Axis",
+     "required": true
+    },
+    {
+     "name": "Range",
+     "type": "RangeInt",
+     "required": true
+    },
+    {
+     "name": "Scanner",
+     "type": "Scanner",
+     "required": false
+    },
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "Terrain:DAOTerrain": {
+   "category": "Terrain",
+   "type": "DAOTerrain",
+   "assetClass": "DensityTerrainAsset",
+   "fields": [
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    }
+   ]
+  },
+  "TintProvider:Constant": {
+   "category": "TintProvider",
+   "type": "Constant",
+   "assetClass": "ConstantTintProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Color",
+     "type": "color",
+     "required": true
+    }
+   ]
+  },
+  "TintProvider:DensityDelimited": {
+   "category": "TintProvider",
+   "type": "DensityDelimited",
+   "assetClass": "DensityDelimitedTintProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Delimiters",
+     "type": "Delimiter[]",
+     "required": true
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Range",
+     "type": "RangeDouble",
+     "required": true
+    },
+    {
+     "name": "Tint",
+     "type": "TintProvider",
+     "required": true
+    }
+   ]
+  },
+  "TintProvider:Mix": {
+   "category": "TintProvider",
+   "type": "Mix",
+   "assetClass": "MixTintProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "TintA",
+     "type": "TintProvider",
+     "required": true
+    },
+    {
+     "name": "TintB",
+     "type": "TintProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:Adder": {
+   "category": "VectorProvider",
+   "type": "Adder",
+   "assetClass": "AdderVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Vectors",
+     "type": "VectorProvider[]",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:Cache": {
+   "category": "VectorProvider",
+   "type": "Cache",
+   "assetClass": "CacheVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Vector",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:Constant": {
+   "category": "VectorProvider",
+   "type": "Constant",
+   "assetClass": "ConstantVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Vector",
+     "type": "Vector3d",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:Cross": {
+   "category": "VectorProvider",
+   "type": "Cross",
+   "assetClass": "CrossVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "VectorA",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "VectorB",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:DensityGradient": {
+   "category": "VectorProvider",
+   "type": "DensityGradient",
+   "assetClass": "DensityGradientVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "SampleDistance",
+     "type": "number",
+     "required": true,
+     "default": 1
+    }
+   ]
+  },
+  "VectorProvider:Exported": {
+   "category": "VectorProvider",
+   "type": "Exported",
+   "assetClass": "ExportedVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "SingleInstance",
+     "type": "boolean",
+     "required": true,
+     "default": false
+    },
+    {
+     "name": "VectorProvider",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:Imported": {
+   "category": "VectorProvider",
+   "type": "Imported",
+   "assetClass": "ImportedVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Name",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "VectorProvider:Multiplier": {
+   "category": "VectorProvider",
+   "type": "Multiplier",
+   "assetClass": "MultiplierVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Vectors",
+     "type": "VectorProvider[]",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:Normalizer": {
+   "category": "VectorProvider",
+   "type": "Normalizer",
+   "assetClass": "NormalizerVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Magnitude",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Vector",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:OpposedToGraphEdges": {
+   "category": "VectorProvider",
+   "type": "OpposedToGraphEdges",
+   "assetClass": "OpposedToGraphEdgesVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    }
+   ]
+  },
+  "VectorProvider:PlaneProjector": {
+   "category": "VectorProvider",
+   "type": "PlaneProjector",
+   "assetClass": "PlaneProjectorVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Vector",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "PlaneA",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "PlaneB",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:Random": {
+   "category": "VectorProvider",
+   "type": "Random",
+   "assetClass": "RandomVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Seed",
+     "type": "string",
+     "required": true,
+     "default": ""
+    }
+   ]
+  },
+  "VectorProvider:ScalarMultiplier": {
+   "category": "VectorProvider",
+   "type": "ScalarMultiplier",
+   "assetClass": "ScalarMultiplierVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Scalar",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Vector",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:SetX": {
+   "category": "VectorProvider",
+   "type": "SetX",
+   "assetClass": "SetXVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Vector",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:SetY": {
+   "category": "VectorProvider",
+   "type": "SetY",
+   "assetClass": "SetYVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Vector",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:SetZ": {
+   "category": "VectorProvider",
+   "type": "SetZ",
+   "assetClass": "SetZVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Value",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "Vector",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:Subtracter": {
+   "category": "VectorProvider",
+   "type": "Subtracter",
+   "assetClass": "SubtracterVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Minuend",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "Subtrahend",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "VectorProvider:VectorProjector": {
+   "category": "VectorProvider",
+   "type": "VectorProjector",
+   "assetClass": "VectorProjectorVectorProviderAsset",
+   "fields": [
+    {
+     "name": "Skip",
+     "type": "boolean",
+     "required": false,
+     "default": false
+    },
+    {
+     "name": "ExportAs",
+     "type": "string",
+     "required": false,
+     "default": ""
+    },
+    {
+     "name": "Source",
+     "type": "VectorProvider",
+     "required": true
+    },
+    {
+     "name": "Target",
+     "type": "VectorProvider",
+     "required": true
+    }
+   ]
+  },
+  "WorldStructure:NoiseRange": {
+   "category": "WorldStructure",
+   "type": "NoiseRange",
+   "assetClass": "BasicWorldStructureAsset",
+   "fields": [
+    {
+     "name": "Density",
+     "type": "Density",
+     "required": true
+    },
+    {
+     "name": "DefaultTransitionDistance",
+     "type": "integer",
+     "required": true,
+     "default": 32
+    },
+    {
+     "name": "MaxBiomeEdgeDistance",
+     "type": "integer",
+     "required": true,
+     "default": 0
+    },
+    {
+     "name": "Framework",
+     "type": "Framework[]",
+     "required": false
+    },
+    {
+     "name": "SpawnPositions",
+     "type": "PositionProvider",
+     "required": false
+    }
+   ]
+  }
+ }
+}

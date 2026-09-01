@@ -144,7 +144,7 @@ function BiomeOverviewCanvasInner() {
 
   return (
     <div className="relative h-full w-full biome-overview-canvas">
-      <div className="absolute left-3 top-3 z-10 flex max-w-sm items-start gap-2 rounded-lg border border-tn-border/80 bg-tn-panel/95 px-3 py-2 shadow-lg backdrop-blur-sm">
+      <div className="absolute left-3 top-3 z-10 flex max-w-sm items-start gap-2 rounded-lg border border-tn-border/80 bg-tn-panel px-3 py-2 shadow-lg">
         <Map className="mt-0.5 h-3.5 w-3.5 shrink-0 text-tn-accent" aria-hidden />
         <div className="min-w-0">
           <p className="text-[11px] font-medium text-tn-text">
@@ -159,7 +159,7 @@ function BiomeOverviewCanvasInner() {
       </div>
 
       {sectionLegend.length > 1 && (
-        <div className="absolute bottom-3 right-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-tn-border/80 bg-tn-panel/92 px-2.5 py-2 shadow-lg backdrop-blur-sm">
+        <div className="absolute bottom-3 right-3 z-10 flex flex-wrap justify-end gap-1.5 rounded-lg border border-tn-border/80 bg-tn-panel px-2.5 py-2 shadow-lg">
           {sectionLegend.map((item) => (
             <button
               key={item.key}

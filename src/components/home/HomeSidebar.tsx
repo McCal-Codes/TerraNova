@@ -1,4 +1,4 @@
-import { Home, LayoutGrid, Clock, Plus, FolderOpen, Package } from "lucide-react";
+import { Home, LayoutGrid, Clock, Plus, FolderOpen, Package, Settings as SettingsIcon } from "lucide-react";
 import { formatShortcut } from "@/utils/platform";
 
 export type SidebarTab = "home" | "templates" | "recent";
@@ -9,6 +9,7 @@ interface HomeSidebarProps {
   onNewProject: () => void;
   onCreatePack: () => void;
   onOpenProject: () => void;
+  onOpenSettings: () => void;
 }
 
 const TABS: { id: SidebarTab; label: string; icon: typeof Home }[] = [
@@ -23,6 +24,7 @@ export function HomeSidebar({
   onNewProject,
   onCreatePack,
   onOpenProject,
+  onOpenSettings,
 }: HomeSidebarProps) {
   return (
     <div className="w-[200px] shrink-0 bg-tn-surface border-r border-tn-border flex flex-col">
@@ -86,6 +88,21 @@ export function HomeSidebar({
           <FolderOpen size={15} aria-hidden />
           Open
           <span className="ml-auto text-[10px] opacity-60">{formatShortcut("Ctrl+O")}</span>
+        </button>
+        {/*
+          Settings was previously unreachable from Home — only from the editor
+          chrome or the first-run onboarding dialog, so anyone who had completed
+          onboarding and had no project open could not get to it at all.
+          Cmd+, is the macOS convention and matches the app menu.
+        */}
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-tn-border text-tn-text-muted hover:bg-tn-bg hover:text-tn-text transition-colors"
+        >
+          <SettingsIcon size={15} aria-hidden />
+          Settings
+          <span className="ml-auto text-[10px] opacity-60">{formatShortcut("Ctrl+,")}</span>
         </button>
       </div>
     </div>

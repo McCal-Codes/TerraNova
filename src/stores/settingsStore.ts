@@ -6,6 +6,7 @@ import { safeStoredJson } from "@/utils/safeLocalStorage";
 
 const STORAGE_KEY = "tn-settings";
 const DEBUG_WORKERS_KEY = "tn-debug-workers";
+const PERSIST_DEBOUNCE_MS = 150;
 
 export type HytaleAssetSourceChannel = "pre-release" | "release";
 
@@ -13,9 +14,18 @@ export type HytaleAssetSourceChannel = "pre-release" | "release";
 // resolveDefaultReleaseAssetsPath(), resolveDefaultCommonAssetsPath() from
 // src/utils/hytaleDefaultPaths.ts to get OS/user-correct paths at runtime.
 
-function getStoredSettingsObject(): Record<string, unknown> | null {
+/**
+ * Parsed once at module load. Each getStoredX() helper used to re-read and
+ * re-parse the whole payload, so constructing the store parsed the same JSON
+ * blob 23 times on the app's startup path.
+ */
+const storedSettings: Record<string, unknown> | null = (() => {
   const parsed = safeStoredJson<unknown>(STORAGE_KEY, null);
-  return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+  return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+})();
+
+function getStoredSettingsObject(): Record<string, unknown> | null {
+  return storedSettings;
 }
 
 function getStoredFlowDirection(): FlowDirection {
@@ -240,7 +250,7 @@ function persistDebugWorkerLogging(enabled: boolean) {
   }
 }
 
-function persistSettings(settings: {
+function persistSettingsNow(settings: {
   flowDirection: FlowDirection;
   autoLayoutOnOpen: boolean;
   confirmOnNodeDelete: boolean;
@@ -269,6 +279,47 @@ function persistSettings(settings: {
   } catch {
     // ignore
   }
+}
+
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingState: (() => SettingsState) | null = null;
+
+/**
+ * Coalesces writes. Setters call this after `set()`, so it reads the committed
+ * state instead of rebuilding a full copy of the store per call — which
+ * previously spread all 22 fields plus ~30 setter references and re-stringified
+ * the entire payload on every keystroke of a numeric field.
+ */
+if (typeof window !== "undefined") {
+  // pagehide fires on quit/navigation in every browser and in the Tauri webview;
+  // visibilitychange covers backgrounding on mobile-style lifecycles.
+  window.addEventListener("pagehide", () => flushSettingsPersistence());
+  window.addEventListener("beforeunload", () => flushSettingsPersistence());
+}
+
+function persistSettings(getState: () => SettingsState) {
+  pendingState = getState;
+  if (persistTimer !== null) return;
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    const snapshot = pendingState;
+    pendingState = null;
+    if (snapshot) persistSettingsNow(getAllSettings(snapshot()));
+  }, PERSIST_DEBOUNCE_MS);
+}
+
+/**
+ * Flushes any pending write immediately, so a quit within the debounce window
+ * cannot lose the last change. Also exported for tests.
+ */
+export function flushSettingsPersistence() {
+  if (persistTimer !== null) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+  }
+  const snapshot = pendingState;
+  pendingState = null;
+  if (snapshot) persistSettingsNow(getAllSettings(snapshot()));
 }
 
 interface SettingsState {
@@ -374,133 +425,133 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setFlowDirection: (dir) => {
     set({ flowDirection: dir });
-    persistSettings(getAllSettings({ ...get(), flowDirection: dir }));
+    persistSettings(get);
   },
 
   setAutoLayoutOnOpen: (value) => {
     set({ autoLayoutOnOpen: value });
-    persistSettings(getAllSettings({ ...get(), autoLayoutOnOpen: value }));
+    persistSettings(get);
   },
 
   setConfirmOnNodeDelete: (value) => {
     set({ confirmOnNodeDelete: value });
-    persistSettings(getAllSettings({ ...get(), confirmOnNodeDelete: value }));
+    persistSettings(get);
   },
 
   setAutoCheckUpdates: (value) => {
     set({ autoCheckUpdates: value });
-    persistSettings(getAllSettings({ ...get(), autoCheckUpdates: value }));
+    persistSettings(get);
   },
 
   setKeybindingOverride: (id, key) => {
     const overrides = { ...get().keybindingOverrides, [id]: key };
     set({ keybindingOverrides: overrides });
-    persistSettings(getAllSettings({ ...get(), keybindingOverrides: overrides }));
+    persistSettings(get);
   },
 
   resetKeybinding: (id) => {
     const overrides = { ...get().keybindingOverrides };
     delete overrides[id];
     set({ keybindingOverrides: overrides });
-    persistSettings(getAllSettings({ ...get(), keybindingOverrides: overrides }));
+    persistSettings(get);
   },
 
   resetAllKeybindings: () => {
     set({ keybindingOverrides: {} });
-    persistSettings(getAllSettings({ ...get(), keybindingOverrides: {} }));
+    persistSettings(get);
   },
 
   setInstantSaveEnabled: (value) => {
     set({ instantSaveEnabled: value });
-    persistSettings(getAllSettings({ ...get(), instantSaveEnabled: value }));
+    persistSettings(get);
   },
 
   toggleInstantSave: () => {
     const value = !get().instantSaveEnabled;
     set({ instantSaveEnabled: value });
-    persistSettings(getAllSettings({ ...get(), instantSaveEnabled: value }));
+    persistSettings(get);
   },
 
   setInstantSaveDebounceMs: (ms) => {
     const clamped = Math.max(100, Math.round(ms));
     set({ instantSaveDebounceMs: clamped });
-    persistSettings(getAllSettings({ ...get(), instantSaveDebounceMs: clamped }));
+    persistSettings(get);
   },
 
   setExportPath: (path) => {
     set({ exportPath: path });
-    persistSettings(getAllSettings({ ...get(), exportPath: path }));
+    persistSettings(get);
   },
 
   setSvgExportSettings: (partial) => {
     const svgExportSettings = { ...get().svgExportSettings, ...partial };
     set({ svgExportSettings });
-    persistSettings(getAllSettings({ ...get(), svgExportSettings }));
+    persistSettings(get);
   },
 
   setHytaleAssetSyncEnabled: (value) => {
     set({ hytaleAssetSyncEnabled: value });
-    persistSettings(getAllSettings({ ...get(), hytaleAssetSyncEnabled: value }));
+    persistSettings(get);
   },
 
   setHytaleAssetSourceChannel: (value) => {
     set({ hytaleAssetSourceChannel: value });
-    persistSettings(getAllSettings({ ...get(), hytaleAssetSourceChannel: value }));
+    persistSettings(get);
   },
 
   setHytalePreReleaseAssetsPath: (value) => {
     set({ hytalePreReleaseAssetsPath: value });
-    persistSettings(getAllSettings({ ...get(), hytalePreReleaseAssetsPath: value }));
+    persistSettings(get);
   },
 
   setHytaleReleaseAssetsPath: (value) => {
     set({ hytaleReleaseAssetsPath: value });
-    persistSettings(getAllSettings({ ...get(), hytaleReleaseAssetsPath: value }));
+    persistSettings(get);
   },
 
   setHytaleCommonAssetsEnabled: (value) => {
     set({ hytaleCommonAssetsEnabled: value });
-    persistSettings(getAllSettings({ ...get(), hytaleCommonAssetsEnabled: value }));
+    persistSettings(get);
   },
 
   setHytaleCommonAssetsPath: (value) => {
     set({ hytaleCommonAssetsPath: value });
-    persistSettings(getAllSettings({ ...get(), hytaleCommonAssetsPath: value }));
+    persistSettings(get);
   },
 
   setDeveloperMode: (value) => {
     set({ developerMode: value });
-    persistSettings(getAllSettings({ ...get(), developerMode: value }));
+    persistSettings(get);
   },
 
   setAutoEnableDeveloperModeInDev: (value) => {
     set({ autoEnableDeveloperModeInDev: value });
-    persistSettings(getAllSettings({ ...get(), autoEnableDeveloperModeInDev: value }));
+    persistSettings(get);
   },
 
   setShowDevToolsDock: (value) => {
     set({ showDevToolsDock: value });
-    persistSettings(getAllSettings({ ...get(), showDevToolsDock: value }));
+    persistSettings(get);
   },
 
   setDebugWorkerLogging: (value) => {
     set({ debugWorkerLogging: value });
     persistDebugWorkerLogging(value);
-    persistSettings(getAllSettings({ ...get(), debugWorkerLogging: value }));
+    persistSettings(get);
   },
 
   setShowNodeIdsOnCanvas: (value) => {
     set({ showNodeIdsOnCanvas: value });
-    persistSettings(getAllSettings({ ...get(), showNodeIdsOnCanvas: value }));
+    persistSettings(get);
   },
 
   setPackBackupPromptEnabled: (value) => {
     set({ packBackupPromptEnabled: value });
-    persistSettings(getAllSettings({ ...get(), packBackupPromptEnabled: value }));
+    persistSettings(get);
   },
 
   setPackBackupParentFolder: (value) => {
     set({ packBackupParentFolder: value });
-    persistSettings(getAllSettings({ ...get(), packBackupParentFolder: value }));
+    persistSettings(get);
   },
 }));

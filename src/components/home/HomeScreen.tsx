@@ -1,5 +1,6 @@
-import { lazy, Suspense, useState, useEffect, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import { matchesKeybinding } from "@/config/keybindings";
+import { setMenuProjectOpen, useAppMenu } from "@/utils/appMenu";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { confirmOpenPackWithAlphaBackup } from "@/utils/openPackWithAlphaGuard";
@@ -96,12 +97,37 @@ export function HomeScreen() {
       } else if (e.key === "o") {
         e.preventDefault();
         openAssetPack();
+      } else if (e.key === ",") {
+        // macOS convention for preferences; harmless on other platforms.
+        e.preventDefault();
+        setShowSettings(true);
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [openAssetPack]);
+
+  // Native menu actions that make sense with no project open. Save / Close are
+  // deliberately absent and are also greyed out natively, below.
+  useAppMenu(
+    useMemo(
+      () => ({
+        "app.settings": () => setShowSettings(true),
+        "file.new-project": handleNewProject,
+        "file.create-pack": () => setShowCreatePack(true),
+        "file.open": () => void openAssetPack(),
+        "help.getting-started": () => openLearn("walkthroughs/quickstart"),
+        "help.documentation": () => openLearn("walkthroughs/quickstart"),
+      }),
+      [openAssetPack, openLearn],
+    ),
+  );
+
+  // Home means no project, so the project-scoped File items stay disabled.
+  useEffect(() => {
+    void setMenuProjectOpen(false);
+  }, []);
 
   return (
     <div className="flex flex-1 bg-tn-bg text-tn-text">
@@ -111,6 +137,7 @@ export function HomeScreen() {
         onNewProject={handleNewProject}
         onCreatePack={() => setShowCreatePack(true)}
         onOpenProject={openAssetPack}
+        onOpenSettings={() => setShowSettings(true)}
       />
 
       <div className="flex-1 flex flex-col min-w-0">

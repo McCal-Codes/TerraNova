@@ -378,6 +378,10 @@ export interface BridgeDiscovery {
   bridgeVersion?: string;
   bridgeMode?: string;
   playerName?: string;
+  /** UUID of the resolved player (the player file's stem). */
+  playerUuid?: string;
+  /** "preferred" when matched to the signed-in profile, else "newest_file". */
+  playerUuidSource?: string;
   playerWorld?: string;
   playerX?: number;
   playerY?: number;
@@ -472,6 +476,8 @@ export async function bridgeDiscover(options?: {
   modPackPath?: string;
   host?: string;
   port?: number;
+  /** Signed-in Hytale profile UUID; null keeps the newest-player-file heuristic. */
+  preferredPlayerUuid?: string | null;
 }): Promise<BridgeDiscovery> {
   return invoke<BridgeDiscovery>("bridge_discover", {
     saveName: options?.saveName ?? null,
@@ -479,6 +485,7 @@ export async function bridgeDiscover(options?: {
     modPackPath: options?.modPackPath ?? null,
     host: options?.host ?? null,
     port: options?.port ?? null,
+    preferredPlayerUuid: options?.preferredPlayerUuid ?? null,
   });
 }
 
@@ -506,8 +513,10 @@ export async function bridgeTeleport(playerName: string, x: number, y: number, z
   return invoke<BridgeResponse>("bridge_teleport", { playerName, x, y, z });
 }
 
-export async function bridgePlayerInfo(): Promise<PlayerInfo> {
-  return invoke<PlayerInfo>("bridge_player_info");
+export async function bridgePlayerInfo(preferredPlayerUuid?: string | null): Promise<PlayerInfo> {
+  return invoke<PlayerInfo>("bridge_player_info", {
+    preferredPlayerUuid: preferredPlayerUuid ?? null,
+  });
 }
 
 export async function bridgeSyncFile(sourcePath: string, serverModPath: string, relativePath: string): Promise<BridgeResponse> {
@@ -561,4 +570,56 @@ export async function bridgePluginStatus(
 
 export async function bridgeDeployPlugin(patchline?: string): Promise<string> {
   return invoke<string>("bridge_deploy_plugin", { patchline: patchline ?? null });
+}
+
+// ── Sign in with Hytale ─────────────────────────────────────────────────────
+// Identity overlay only. The Bridge keeps its own per-save loopback token —
+// see docs/planning/adr-001-sign-in-with-hytale.md.
+//
+// The access token, id_token and PKCE verifier never cross this boundary; the
+// Rust side runs the whole OAuth flow and returns only this profile.
+
+export interface HytaleAccount {
+  /** Stable per-application anonymous id (43-char base64url, not a UUID). */
+  sub: string;
+  /**
+   * `profile.uuid` — the real, shared game identity matched against save
+   * files. The user picks a profile at every sign-in and may pick a different
+   * one next time, so treat this as a per-session choice.
+   */
+  uuid: string | null;
+  username: string | null;
+  sharedSource: boolean;
+  /** Scopes actually granted, which may differ from those requested. */
+  scopes: string[];
+  signedInAt: number;
+  /** Unix seconds. There is no silent renewal — expiry means signing in again. */
+  sessionExpiresAt: number | null;
+}
+
+/** Structured error from the auth commands. Mirrors the Rust `AuthError`. */
+export interface HytaleAuthError {
+  code: string;
+  message: string;
+}
+
+/** False in builds compiled without a client ID; the account UI stays hidden. */
+export async function hytaleAuthAvailable(): Promise<boolean> {
+  return invoke<boolean>("hytale_auth_available");
+}
+
+export async function hytaleSignIn(): Promise<HytaleAccount> {
+  return invoke<HytaleAccount>("hytale_sign_in");
+}
+
+export async function hytaleSignOut(): Promise<void> {
+  return invoke("hytale_sign_out");
+}
+
+export async function hytaleAccount(): Promise<HytaleAccount | null> {
+  return invoke<HytaleAccount | null>("hytale_account");
+}
+
+export async function hytaleCancelSignIn(): Promise<void> {
+  return invoke("hytale_cancel_sign_in");
 }

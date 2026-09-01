@@ -11,6 +11,7 @@ import { matchesKeybinding } from "@/config/keybindings";
 import { exportAssetPack, exportCurrentJson } from "@/utils/exportAssetPack";
 import { handleAutoLayout, handleAutoLayoutSelected, handleTidyUp } from "@/utils/layoutActions";
 import { blockInvalidJsonWrite, isInvalidJsonReadOnlyActive } from "@/utils/invalidJsonReadOnly";
+import { isTextEntryFocused } from "@/utils/textEntry";
 
 interface GlobalShortcutCallbacks {
   onCloseProject: () => void;
@@ -40,7 +41,9 @@ export function useGlobalKeyboardShortcuts({
     function handleKeyDown(e: KeyboardEvent) {
       const mod = e.metaKey || e.ctrlKey;
       const target = e.target as HTMLElement;
-      const inInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+      // Shared with the Edit menu, so the two cannot disagree about what
+      // Undo means in a given context.
+      const inInput = isTextEntryFocused(target);
 
       // Alt+1-9 — jump to bookmark (parameterized, stays hardcoded)
       if (e.altKey && !mod && !e.shiftKey && /^[1-9]$/.test(e.key) && !inInput) {

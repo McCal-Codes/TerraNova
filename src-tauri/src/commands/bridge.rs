@@ -8,11 +8,8 @@ use crate::bridge::types::*;
 use crate::io::path_scope;
 use bridge_save::{self, BridgeDebugSnapshot};
 use serde::Serialize;
-#[cfg(target_os = "windows")]
 use std::path::Path;
-#[cfg(target_os = "windows")]
 use std::process::{Command, Stdio};
-#[cfg(target_os = "windows")]
 use std::time::{Duration, Instant};
 
 #[tauri::command]
@@ -47,121 +44,137 @@ pub async fn bridge_debug_snapshot(
     ))
 }
 
+/// Sidecar executable name for the host platform.
+#[cfg(windows)]
+const BRIDGE_BIN: &str = "terranova-bridge.exe";
+#[cfg(not(windows))]
+const BRIDGE_BIN: &str = "terranova-bridge";
+
 #[tauri::command]
 pub async fn bridge_start_sidecar(
-    _force_restart_if_listening: Option<bool>,
-    _save_root: Option<String>,
-    _save_name: Option<String>,
+    force_restart_if_listening: Option<bool>,
+    save_root: Option<String>,
+    save_name: Option<String>,
 ) -> Result<BridgeStartSidecarResult, String> {
-    #[cfg(target_os = "windows")]
-    {
-        let force_restart = _force_restart_if_listening.unwrap_or(true);
+    let force_restart = force_restart_if_listening.unwrap_or(true);
+
+    if discover::is_port_open("127.0.0.1", 7854) {
+        // Only Windows can reliably reclaim the port, because only there do we
+        // have a targeted way to stop the previous sidecar. Elsewhere we report
+        // rather than guess at which process to kill: matching by name would
+        // risk taking down something the user did not ask us to touch.
+        let can_restart = cfg!(windows) && force_restart;
+        if !can_restart {
+            return Ok(BridgeStartSidecarResult {
+                started: false,
+                already_running: true,
+                message: if force_restart {
+                    "Bridge sidecar is already running on 127.0.0.1:7854. Stop it first if it is serving a different save."
+                        .into()
+                } else {
+                    "Bridge sidecar is already running on 127.0.0.1:7854.".into()
+                },
+            });
+        }
+        stop_existing_bridge_processes();
+    }
+
+    let resolved_save = resolve_sidecar_save_root(save_root.as_deref(), save_name.as_deref())?;
+    let save_label = resolved_save
+        .file_name()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| resolved_save.display().to_string());
+    let save_arg = resolved_save
+        .to_str()
+        .ok_or_else(|| "Invalid save path.".to_string())?;
+
+    let mut child = match find_bridge_binary() {
+        // Spawn the binary directly rather than through a shell: no quoting to
+        // get wrong, and no shell process left in the tree.
+        Some(bridge_exe) => Command::new(&bridge_exe)
+            .args(["--save", save_arg])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|e| format!("Failed to start Bridge sidecar binary: {e}"))?,
+        None => spawn_bridge_fallback(save_arg)?,
+    };
+
+    let startup_deadline = Instant::now() + Duration::from_secs(8);
+    loop {
         if discover::is_port_open("127.0.0.1", 7854) {
-            if !force_restart {
-                return Ok(BridgeStartSidecarResult {
-                    started: false,
-                    already_running: true,
-                    message: "Bridge sidecar is already running on 127.0.0.1:7854.".into(),
-                });
-            }
-            stop_existing_bridge_processes();
+            break;
         }
-
-        let resolved_save =
-            resolve_sidecar_save_root(_save_root.as_deref(), _save_name.as_deref())?;
-        let save_label = resolved_save
-            .file_name()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| resolved_save.display().to_string());
-
-        let mut child = if let Some(bridge_exe) = find_bridge_binary() {
-            Command::new(&bridge_exe)
-                .args([
-                    "--save",
-                    resolved_save
-                        .to_str()
-                        .ok_or_else(|| "Invalid save path.".to_string())?,
-                ])
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .map_err(|e| format!("Failed to start Bridge sidecar binary: {e}"))?
-        } else {
-            let script = find_bridge_run_script().ok_or_else(|| {
-                "Could not locate Bridge sidecar binary or scripts/bridge-run.ps1. Start it manually with `pnpm bridge:run` from the TerraNova repo.".to_string()
-            })?;
-            let repo_root = script.parent().and_then(|p| p.parent()).ok_or_else(|| {
-                "Could not resolve TerraNova repo root for sidecar startup.".to_string()
-            })?;
-            Command::new("powershell")
-                .args([
-                    "-NoProfile",
-                    "-ExecutionPolicy",
-                    "Bypass",
-                    "-File",
-                    script
-                        .to_str()
-                        .ok_or_else(|| "Invalid bridge script path.".to_string())?,
-                    "-Save",
-                    resolved_save
-                        .to_str()
-                        .ok_or_else(|| "Invalid save path.".to_string())?,
-                ])
-                .current_dir(repo_root)
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .map_err(|e| format!("Failed to start Bridge sidecar script: {e}"))?
-        };
-        let startup_deadline = Instant::now() + Duration::from_secs(8);
-        loop {
-            if discover::is_port_open("127.0.0.1", 7854) {
-                break;
-            }
-            if let Some(status) = child
-                .try_wait()
-                .map_err(|e| format!("Failed to monitor Bridge sidecar startup: {e}"))?
-            {
-                let code = status
-                    .code()
-                    .map(|c| c.to_string())
-                    .unwrap_or_else(|| "terminated by signal".to_string());
-                return Err(format!(
-                    "Bridge sidecar exited before opening 127.0.0.1:7854 (exit code: {code}). Try `pnpm bridge:run` once to verify local tooling."
-                ));
-            }
-            if Instant::now() >= startup_deadline {
-                return Err(
-                    "Bridge sidecar did not open 127.0.0.1:7854 within 8s. Try `pnpm bridge:run` once, then retry Start sidecar."
-                        .into(),
-                );
-            }
-            std::thread::sleep(Duration::from_millis(100));
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|e| format!("Failed to monitor Bridge sidecar startup: {e}"))?
+        {
+            let code = status
+                .code()
+                .map(|c| c.to_string())
+                .unwrap_or_else(|| "terminated by signal".to_string());
+            return Err(format!(
+                "Bridge sidecar exited before opening 127.0.0.1:7854 (exit code: {code}). Run `pnpm bridge:build` once to verify local tooling."
+            ));
         }
-
-        Ok(BridgeStartSidecarResult {
-            started: true,
-            already_running: false,
-            message: if force_restart {
-                format!(
-                    "Starting Bridge sidecar for {save_label} (forcing a clean restart if needed)…"
-                )
-            } else {
-                format!("Starting Bridge sidecar for {save_label}…")
-            },
-        })
+        if Instant::now() >= startup_deadline {
+            return Err(
+                "Bridge sidecar did not open 127.0.0.1:7854 within 8s. Run `pnpm bridge:build`, then retry Start sidecar."
+                    .into(),
+            );
+        }
+        std::thread::sleep(Duration::from_millis(100));
     }
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        Err("Bridge auto-start is only implemented on Windows; start the sidecar manually.".into())
-    }
+    Ok(BridgeStartSidecarResult {
+        started: true,
+        already_running: false,
+        message: format!("Starting Bridge sidecar for {save_label}\u{2026}"),
+    })
 }
 
-#[cfg(target_os = "windows")]
+/// No prebuilt binary. On Windows the repo ships a PowerShell runner; anywhere
+/// else there is nothing safe to shell out to, so say exactly what to run.
+#[cfg(windows)]
+fn spawn_bridge_fallback(save_arg: &str) -> Result<std::process::Child, String> {
+    let script = find_bridge_run_script().ok_or_else(|| {
+        "Could not locate the Bridge sidecar binary or scripts/bridge-run.ps1. Run `pnpm bridge:build` from the TerraNova repo."
+            .to_string()
+    })?;
+    let repo_root = script
+        .parent()
+        .and_then(|p| p.parent())
+        .ok_or_else(|| "Could not resolve TerraNova repo root for sidecar startup.".to_string())?;
+    Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            script
+                .to_str()
+                .ok_or_else(|| "Invalid bridge script path.".to_string())?,
+            "-Save",
+            save_arg,
+        ])
+        .current_dir(repo_root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("Failed to start Bridge sidecar script: {e}"))
+}
+
+#[cfg(not(windows))]
+fn spawn_bridge_fallback(_save_arg: &str) -> Result<std::process::Child, String> {
+    Err(
+        "Bridge sidecar has not been built yet. Run `pnpm bridge:build` from the TerraNova repo, then retry Start sidecar."
+            .to_string(),
+    )
+}
+
 fn resolve_sidecar_save_root(
     save_root: Option<&str>,
     save_name: Option<&str>,
@@ -183,15 +196,21 @@ fn resolve_sidecar_save_root(
         })
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 fn stop_existing_bridge_processes() {
     // Best-effort cleanup: ignore failures when no process exists.
     let _ = Command::new("taskkill")
-        .args(["/F", "/IM", "terranova-bridge.exe"])
+        .args(["/F", "/IM", BRIDGE_BIN])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
+}
+
+#[cfg(not(windows))]
+fn stop_existing_bridge_processes() {
+    // Unreachable: the caller only reaches this on Windows. Deliberately does
+    // nothing rather than pattern-matching process names.
 }
 
 #[derive(Serialize)]
@@ -201,14 +220,12 @@ pub struct BridgeStartSidecarResult {
     pub message: String,
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 fn find_bridge_run_script() -> Option<PathBuf> {
     let mut candidates: Vec<PathBuf> = Vec::new();
-
     if let Ok(cwd) = std::env::current_dir() {
         candidates.push(cwd.join("scripts").join("bridge-run.ps1"));
     }
-
     if let Ok(exe) = std::env::current_exe() {
         if let Some(exe_dir) = exe.parent() {
             candidates.push(exe_dir.join("scripts").join("bridge-run.ps1"));
@@ -217,7 +234,6 @@ fn find_bridge_run_script() -> Option<PathBuf> {
             }
         }
     }
-
     candidates.push(
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -225,52 +241,43 @@ fn find_bridge_run_script() -> Option<PathBuf> {
             .join("scripts")
             .join("bridge-run.ps1"),
     );
-
     candidates.into_iter().find(|p| p.exists())
 }
 
-#[cfg(target_os = "windows")]
+/// Where a built sidecar might live, most-specific first. Release is preferred
+/// over debug so a stale debug build never shadows a fresh release one.
+fn bridge_binary_candidates_in(root: &Path) -> Vec<PathBuf> {
+    let target = root.join("tools").join("terranova-bridge").join("target");
+    vec![
+        target.join("release").join(BRIDGE_BIN),
+        target.join("debug").join(BRIDGE_BIN),
+    ]
+}
+
 fn find_bridge_binary() -> Option<PathBuf> {
     let mut candidates: Vec<PathBuf> = Vec::new();
 
     if let Ok(cwd) = std::env::current_dir() {
-        candidates.push(
-            cwd.join("tools")
-                .join("terranova-bridge")
-                .join("target")
-                .join("release")
-                .join("terranova-bridge.exe"),
-        );
+        candidates.extend(bridge_binary_candidates_in(&cwd));
     }
 
     if let Ok(exe) = std::env::current_exe() {
         if let Some(exe_dir) = exe.parent() {
-            candidates.push(exe_dir.join("terranova-bridge.exe"));
+            // Bundled next to the app binary.
+            candidates.push(exe_dir.join(BRIDGE_BIN));
             for ancestor in exe_dir.ancestors() {
-                candidates.push(
-                    ancestor
-                        .join("tools")
-                        .join("terranova-bridge")
-                        .join("target")
-                        .join("release")
-                        .join("terranova-bridge.exe"),
-                );
+                candidates.extend(bridge_binary_candidates_in(ancestor));
             }
         }
     }
 
-    candidates.push(
+    candidates.extend(bridge_binary_candidates_in(
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
-            .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")))
-            .join("tools")
-            .join("terranova-bridge")
-            .join("target")
-            .join("release")
-            .join("terranova-bridge.exe"),
-    );
+            .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR"))),
+    ));
 
-    candidates.into_iter().find(|p| p.exists())
+    candidates.into_iter().find(|p| p.is_file())
 }
 
 #[tauri::command]
@@ -280,6 +287,10 @@ pub async fn bridge_discover(
     mod_pack_path: Option<String>,
     host: Option<String>,
     port: Option<u16>,
+    // `preferred_player_uuid` is the signed-in Hytale profile UUID, when the
+    // user has opted to target their own player. `None` keeps the
+    // newest-player-file heuristic.
+    preferred_player_uuid: Option<String>,
 ) -> Result<BridgeDiscovery, String> {
     let save = save_name.unwrap_or_default();
     let host = host.unwrap_or_else(|| "127.0.0.1".to_string());
@@ -290,6 +301,7 @@ pub async fn bridge_discover(
         port,
         save_root.as_deref(),
         mod_pack_path.as_deref(),
+        preferred_player_uuid.as_deref(),
     )
     .await)
 }
@@ -355,12 +367,19 @@ pub async fn bridge_teleport(
 #[tauri::command]
 pub async fn bridge_player_info(
     state: tauri::State<'_, BridgeState>,
+    // Kept in step with `bridge_discover` so both agree on which player is
+    // being targeted.
+    preferred_player_uuid: Option<String>,
 ) -> Result<PlayerInfo, String> {
     let client = state.get_client().await?;
     if let Ok(status) = client.status().await {
         if let Some(root) = status.save_root {
             let path = PathBuf::from(root);
-            if let Some(live) = live_player::resolve_live_player_from_save(&path, true) {
+            if let Some(live) = live_player::resolve_live_player_from_save(
+                &path,
+                true,
+                preferred_player_uuid.as_deref(),
+            ) {
                 return Ok(PlayerInfo {
                     name: live.name,
                     uuid: live.uuid,
@@ -454,4 +473,43 @@ pub async fn bridge_sync_file(
 
     let client = state.get_client().await?;
     client.reload_worldgen().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn binary_name_matches_the_host_platform() {
+        if cfg!(windows) {
+            assert_eq!(BRIDGE_BIN, "terranova-bridge.exe");
+        } else {
+            assert_eq!(BRIDGE_BIN, "terranova-bridge");
+        }
+    }
+
+    #[test]
+    fn release_is_preferred_over_debug() {
+        let c = bridge_binary_candidates_in(Path::new("/repo"));
+        assert_eq!(c.len(), 2);
+        // A stale debug build must never shadow a fresh release one.
+        assert!(c[0].to_string_lossy().contains("release"));
+        assert!(c[1].to_string_lossy().contains("debug"));
+        for p in &c {
+            assert!(p.ends_with(BRIDGE_BIN));
+            assert!(p.starts_with("/repo/tools/terranova-bridge/target"));
+        }
+    }
+
+    /// Whatever we hand to `Command::new` must be a real file, never a
+    /// directory that merely happens to sit at a candidate path.
+    #[test]
+    fn found_binary_is_an_actual_file() {
+        // `None` just means the sidecar is not built in this checkout; the
+        // command surfaces a build hint in that case.
+        if let Some(p) = find_bridge_binary() {
+            assert!(p.is_file(), "{} is not a file", p.display());
+            assert!(p.ends_with(BRIDGE_BIN));
+        }
+    }
 }

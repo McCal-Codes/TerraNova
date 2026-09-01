@@ -1,0 +1,5 @@
+{ "Type": "Max", "Inputs": [
+  { "Type": "Min", "Inputs": [
+    { "Type": "SimplexNoise2D", "Scale": 250, "Octaves": 2, "Seed": "a" },
+    { "Type": "Inverter", "Inputs": [ { "Type": "SimplexNoise2D", "Scale": 80, "Octaves": 1, "Seed": "b" } ] } ] },
+  { "Type": "Constant", "Value": -1 } ] }

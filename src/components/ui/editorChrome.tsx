@@ -125,7 +125,7 @@ export function ViewModeSegmentBar<T extends string>({
       className={`inline-flex items-center gap-0.5 rounded-lg border p-0.5 ${
         solid
           ? "border-tn-border bg-tn-panel shadow-sm"
-          : "border-tn-border/80 bg-tn-surface/98 shadow-lg ring-1 ring-black/20 backdrop-blur-md"
+          : "border-tn-border/80 bg-tn-surface shadow-lg ring-1 ring-black/20"
       }`}
       role="toolbar"
       aria-label={ariaLabel}
@@ -244,7 +244,7 @@ export function HudPill({
 }) {
   return (
     <div
-      className={`rounded-md border border-tn-border/70 bg-tn-surface/90 px-2.5 py-1 text-[10px] text-tn-text-muted shadow-md backdrop-blur-sm ${className}`}
+      className={`rounded-md border border-tn-border/70 bg-tn-surface px-2.5 py-1 text-[10px] text-tn-text-muted shadow-md ${className}`}
     >
       {children}
     </div>

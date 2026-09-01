@@ -1,0 +1,5 @@
+{ "Type": "Sum", "Inputs": [
+  { "Type": "SimplexNoise2D", "Scale": 300, "Octaves": 3, "Persistence": 0.5, "Lacunarity": 2, "Seed": "Base-Terrain" },
+  { "Type": "CurveMapper",
+    "Curve": { "Type": "Manual", "Points": [ {"In": 0, "Out": 1}, {"In": 200, "Out": -1} ] },
+    "Inputs": [ { "Type": "BaseHeight", "BaseHeightName": "Base", "Distance": true } ] } ] }

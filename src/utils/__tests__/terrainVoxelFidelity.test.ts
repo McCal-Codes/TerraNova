@@ -82,6 +82,10 @@ describe("terrain voxel fidelity (Hytale Manual curve)", () => {
     expect(bounds!.yLevel).toBeLessThan(220);
     expect(bounds!.worldYMax - bounds!.worldYMin).toBeLessThan(140);
     expect(bounds!.worldYMin).toBeGreaterThanOrEqual(120);
-    expect(bounds!.worldYMax).toBeLessThanOrEqual(250);
+    // Re-baselined after the noise fix: the corrected field puts the auto-fit
+    // window top at ~264 rather than the ~250 the old (mulberry32-seeded) noise
+    // produced. yLevel and the window height are asserted above and still hold,
+    // so this remains a sanity band on the window rather than a snapshot.
+    expect(bounds!.worldYMax).toBeLessThanOrEqual(285);
   });
 });

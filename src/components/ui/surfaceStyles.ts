@@ -26,6 +26,19 @@ export const previewHudBadgeClass =
 export const previewSettingsDrawerClass =
   "relative flex h-full w-72 max-w-[85vw] flex-col border-l border-tn-border bg-tn-panel shadow-2xl pointer-events-auto overscroll-contain";
 
+/**
+ * Vertical rhythm for the preview HUD.
+ *
+ * One step of separation between labelled groups, and a smaller one inside a
+ * group — the grouping is what makes a long control stack readable, so the two
+ * gaps have to stay clearly different. Rows carry their own 32px minimum height
+ * (matching the settings dialog) rather than getting it from the gap.
+ */
+export const hudStackGap = "gap-4";
+export const hudGroupGap = "gap-1.5";
+export const hudRowMinHeight = "min-h-8";
+export const hudRowPad = "px-1 -mx-1";
+
 export const previewHudChipBase =
   "px-2 py-1 text-[10px] rounded border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tn-accent";
 

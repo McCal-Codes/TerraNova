@@ -32,6 +32,7 @@ export function getEvalStatus(type: string): EvalStatus {
 export { UNSUPPORTED_TYPES };
 
 export const DENSITY_TYPES = new Set([
+  "WhiteNoise",
   "SimplexNoise2D", "SimplexNoise3D", "SimplexRidgeNoise2D", "SimplexRidgeNoise3D",
   "CellNoise2D", "CellNoise3D", "VoronoiNoise2D", "VoronoiNoise3D",
   "FractalNoise2D", "FractalNoise3D",

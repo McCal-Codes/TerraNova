@@ -16,6 +16,7 @@ import { Toast } from "@/components/ui/Toast";
 import { LoadingDialog } from "@/components/ui/LoadingDialog";
 import { GlobalLoader } from "@/components/ui/GlobalLoader";
 import SyncProgressModal from "@/components/ui/SyncProgressModal";
+import { isDevLabRoute } from "@/dev/lab/DevLab";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
@@ -30,6 +31,9 @@ import { checkForUpdates } from "@/utils/updater";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useUIStore } from "@/stores/uiStore";
+import { setMenuProjectOpen, useAppMenu } from "@/utils/appMenu";
+import { isTextEntryFocused } from "@/utils/textEntry";
+import { useEditorStore } from "@/stores/editorStore";
 import type { SvgExportOptions } from "@/utils/exportSvg";
 import { useReactFlow } from "@xyflow/react";
 import { useTauriIO } from "@/hooks/useTauriIO";
@@ -291,6 +295,13 @@ export default function App() {
     return <ShapePreviewGalleryHarnessLazy />;
   }
 
+  // Developer-only workspace at ?dev-lab=1 (or the launcher's --lab flag).
+  // Dev builds only — isDevLabRoute() is gated on import.meta.env.DEV, so the
+  // route does not exist in a production bundle.
+  if (isDevLabRoute()) {
+    return <DevLabLazy />;
+  }
+
   if (sessionBootPending && projectPath === null) {
     return (
       <>
@@ -375,6 +386,37 @@ function isDocsSmokeRoute(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Dev Lab is lazily imported so it never lands in a production chunk. */
+function DevLabLazy() {
+  const [Lab, setLab] = useState<ComponentType | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  useEffect(() => {
+    void import("@/dev/lab/DevLab")
+      .then((mod) => {
+        setLab(() => mod.default);
+        setLoadError(null);
+      })
+      .catch((err) => {
+        setLoadError(err instanceof Error ? err.message : String(err));
+      });
+  }, []);
+  if (loadError) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-tn-bg p-6 text-sm text-red-400">
+        Dev Lab failed to load: {loadError}
+      </div>
+    );
+  }
+  if (!Lab) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-tn-bg text-sm text-tn-text-muted">
+        Loading Dev Lab…
+      </div>
+    );
+  }
+  return <Lab />;
 }
 
 function ShapePreviewGalleryHarnessLazy() {
@@ -476,6 +518,12 @@ function ProjectEditor({
   }, [setSettingsSystemTab, setSettingsTab, setShowSettings]);
 
   // Wire up global keyboard shortcuts
+  // Same hook the keyboard shortcuts use, so File → Save and Cmd+S are
+  // literally the same handler.
+  const { saveFile, saveFileAs } = useTauriIO();
+  const undo = useEditorStore((s) => s.undo);
+  const redo = useEditorStore((s) => s.redo);
+
   useGlobalKeyboardShortcuts({
     onCloseProject: requestCloseProject,
     onNewProject: () => setShowNewProject(true),
@@ -483,6 +531,49 @@ function ProjectEditor({
     onSettings: () => openSettings("general"),
     onExportSvg: () => setShowExportSvg(true),
   });
+
+  // Native menu, mapped to the same handlers as the keyboard shortcuts above so
+  // the two can never diverge. Save / Save As are omitted: they are driven by
+  // useGlobalKeyboardShortcuts' own file handling, which owns the dirty state.
+  useAppMenu(
+    useMemo(
+      () => ({
+        "app.settings": () => openSettings("general"),
+        // Mirrors the keyboard path: inside a text field the browser's own
+        // text undo is what the user means; anywhere else it is the graph.
+        "edit.undo": () => (isTextEntryFocused() ? document.execCommand("undo") : undo()),
+        "edit.redo": () => (isTextEntryFocused() ? document.execCommand("redo") : redo()),
+        "file.save": () => void saveFile(),
+        "file.save-as": () => void saveFileAs(),
+        "file.new-project": () => setShowNewProject(true),
+        "file.create-pack": () => setShowCreatePack(true),
+        "file.export-svg": () => setShowExportSvg(true),
+        "file.close-project": requestCloseProject,
+        "view.toggle-left-panel": () => useUIStore.getState().toggleLeftPanel(),
+        "view.toggle-right-panel": () => useUIStore.getState().toggleRightPanel(),
+        "view.toggle-grid": () => useUIStore.getState().toggleGrid(),
+        "view.toggle-minimap": () => useUIStore.getState().toggleMinimap(),
+        "help.report-bug": () => useBugReportStore.getState().requestOpen(),
+        "help.documentation": () => {
+          // Same route PropHelpCard uses: request the slug, then reveal the docs panel.
+          const ui = useUIStore.getState();
+          ui.setRequestedDocSlug("getting-started");
+          ui.setRightPanelMode("docs");
+          ui.setRightPanelVisible(true);
+        },
+        "help.changelog": () => openSettings("about"),
+      }),
+      [openSettings, redo, requestCloseProject, saveFile, saveFileAs, setShowCreatePack, setShowExportSvg, setShowNewProject, undo],
+    ),
+  );
+
+  // Enables the project-scoped File items now that a project is open.
+  useEffect(() => {
+    void setMenuProjectOpen(true);
+    return () => {
+      void setMenuProjectOpen(false);
+    };
+  }, []);
 
   // Auto-save on edit when instant save is enabled
   useInstantSave();

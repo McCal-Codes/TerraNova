@@ -23,6 +23,14 @@ export interface BiomeConfig {
   Name: string;
   EnvironmentProvider: Record<string, unknown>;
   TintProvider: Record<string, unknown>;
+  /**
+   * The biome's colour on Hytale's world map, as a `#rrggbb` string.
+   *
+   * `BiomeJsonLoader.KEY_MAP_COLOR`; most shipped biomes define it. Read-only
+   * here — export rebuilds the document from `originalWrapper`, which already
+   * carries the field, so nothing writes it back.
+   */
+  MapColor?: string;
   propMeta: Array<{ Runtime: number; Skip: boolean }>;
 }
 
@@ -218,6 +226,15 @@ export interface ConfigSliceState {
   settingsConfig: SettingsConfig | null;
   instanceConfig: InstanceConfig | null;
   contentFields: Record<string, number>;
+  /**
+   * Root key of the SeedBox chain — in-game this is the world's seed.
+   *
+   * V2 derives each node's integer seed from `(parentKey + nodeSeedKey).hashCode()`
+   * run through one FastRandom draw, so the same graph renders a different world
+   * under a different root. Empty string means an unseeded root, which is still a
+   * valid derivation, not "skip seeding".
+   */
+  worldSeed: string;
   materialConfig: BiomeMaterialConfig | null;
   originalWrapper: Record<string, unknown> | null;
   preservedNodeEditorMetadata: import("@/utils/nodeEditorMetadata").PreservedNodeEditorMetadata | null;
@@ -229,6 +246,7 @@ export interface ConfigSliceState {
   jsonViewDraft: string | null;
   invalidJsonFile: InvalidJsonFileState | null;
 
+  setWorldSeed: (seed: string) => void;
   setSettingsConfig: (config: SettingsConfig | null) => void;
   setInstanceConfig: (config: InstanceConfig | null) => void;
   setContentFields: (fields: Record<string, number>) => void;

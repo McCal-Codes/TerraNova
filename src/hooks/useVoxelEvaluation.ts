@@ -151,6 +151,7 @@ function readVoxelEvalParams(mode: string, show3DVolumeView: boolean) {
     nodes: editor.nodes,
     edges: editor.edges,
     contentFields: editor.contentFields,
+    worldSeed: editor.worldSeed,
     outputNodeId: editor.outputNodeId,
     materialConfig: editor.materialConfig,
     biomeSections: editor.biomeSections,
@@ -177,11 +178,13 @@ async function buildVolumeEvalOptions(
   yLevel: number,
   projectPath: string | null,
   biomeSections?: Record<string, { nodes: Node[]; edges: Edge[] }> | null,
+  worldSeed?: string,
 ) {
   const base = await buildDensityEvalOptions({
     nodes,
     edges,
     contentFields,
+    worldSeed,
     projectPath,
     biomeSections,
   });
@@ -610,6 +613,7 @@ export function useVoxelEvaluation() {
           live.yLevel,
           useProjectStore.getState().projectPath,
           live.biomeSections,
+          live.worldSeed,
         );
         const rootResolution = resolvePreviewRootForEvaluation({
           nodes: live.nodes,

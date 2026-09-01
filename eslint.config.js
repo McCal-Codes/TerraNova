@@ -45,7 +45,28 @@ export default [
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       "no-undef": "off",
+      // Catches hooks called conditionally or after an early return. Without
+      // this, a useEffect placed below `if (!open) return null` lints clean and
+      // then crashes at runtime with "Rendered more hooks than during the
+      // previous render", taking the whole window blank.
+      "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+      // The panels are meant to be opaque (see surfaceStyles.ts). Glass blur
+      // kept creeping back one component at a time, and each addition looks
+      // harmless on its own.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/backdrop-blur/]",
+          message:
+            "Panels are opaque by design — use the tn-panel/tn-surface tokens in surfaceStyles.ts instead of backdrop-blur.",
+        },
+        {
+          selector: "TemplateElement[value.raw=/backdrop-blur/]",
+          message:
+            "Panels are opaque by design — use the tn-panel/tn-surface tokens in surfaceStyles.ts instead of backdrop-blur.",
+        },
+      ],
     },
   },
 ];

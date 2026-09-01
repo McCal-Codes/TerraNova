@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { on } from "./storeEvents";
 import { safeStoredJson } from "@/utils/safeLocalStorage";
+import type { CategoryId } from "@/settings/types";
 
 function getStoredBool(key: string, fallback: boolean): boolean {
   try {
@@ -126,7 +127,7 @@ export interface UIState {
   noiseRangeSurface: NoiseRangeSurface;
   atmospherePreviewHour: number;
   requestedDocSlug: string | null;
-  requestedSettingsTab: "general" | "system" | "assets" | "shortcuts" | "developer" | "about" | null;
+  requestedSettingsTab: CategoryId | null;
   helpMode: boolean;
 
   // Props deletion confirmation preference
@@ -154,9 +155,7 @@ export interface UIState {
   setNoiseRangeSurface: (surface: NoiseRangeSurface) => void;
   setAtmospherePreviewHour: (hour: number) => void;
   setRequestedDocSlug: (slug: string | null) => void;
-  setRequestedSettingsTab: (
-    tab: "general" | "system" | "assets" | "shortcuts" | "developer" | "about" | null,
-  ) => void;
+  setRequestedSettingsTab: (tab: CategoryId | null) => void;
   toggleHelpMode: () => void;
   setRightPanelMode: (mode: RightPanelMode) => void;
 

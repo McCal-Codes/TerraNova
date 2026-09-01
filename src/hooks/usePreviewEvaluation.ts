@@ -181,7 +181,7 @@ export function usePreviewEvaluation() {
 
     timerRef.current = setTimeout(async () => {
 
-      const { nodes, edges, contentFields, outputNodeId, biomeSections } = useEditorStore.getState();
+      const { nodes, edges, contentFields, worldSeed, outputNodeId, biomeSections } = useEditorStore.getState();
 
       const projectPath = useProjectStore.getState().projectPath;
 
@@ -223,6 +223,7 @@ export function usePreviewEvaluation() {
         nodes,
         edges,
         contentFields,
+        worldSeed,
         projectPath,
         biomeSections,
       });
@@ -360,7 +361,7 @@ export function usePreviewEvaluation() {
 
 export function triggerManualEvaluation() {
   const preview = usePreviewStore.getState();
-  const { nodes, edges, contentFields, outputNodeId, editingContext, activeBiomeSection, biomeSections } = useEditorStore.getState();
+  const { nodes, edges, contentFields, worldSeed, outputNodeId, editingContext, activeBiomeSection, biomeSections } = useEditorStore.getState();
   const projectPath = useProjectStore.getState().projectPath;
 
 
@@ -406,6 +407,7 @@ export function triggerManualEvaluation() {
       nodes,
       edges,
       contentFields,
+      worldSeed,
       projectPath,
       biomeSections,
     });

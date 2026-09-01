@@ -1,13 +1,18 @@
+mod auth;
 mod bridge;
 mod commands;
 mod io;
+mod menu;
 mod noise;
 mod preview_probe;
 mod schema;
+mod webview_watchdog;
 
+use auth::AuthState;
 use bridge::client::BridgeState;
 use commands::{
-    bridge as bridge_commands, community, hardware, io as io_commands, preview, process, validate,
+    auth as auth_commands, bridge as bridge_commands, community, hardware, io as io_commands,
+    preview, process, validate,
 };
 
 // Hint Windows to prefer the discrete GPU when available (NVIDIA / AMD)
@@ -18,11 +23,19 @@ use commands::{
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .menu(menu::build)
+        .on_menu_event(menu::handle)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(BridgeState::default())
+        .manage(AuthState::default())
+        .manage(webview_watchdog::SharedHeartbeat::default())
+        .setup(|app| {
+            webview_watchdog::spawn(app.handle());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             io_commands::register_project_root,
             io_commands::unregister_project_root,
@@ -76,6 +89,14 @@ pub fn run() {
             bridge_commands::bridge_plugin_status,
             bridge_commands::bridge_deploy_plugin,
             bridge_commands::bridge_sync_file,
+            auth_commands::hytale_auth_available,
+            auth_commands::hytale_sign_in,
+            auth_commands::hytale_sign_out,
+            auth_commands::hytale_account,
+            auth_commands::hytale_cancel_sign_in,
+            menu::set_menu_project_open,
+            webview_watchdog::ui_heartbeat,
+            webview_watchdog::set_webview_auto_recover,
             process::relaunch_app,
             hardware::get_hardware_info,
             hardware::get_gpu_info,

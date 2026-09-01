@@ -36,6 +36,7 @@ const BridgeDialog = lazy(() =>
   import("@/components/dialogs/BridgeDialog").then((m) => ({ default: m.BridgeDialog })),
 );
 
+import { useAccountBootstrap } from "@/hooks/useAccount";
 import { useBridgeDiscovery } from "@/hooks/useBridgeDiscovery";
 
 import { saveRef } from "@/utils/saveRef";
@@ -52,6 +53,10 @@ export function Toolbar() {
   const bridgeDialogOpen = useBridgeStore((s) => s.dialogOpen);
 
   useBridgeDiscovery();
+  // Load the cached Hytale account before discovery needs it. Without this the
+  // preferred-player UUID stays null until the user happens to open
+  // Settings > Account, so the binding silently does nothing after a restart.
+  useAccountBootstrap();
 
   const { saveFile } = useTauriIO();
 

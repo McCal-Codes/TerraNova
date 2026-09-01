@@ -1,17 +1,24 @@
-import { mulberry32 } from "./prng";
+import { generateOctaveOffsets } from "./javaRandom";
 
-/** Generate per-octave offsets from a seed (V2: Random(seed).nextDouble() * 256) */
+/**
+ * Per-octave offsets from a seed (V2: Random(seed).nextDouble() * 256).
+ *
+ * Delegates to the faithful java.util.Random port. Note that V2 draws four
+ * doubles per octave regardless of dimensionality — see javaRandom.ts.
+ *
+ * Memoised because callers re-enter fbm2D/fbm3D once per sampled pixel, and
+ * regenerating the offset table per sample would dominate the cost.
+ */
+const offsetCache = new Map<string, number[][]>();
+
 function generateOffsets(seed: number, octaves: number, dims: number): number[][] {
-  const rng = mulberry32(seed);
-  const offsets: number[][] = [];
-  for (let i = 0; i < octaves; i++) {
-    const o: number[] = [];
-    for (let d = 0; d < dims; d++) {
-      o.push(rng() * 256.0);
-    }
-    offsets.push(o);
+  const key = `${seed}|${octaves}|${dims}`;
+  let cached = offsetCache.get(key);
+  if (cached === undefined) {
+    cached = generateOctaveOffsets(seed, octaves, dims);
+    offsetCache.set(key, cached);
   }
-  return offsets;
+  return cached;
 }
 
 /**

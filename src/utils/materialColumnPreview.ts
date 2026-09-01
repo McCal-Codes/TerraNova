@@ -1,7 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
 import { createEvaluationContext } from "@/utils/densityEvaluator";
 import { evaluateMaterialGraph } from "@/utils/materialEvaluator";
-import { SOLID_THRESHOLD } from "@/utils/voxelExtractor";
+import { isSolidDensity } from "@/utils/voxelExtractor";
 import { resolveVoxelMaterialColor } from "@/utils/materialResolver";
 import type { VoxelMaterialGraph } from "@/utils/voxelMaterialPreview";
 
@@ -181,7 +181,7 @@ export function evaluateMaterialColumnPreview(
   for (let yi = 0; yi < ySlices; yi++) {
     const worldY = worldYForSlice(yi, ySlices, yMin, yMax);
     const idx = yi * n * n;
-    const isSolid = densities[idx]! >= SOLID_THRESHOLD;
+    const isSolid = isSolidDensity(densities[idx]!);
     let material: string | null = null;
     if (isSolid) {
       const matId = matResult.materialIds[idx]!;
@@ -252,7 +252,7 @@ export function evaluateMaterialSurfacePreview(
   for (let z = 0; z < n; z++) {
     for (let x = 0; x < n; x++) {
       const idx = surfaceYi * n * n + z * n + x;
-      const isSolid = densities[idx]! >= SOLID_THRESHOLD;
+      const isSolid = isSolidDensity(densities[idx]!);
       let material: string | null = null;
       if (isSolid) {
         const matId = matResult.materialIds[idx]!;

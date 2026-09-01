@@ -24,6 +24,11 @@ pub struct BridgeDiscovery {
     pub bridge_version: Option<String>,
     pub bridge_mode: Option<String>,
     pub player_name: Option<String>,
+    /// UUID of the resolved player (the player file's stem).
+    pub player_uuid: Option<String>,
+    /// "preferred" when matched against the signed-in profile UUID,
+    /// "newest_file" when it fell back to the mtime heuristic.
+    pub player_uuid_source: Option<String>,
     pub player_world: Option<String>,
     pub player_x: Option<f64>,
     pub player_y: Option<f64>,
@@ -68,12 +73,16 @@ pub fn is_port_open(host: &str, port: u16) -> bool {
     TcpStream::connect_timeout(&addr, Duration::from_millis(400)).is_ok()
 }
 
+/// `preferred_uuid` is the signed-in Hytale profile UUID, when the user is
+/// signed in and has the preference enabled. `None` keeps the historical
+/// newest-player-file behaviour exactly.
 pub async fn discover_bridge(
     save_name: &str,
     host: &str,
     port: u16,
     save_root_override: Option<&str>,
     mod_pack_path: Option<&str>,
+    preferred_uuid: Option<&str>,
 ) -> BridgeDiscovery {
     let (save_root_path, resolved_save_name, mod_pack_path_out, mod_pack_folder) =
         resolve_save_root(save_name, save_root_override, mod_pack_path);
@@ -89,6 +98,8 @@ pub async fn discover_bridge(
         bridge_version: None,
         bridge_mode: None,
         player_name: None,
+        player_uuid: None,
+        player_uuid_source: None,
         player_world: None,
         player_x: None,
         player_y: None,
@@ -156,7 +167,8 @@ pub async fn discover_bridge(
                     result.bridge_version = Some(status.bridge_version);
                     result.bridge_mode = status.bridge_mode;
                     result.singleplayer = Some(status.singleplayer);
-                    if let Some(live) = live_player::resolve_live_player_from_save(&save_root, true)
+                    if let Some(live) =
+                        live_player::resolve_live_player_from_save(&save_root, true, preferred_uuid)
                     {
                         apply_live_player(&mut result, &save_root, live);
                     } else if let Some(p) = player {
@@ -186,7 +198,8 @@ pub async fn discover_bridge(
     }
 
     if result.player_name.is_none() {
-        if let Some(live) = live_player::resolve_live_player_from_save(&save_root, result.port_open)
+        if let Some(live) =
+            live_player::resolve_live_player_from_save(&save_root, result.port_open, preferred_uuid)
         {
             apply_live_player(&mut result, &save_root, live);
         }
@@ -205,6 +218,8 @@ fn apply_live_player(
     live: live_player::LivePlayerState,
 ) {
     result.player_name = Some(live.name);
+    result.player_uuid = Some(live.uuid.clone());
+    result.player_uuid_source = Some(live.uuid_source.to_string());
     result.player_world = Some(live.world_id.clone());
     result.player_world_label = Some(live.label);
     result.player_world_source = Some(live.source.to_string());
@@ -282,6 +297,7 @@ mod integration_tests {
                 7854,
                 Some(save_root.to_str().unwrap()),
                 mod_path.as_deref(),
+                None,
             ));
         assert!(d.port_open, "expected bridge on 7854: {:?}", d.error);
         if let Some(log_world) = current_world_from_log_stack(&save_root) {

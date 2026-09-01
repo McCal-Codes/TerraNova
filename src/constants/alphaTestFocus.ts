@@ -1,6 +1,6 @@
 /** Closed-alpha tester checklist — shown once per alpha build after onboarding. */
 
-export const ALPHA_WHAT_TO_TEST_VERSION = "0.1.8-alpha.4";
+export const ALPHA_WHAT_TO_TEST_VERSION = "0.1.8-alpha.5";
 
 /** Primary contact for serious alpha issues (Discord). */
 export const ALPHA_DISCORD_CONTACT = "@mcc_cal";
@@ -33,6 +33,19 @@ export interface AlphaTestFocusItem {
 }
 
 export const ALPHA_TEST_FOCUS_ITEMS: AlphaTestFocusItem[] = [
+  {
+    id: "settings-v2",
+    area: "Settings",
+    title: "Settings search, categories, and reset",
+    steps: [
+      "Open Settings and search “autosave”, “asset cache”, and “worker” — results should show a Category › Section breadcrumb.",
+      "Type @modified to list only settings you have changed; combine it with a word (e.g. “@modified asset”).",
+      "Change any setting — a Modified badge and a reset arrow should appear; reset returns it to the default.",
+      "Use “Reset section” on a category and confirm only that category returns to defaults.",
+      "Navigate the category rail with the keyboard only: Tab should reach it once, arrows move, Enter selects.",
+      "Confirm your existing settings survived the upgrade — nothing should have reverted to a default on first launch.",
+    ],
+  },
   {
     id: "onboarding-sync",
     area: "Onboarding",
@@ -131,7 +144,7 @@ export const ALPHA_TEST_FOCUS_ITEMS: AlphaTestFocusItem[] = [
     area: "Safety",
     title: "Pack backup before open",
     steps: [
-      "Settings → General: confirm pack backup prompt, optional default folder, and Back up open project now.",
+      "Settings → Files & backups: confirm pack backup prompt, optional default folder, and Back up open project now.",
       "Open an existing save mod or asset pack (Ctrl+O or Recent).",
       "Confirm the alpha backup prompt appears; use Back up & open and check .terranova-backups beside the pack.",
     ],
@@ -144,7 +157,7 @@ export const ALPHA_TEST_FOCUS_ITEMS: AlphaTestFocusItem[] = [
       "Settings → File a Bug Report (or About → Report a bug on home).",
       "Pick an area, add steps to reproduce, use Capture preview screenshot or Attach files when helpful.",
       "Copy the bundle, open the GitHub issue form, paste JSON into Session snapshot.",
-      "Confirm version 0.1.8-alpha.4 and OS are prefilled.",
+      "Confirm version 0.1.8-alpha.5 and OS are prefilled.",
     ],
   },
 ];

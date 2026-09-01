@@ -4,6 +4,29 @@
 
 This page covers common issues and suggested solutions.
 
+## Development Build Won't Start
+
+Run the doctor first — it checks the whole toolchain and prints a remediation command
+for anything failing:
+
+```bash
+pnpm dev:doctor
+```
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `port 1420 is already serving` | A dev server is already running | Use that window, or stop it and re-run `pnpm start` |
+| Blank window, or the app loads an old build | Two Vite servers — the second bound a different port while Tauri still points at 1420 | Never start Vite yourself before `tauri dev`; use `pnpm start`, which enforces a single owner |
+| `cargo was not found on PATH` | Rust is not installed | Install from <https://rustup.rs> and reopen your terminal, or use `pnpm start --web` for browser-only work |
+| `pnpm was not found on PATH` | pnpm is not enabled | `corepack enable` |
+| Node version rejected | Node is older than 20 | Install Node 20+ |
+| Dependency errors after pulling | `node_modules` is stale | `pnpm start --install` |
+| `dev.command` will not open on macOS | Missing executable bit | `chmod +x dev.command` |
+
+Dependencies are only installed when the launcher's fingerprint of `pnpm-lock.yaml`,
+`package.json`, Node and pnpm changes — so a normal start does not reinstall. Force it
+with `pnpm start --install` if you suspect a bad tree.
+
 ## Performance Issues
 
 - If the editor becomes slow, try closing unused panels.

@@ -126,7 +126,7 @@ export function PreviewPanel() {
   const propError = usePropPlacementStore((s) => s.evaluationError);
   const {
     mode, values, isLoading, previewError, showCrossSection, crossSectionLine, crossSectionProfileMode,
-    show3DVolumeView, showThresholdView, usgsTopoStyle, isVoxelLoading, voxelError, voxelDensities,
+    show3DVolumeView, showThresholdView, mapStyle, isVoxelLoading, voxelError, voxelDensities,
     isWorldLoading, worldError, voxelMeshData, viewMode,
     prefabMeshData, texturedPrefabMesh, prefabTextureStats, isPrefabLoading, prefabError, prefabPath,
   } = usePreviewStore(
@@ -140,7 +140,7 @@ export function PreviewPanel() {
       crossSectionProfileMode: s.crossSectionProfileMode,
       show3DVolumeView: s.show3DVolumeView,
       showThresholdView: s.showThresholdView,
-      usgsTopoStyle: s.usgsTopoStyle,
+      mapStyle: s.mapStyle,
       isVoxelLoading: s.isVoxelLoading,
       voxelError: s.voxelError,
       voxelDensities: s.voxelDensities,
@@ -187,7 +187,10 @@ export function PreviewPanel() {
       store.setPrefabLoading(false);
     }
   }, []);
-  const useThresholdedHeatmap = showThresholdView && !usgsTopoStyle;
+  // Both the topo and Hytale styles draw their own base image, so the threshold
+  // view would just paint over them.
+  const useThresholdedHeatmap = showThresholdView && mapStyle === "heat";
+  const usgsTopoStyle = mapStyle === "usgs";
 
   const isSplitMode = viewMode === "split";
   const [controlsCollapsed, setControlsCollapsed] = useState(isSplitMode);

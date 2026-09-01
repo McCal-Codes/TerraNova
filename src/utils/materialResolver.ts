@@ -1,4 +1,4 @@
-import { SOLID_THRESHOLD, type VoxelMaterial } from "./voxelExtractor";
+import { isSolidDensity, isAirDensity, type VoxelMaterial } from "./voxelExtractor";
 import { HASH_PRIME_A, HASH_PRIME_B, HASH_PRIME_E } from "@/constants";
 import { resolveBlockColor } from "./blockColorMap";
 
@@ -833,8 +833,8 @@ export function resolveMaterials(
         surfaceY = -1;
         for (let y = ys - 1; y >= 0; y--) {
           const idx = y * n * n + z * n + x;
-          if (densities[idx] >= SOLID_THRESHOLD) {
-            if (y === ys - 1 || densities[(y + 1) * n * n + z * n + x] < SOLID_THRESHOLD) {
+          if (isSolidDensity(densities[idx])) {
+            if (y === ys - 1 || isAirDensity(densities[(y + 1) * n * n + z * n + x])) {
               surfaceY = y;
               break;
             }
@@ -847,7 +847,7 @@ export function resolveMaterials(
       // Assign materials by depth from surface
       for (let y = surfaceY; y >= 0; y--) {
         const idx = y * n * n + z * n + x;
-        if (densities[idx] < SOLID_THRESHOLD) continue; // air pocket
+        if (isAirDensity(densities[idx])) continue; // air pocket
 
         const depthSlices = surfaceY - y;
         const depthWorld = depthSlices * stepY;

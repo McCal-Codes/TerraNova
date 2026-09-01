@@ -29,16 +29,38 @@ const DEFAULT_PALETTE: VoxelMaterial[] = [
 /* ── Solid threshold ─────────────────────────────────────────────── */
 
 /**
- * Density threshold for treating a voxel as solid.
- * Matches Hytale's convention: density >= 0 = solid, density < 0 = air.
- * The zero-crossing is the terrain surface.
+ * Density threshold for treating a voxel as solid. The zero-crossing is the surface.
+ *
+ * Hytale's rule is strict: `density > 0` is solid, `density <= 0` is air.
+ *
+ * Verified in TerrainStage$ColumnData.resolve, which tests each density four times
+ * with the same sequence — `dconst_0; dcmpl; ifle <air>` — so the fall-through
+ * (solid) branch is taken only when density is strictly greater than zero.
+ *
+ * This matters more than a boundary nitpick: TerrainStage.DEFAULT_BACKGROUND_DENSITY
+ * is 0.0, so every voxel that falls back to background is AIR in Hytale. Treating
+ * zero as solid inverts the default state of the world, and 39 shipped assets also
+ * contain an explicit `Constant` node with `Value: 0`.
+ *
+ * Always compare through isSolidDensity/isAirDensity rather than inlining an
+ * operator — that is how the `>=` drift happened in the first place.
  */
 export const SOLID_THRESHOLD = 0;
+
+/** True when the voxel is solid: strictly greater than the threshold. */
+export function isSolidDensity(density: number): boolean {
+  return density > SOLID_THRESHOLD;
+}
+
+/** True when the voxel is air: at or below the threshold. */
+export function isAirDensity(density: number): boolean {
+  return density <= SOLID_THRESHOLD;
+}
 
 /** True when at least one voxel in the volume is air (density below solid threshold). */
 export function volumeDensityHasAir(densities: Float32Array): boolean {
   for (let i = 0; i < densities.length; i++) {
-    if (densities[i] < SOLID_THRESHOLD) return true;
+    if (isAirDensity(densities[i])) return true;
   }
   return false;
 }
@@ -196,7 +218,7 @@ export function smoothTerrainFill(
       // Fill below surface
       for (let y = hInt; y >= 0; y--) {
         const idx = y * n * n + z * n + x;
-        if (result[idx] < SOLID_THRESHOLD) {
+        if (isAirDensity(result[idx])) {
           result[idx] = 0;
         }
       }
@@ -204,7 +226,7 @@ export function smoothTerrainFill(
       // Clear ALL above the smoothed surface
       for (let y = hInt + 1; y < ys; y++) {
         const idx = y * n * n + z * n + x;
-        if (result[idx] >= SOLID_THRESHOLD) {
+        if (isSolidDensity(result[idx])) {
           result[idx] = -1;
         }
       }
@@ -233,7 +255,7 @@ export function fillTerrainColumnBacking(
 
       for (let y = 0; y < ys; y++) {
         const idx = y * n * n + z * n + x;
-        if (result[idx] >= SOLID_THRESHOLD) {
+        if (isSolidDensity(result[idx])) {
           highestSolid = y;
           consecutiveAir = 0;
         } else {
@@ -246,7 +268,7 @@ export function fillTerrainColumnBacking(
 
       for (let y = 0; y <= highestSolid; y++) {
         const idx = y * n * n + z * n + x;
-        if (result[idx] < SOLID_THRESHOLD) {
+        if (isAirDensity(result[idx])) {
           result[idx] = 0;
         }
       }
@@ -265,14 +287,77 @@ export interface FluidConfig {
   fluidMaterialIndex: number;
 }
 
+/* ── Cutaway region ──────────────────────────────────────────────── */
+
+/**
+ * A sub-box of the volume to extract, in voxel indices.
+ * Bounds are inclusive-low, exclusive-high: [x0, x1).
+ */
+export interface VoxelRegion {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+  z0: number;
+  z1: number;
+}
+
+/**
+ * How the volume is cut open.
+ *
+ * Two shapes are needed because they express different views and neither can
+ * express the other:
+ *
+ *   keep   — extract only this box (the "top" preset: keep everything below the
+ *            cut level). Its edge becomes an air boundary, so the cut caps.
+ *   remove — treat this box as removed. Removing a corner leaves an L-shaped
+ *            remainder, which no single keep-box can describe, and the corner cut
+ *            is the view that preserves surface context while revealing the interior.
+ *
+ * Both may be set; a voxel is outside when it falls outside `keep` OR inside `remove`.
+ */
+export interface CutawayVolume {
+  keep?: VoxelRegion;
+  remove?: VoxelRegion;
+}
+
+/**
+ * Clamp a region to the volume and guarantee non-inverted bounds.
+ * A degenerate region (zero or negative extent on any axis) yields an empty
+ * extraction rather than throwing — callers drag these interactively.
+ */
+function normalizeRegion(region: VoxelRegion | undefined, n: number, ys: number): VoxelRegion {
+  if (!region) return { x0: 0, x1: n, y0: 0, y1: ys, z0: 0, z1: n };
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.floor(v)));
+  const x0 = clamp(region.x0, 0, n);
+  const x1 = clamp(region.x1, 0, n);
+  const y0 = clamp(region.y0, 0, ys);
+  const y1 = clamp(region.y1, 0, ys);
+  const z0 = clamp(region.z0, 0, n);
+  const z1 = clamp(region.z1, 0, n);
+  return {
+    x0: Math.min(x0, x1),
+    x1: Math.max(x0, x1),
+    y0: Math.min(y0, y1),
+    y1: Math.max(y0, y1),
+    z0: Math.min(z0, z1),
+    z1: Math.max(z0, z1),
+  };
+}
+
 /* ── Surface voxel extraction ────────────────────────────────────── */
 
 /**
  * Extract surface voxels from a 3D density volume.
- * A surface voxel is solid (density >= SOLID_THRESHOLD) with at least one air neighbor.
+ * A surface voxel is solid (isSolidDensity(density)) with at least one air neighbor.
  *
  * When `fluidConfig` is provided, air voxels at or below the fluid level that have
  * at least one air neighbor above become fluid surface voxels (e.g. lava sea).
+ *
+ * When `cutaway` is provided, the cut edges are treated as air boundaries. That is
+ * what makes a cutaway read as solid rock: the newly exposed faces become
+ * boundary-adjacent, so they qualify as surface and get emitted. Without it, clipping
+ * a shell-only extraction reveals a hollow interior.
  *
  * Layout: densities[y * n * n + z * n + x]
  */
@@ -283,21 +368,30 @@ export function extractSurfaceVoxels(
   materialIds?: Uint8Array,
   palette?: VoxelMaterial[],
   fluidConfig?: FluidConfig,
+  cutaway?: CutawayVolume,
 ): VoxelData {
   const n = resolution;
   const ys = ySlices;
   const materials = palette ?? DEFAULT_PALETTE;
+  const box = normalizeRegion(cutaway?.keep, n, ys);
+  const cut = cutaway?.remove ? normalizeRegion(cutaway.remove, n, ys) : undefined;
+  const removed = (x: number, y: number, z: number): boolean =>
+    cut !== undefined &&
+    x >= cut.x0 && x < cut.x1 &&
+    y >= cut.y0 && y < cut.y1 &&
+    z >= cut.z0 && z < cut.z1;
 
   // First pass: count surface voxels (solid surfaces + fluid surfaces)
   let count = 0;
-  for (let y = 0; y < ys; y++) {
+  for (let y = box.y0; y < box.y1; y++) {
     const yOff = y * n * n;
-    for (let z = 0; z < n; z++) {
-      for (let x = 0; x < n; x++) {
+    for (let z = box.z0; z < box.z1; z++) {
+      for (let x = box.x0; x < box.x1; x++) {
         const idx = yOff + z * n + x;
-        if (densities[idx] >= SOLID_THRESHOLD) {
+        if (removed(x, y, z)) continue;
+        if (isSolidDensity(densities[idx])) {
           // Solid voxel — check if it's a surface
-          if (isSurface(densities, x, y, z, n, ys)) {
+          if (isSurface(densities, x, y, z, n, box, removed)) {
             count++;
           }
         } else if (fluidConfig && y <= fluidConfig.fluidLevel) {
@@ -315,13 +409,14 @@ export function extractSurfaceVoxels(
   const outMaterialIds = new Uint8Array(count);
   let vi = 0;
 
-  for (let y = 0; y < ys; y++) {
+  for (let y = box.y0; y < box.y1; y++) {
     const yOff = y * n * n;
-    for (let z = 0; z < n; z++) {
-      for (let x = 0; x < n; x++) {
+    for (let z = box.z0; z < box.z1; z++) {
+      for (let x = box.x0; x < box.x1; x++) {
         const idx = yOff + z * n + x;
-        if (densities[idx] >= SOLID_THRESHOLD) {
-          if (isSurface(densities, x, y, z, n, ys)) {
+        if (removed(x, y, z)) continue;
+        if (isSolidDensity(densities[idx])) {
+          if (isSurface(densities, x, y, z, n, box, removed)) {
             positions[vi * 3] = x;
             positions[vi * 3 + 1] = y;
             positions[vi * 3 + 2] = z;
@@ -347,7 +442,8 @@ export function extractSurfaceVoxels(
 function isSurface(
   densities: Float32Array,
   x: number, y: number, z: number,
-  n: number, ys: number,
+  n: number, box: VoxelRegion,
+  removed: (x: number, y: number, z: number) => boolean,
 ): boolean {
   // Check 6 neighbors
   const dirs = [
@@ -361,13 +457,22 @@ function isSurface(
     const ny = y + dy;
     const nz = z + dz;
 
-    // Out of bounds = air
-    if (nx < 0 || nx >= n || ny < 0 || ny >= ys || nz < 0 || nz >= n) {
+    // Outside the extracted region = air. With no cutaway the region is the whole
+    // volume, so this is the original "out of bounds = air" rule. With a cutaway it
+    // is also what caps the cut: voxels against the cut plane become surface and
+    // render as solid rock instead of leaving a hollow shell.
+    if (nx < box.x0 || nx >= box.x1 || ny < box.y0 || ny >= box.y1 || nz < box.z0 || nz >= box.z1) {
+      return true;
+    }
+
+    // A neighbour inside the removed box is air for the same reason: it is no
+    // longer being drawn, so this face is exposed and must be capped.
+    if (removed(nx, ny, nz)) {
       return true;
     }
 
     const nIdx = ny * n * n + nz * n + nx;
-    if (densities[nIdx] < SOLID_THRESHOLD) {
+    if (isAirDensity(densities[nIdx])) {
       return true;
     }
   }
@@ -403,12 +508,12 @@ function isFluidSurface(
     }
 
     // Neighbor above fluid level and also air = exposed surface
-    if (ny > fluidLevel && densities[ny * n * n + nz * n + nx] < SOLID_THRESHOLD) {
+    if (ny > fluidLevel && isAirDensity(densities[ny * n * n + nz * n + nx])) {
       return true;
     }
 
     // Neighbor is solid = fluid touches terrain
-    if (densities[ny * n * n + nz * n + nx] >= SOLID_THRESHOLD) {
+    if (isSolidDensity(densities[ny * n * n + nz * n + nx])) {
       return true;
     }
   }

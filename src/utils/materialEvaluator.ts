@@ -11,7 +11,7 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { EvaluationContext } from "./densityEvaluator";
 import type { VoxelMaterial } from "./voxelExtractor";
-import { SOLID_THRESHOLD } from "./voxelExtractor";
+import { isSolidDensity, isAirDensity } from "./voxelExtractor";
 import {
   matchMaterialName,
   getMaterialProperties,
@@ -122,8 +122,8 @@ function computeColumnContexts(
       // Scan top-down for surface (first solid with air above)
       for (let y = ys - 1; y >= 0; y--) {
         const idx = y * n * n + z * n + x;
-        if (densities[idx] >= SOLID_THRESHOLD) {
-          if (y === ys - 1 || densities[(y + 1) * n * n + z * n + x] < SOLID_THRESHOLD) {
+        if (isSolidDensity(densities[idx])) {
+          if (y === ys - 1 || isAirDensity(densities[(y + 1) * n * n + z * n + x])) {
             surfaceYi = y;
             break;
           }
@@ -135,7 +135,7 @@ function computeColumnContexts(
         bottomYi = surfaceYi;
         for (let y = surfaceYi - 1; y >= 0; y--) {
           const idx = y * n * n + z * n + x;
-          if (densities[idx] >= SOLID_THRESHOLD) {
+          if (isSolidDensity(densities[idx])) {
             bottomYi = y;
           } else {
             break;
@@ -148,7 +148,7 @@ function computeColumnContexts(
       if (surfaceYi >= 0) {
         for (let y = surfaceYi + 1; y < ys; y++) {
           const idx = y * n * n + z * n + x;
-          if (densities[idx] < SOLID_THRESHOLD) {
+          if (isAirDensity(densities[idx])) {
             spaceAbove++;
           } else {
             break;
@@ -163,7 +163,7 @@ function computeColumnContexts(
       if (bottomYi > 0) {
         for (let y = bottomYi - 1; y >= 0; y--) {
           const idx = y * n * n + z * n + x;
-          if (densities[idx] < SOLID_THRESHOLD) {
+          if (isAirDensity(densities[idx])) {
             spaceBelow++;
           } else {
             break;
@@ -798,7 +798,7 @@ export function evaluateMaterialGraph(
       for (let y = 0; y < ys; y++) {
         const idx = y * n * n + z * n + x;
         const density = densities[idx];
-        if (density < SOLID_THRESHOLD) continue; // air
+        if (isAirDensity(density)) continue; // air
 
         // Compute world coordinates
         const wx = rangeMin + x * stepXZ;

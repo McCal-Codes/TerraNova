@@ -1,11 +1,17 @@
 import type { Node, Edge } from "@xyflow/react";
 import { createEvaluationContext } from "@/utils/densityEvaluator";
-import { extractSurfaceVoxels, type FluidConfig, type VoxelData } from "@/utils/voxelExtractor";
+import {
+  extractSurfaceVoxels,
+  type CutawayVolume,
+  type FluidConfig,
+  type VoxelData,
+} from "@/utils/voxelExtractor";
 import { resolveMaterials, DEFAULT_MATERIAL_PALETTE, matchMaterialName, type BiomeMaterialConfig } from "@/utils/materialResolver";
 import { evaluateMaterialGraph } from "@/utils/materialEvaluator";
 import { buildVoxelMeshes } from "@/utils/voxelMeshBuilder";
 import { usePreviewStore } from "@/stores/previewStore";
 import { computeDensityVolumeStats } from "@/utils/previewRootResolver";
+import { buildVoidClassMaterials } from "@/utils/voidClassification";
 import type { VolumeEvalResult } from "@/utils/volumeWorkerClient";
 import {
   resolveVoxelMaterialGraph,
@@ -82,6 +88,28 @@ function buildMeshFromVoxelCache(
   );
 }
 
+/**
+ * Swap material colouring for void-class colouring when the void view is on.
+ *
+ * Rides the existing material pipeline: the mesh builder groups by material index and
+ * the legend reads the palette, so replacing both is enough — no mesh changes needed.
+ * Returns null when the void view is off, so callers keep their material result.
+ */
+function resolveVoidViewMaterials(
+  densities: Float32Array,
+  resolution: number,
+  ySlices: number,
+): { materialIds: Uint8Array; palette: Array<{ name: string; color: string }>; enclosed: number; breaching: number } | null {
+  if (!usePreviewStore.getState().showVoidView) return null;
+  const { materialIds, palette, classification } = buildVoidClassMaterials(densities, resolution, ySlices);
+  return {
+    materialIds,
+    palette,
+    enclosed: classification.enclosedCount,
+    breaching: classification.breachingCount,
+  };
+}
+
 /** Rebuild voxel mesh after legend visibility toggles (uses cached volume). */
 export function rebuildVoxelMeshFromCache(): void {
   const state = usePreviewStore.getState();
@@ -98,6 +126,58 @@ export function rebuildVoxelMeshFromCache(): void {
     state.voxelPalette,
   );
   usePreviewStore.getState().setVoxelMeshData(meshData);
+}
+
+/**
+ * Re-extract surface voxels for a cutaway and rebuild the mesh.
+ *
+ * Runs off the cached density volume, so the density graph is never re-evaluated —
+ * this is a geometry pass only, cheap enough to run on cutaway release.
+ *
+ * Re-extraction rather than a GPU clip plane is what makes the cut read as solid
+ * rock: extraction only emits solid voxels adjacent to air, so clipping a shell
+ * exposes a hollow interior, whereas passing the cut bounds into extraction turns the
+ * cut faces into boundary-adjacent surface and caps them.
+ *
+ * Pass `undefined` to restore the full uncut volume.
+ */
+export function reextractVoxelsWithCutaway(cutaway: CutawayVolume | undefined): void {
+  const state = usePreviewStore.getState();
+  const densities = state.voxelDensities;
+  const res = state._voxelVolumeRes;
+  const ys = state._voxelVolumeYSlices;
+  if (!densities || res == null || ys == null) return;
+
+  const voidView = resolveVoidViewMaterials(densities, res, ys);
+  const materialIds = voidView?.materialIds ?? state._voxelVolumeMaterialIds ?? undefined;
+  const palette = voidView?.palette ?? state.voxelPalette;
+
+  const voxels = extractSurfaceVoxels(
+    densities,
+    res,
+    ys,
+    materialIds,
+    palette,
+    state._voxelFluidConfig ?? undefined,
+    cutaway,
+  );
+
+  const meshData = buildMeshFromVoxelCache(
+    voxels,
+    densities,
+    res,
+    ys,
+    materialIds,
+    state.hiddenVoxelMaterialNames,
+    palette,
+  );
+
+  usePreviewStore.setState({
+    _voxelSurfaceData: voxels,
+    surfaceVoxelCount: voxels.count,
+    voxelMeshData: meshData,
+    ...(voidView ? { voxelPalette: palette, voidStats: { enclosed: voidView.enclosed, breaching: voidView.breaching } } : {}),
+  } as Partial<ReturnType<typeof usePreviewStore.getState>>);
 }
 
 /** Full voxel post-process: backing fill → materials → mesh → preview store. */
@@ -174,6 +254,14 @@ export function finishVoxelFromVolume(input: FinishVoxelInput): void {
     }
   }
 
+  // Void view overrides material colouring entirely — it answers a different
+  // question, and mixing the two palettes would make neither readable.
+  const voidView = resolveVoidViewMaterials(densities, result.resolution, result.ySlices);
+  if (voidView) {
+    materialIds = voidView.materialIds;
+    palette = voidView.palette;
+  }
+
   let fluidCfg: FluidConfig | undefined;
   if (!previewPass && materialConfig?.fluidLevel != null && materialConfig.fluidMaterial) {
     const yRange = voxelYMax - voxelYMin;
@@ -230,10 +318,12 @@ export function finishVoxelFromVolume(input: FinishVoxelInput): void {
 
   usePreviewStore.setState({
     _voxelSurfaceData: voxels,
+    _voxelFluidConfig: fluidCfg ?? null,
     _voxelVolumeMaterialIds: materialIds ?? null,
     _voxelVolumeRes: result.resolution,
     _voxelVolumeYSlices: result.ySlices,
     surfaceVoxelCount: voxels.count,
+    voidStats: voidView ? { enclosed: voidView.enclosed, breaching: voidView.breaching } : null,
     voxelDensityStats: computeDensityVolumeStats(densities),
     voxelMeshData: meshData,
     voxelDisplayedRes: result.resolution,

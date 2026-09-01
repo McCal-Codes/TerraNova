@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { usePreviewStore } from "@/stores/previewStore";
+import type { CutawayPreset } from "@/utils/previewCutaway";
 import { useEditorStore } from "@/stores/editorStore";
 import { SliderField } from "@/components/properties/SliderField";
 import { runFitToContent, refineFitToContentApply } from "@/utils/previewAutoFit";
@@ -11,6 +12,15 @@ import {
   PreviewSidebarSection,
   previewButtonClass,
 } from "./PreviewControlPrimitives";
+
+/**
+ * Two shapes, no per-axis controls. "Top" is previewable live on the GPU; "Corner"
+ * keeps the surface visible around the notch and settles via re-extraction.
+ */
+const CUTAWAY_SHAPES: ReadonlyArray<{ value: CutawayPreset; label: string; title: string }> = [
+  { value: "top", label: "Top", title: "Remove everything above the cut level" },
+  { value: "corner", label: "Corner", title: "Remove one quadrant above the cut, keeping surface context" },
+];
 
 export function ControlsVoxel() {
   const rangeMin = usePreviewStore((s) => s.rangeMin);
@@ -46,9 +56,16 @@ export function ControlsVoxel() {
   const setAutoFitContentEnabled = usePreviewStore((s) => s.setAutoFitContentEnabled);
   const terrainRefUseBaseY = usePreviewStore((s) => s.terrainRefUseBaseY);
   const isFitToContentRunning = usePreviewStore((s) => s.isFitToContentRunning);
+  const worldSeed = useEditorStore((s) => s.worldSeed);
+  const setWorldSeed = useEditorStore((s) => s.setWorldSeed);
   const cutawayEnabled = usePreviewStore((s) => s.cutawayEnabled);
   const setCutawayEnabled = usePreviewStore((s) => s.setCutawayEnabled);
   const cutawayLevel = usePreviewStore((s) => s.cutawayLevel);
+  const cutawayPreset = usePreviewStore((s) => s.cutawayPreset);
+  const setCutawayPreset = usePreviewStore((s) => s.setCutawayPreset);
+  const showVoidView = usePreviewStore((s) => s.showVoidView);
+  const setShowVoidView = usePreviewStore((s) => s.setShowVoidView);
+  const voidStats = usePreviewStore((s) => s.voidStats);
   const setCutawayLevel = usePreviewStore((s) => s.setCutawayLevel);
   const voxelRootResolution = usePreviewStore((s) => s.voxelRootResolution);
   const voxelDensityStats = usePreviewStore((s) => s.voxelDensityStats);
@@ -144,6 +161,7 @@ export function ControlsVoxel() {
       voxelDensityStats: null,
       hiddenVoxelMaterialNames: [],
       _voxelSurfaceData: null,
+      _voxelFluidConfig: null,
       _voxelVolumeMaterialIds: null,
       _voxelVolumeRes: null,
       _voxelVolumeYSlices: null,
@@ -197,22 +215,67 @@ export function ControlsVoxel() {
       <SliderField label="Y slices" value={voxelYSlices} min={8} max={128} step={4} onChange={setVoxelYSlices} />
 
       <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0">
+        <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">World seed</legend>
+        <input
+          type="text"
+          value={worldSeed}
+          onChange={(e) => setWorldSeed(e.target.value)}
+          placeholder="(unseeded)"
+          aria-label="World seed"
+          className="rounded border border-tn-border bg-tn-surface px-2 py-1 text-xs"
+        />
+        <p className="text-[10px] text-tn-text-muted leading-snug">
+          Root of the seed chain. Set this to your world&rsquo;s seed to preview the
+          terrain that world actually generates — every seeded node derives from it.
+        </p>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-0.5 border-0 p-0 m-0 min-w-0">
         <legend className="text-[10px] font-medium text-tn-text-muted mb-1 px-0">Cave visibility</legend>
         <PreviewCheckbox
           checked={cutawayEnabled}
           onChange={setCutawayEnabled}
-          label="Cutaway (hide above Y)"
-          description="Clip the mesh above a world Y to see underground tunnels."
+          label="Cutaway"
+          description="Cut the terrain open to see underground. The cut face is filled in as solid rock."
         />
         {cutawayEnabled && (
-          <SliderField
-            label="Cutaway Y"
-            value={cutawayLevel}
-            min={voxelYMin}
-            max={voxelYMax}
-            step={1}
-            onChange={setCutawayLevel}
-          />
+          <>
+            <div className="flex gap-1 mt-1" role="group" aria-label="Cutaway shape">
+              {CUTAWAY_SHAPES.map(({ value, label, title }) => (
+                <button
+                  key={value}
+                  type="button"
+                  title={title}
+                  aria-pressed={cutawayPreset === value}
+                  className={`${previewButtonClass} flex-1 ${
+                    cutawayPreset === value ? "ring-1 ring-tn-accent" : ""
+                  }`}
+                  onClick={() => setCutawayPreset(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <SliderField
+              label="Cutaway Y"
+              value={cutawayLevel}
+              min={voxelYMin}
+              max={voxelYMax}
+              step={1}
+              onChange={setCutawayLevel}
+            />
+          </>
+        )}
+        <PreviewCheckbox
+          checked={showVoidView}
+          onChange={setShowVoidView}
+          label="Colour by void"
+          description="Shade walls by what they enclose: sealed cave, cave mouth, or open surface."
+        />
+        {showVoidView && voidStats && voidStats.enclosed === 0 && voidStats.breaching === 0 && (
+          <PreviewCallout tone="warning">
+            No caves in this volume — every surface borders open sky.
+          </PreviewCallout>
         )}
         <button
           type="button"

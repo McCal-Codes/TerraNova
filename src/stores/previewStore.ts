@@ -11,6 +11,7 @@ import { readStoredPreviewDefaults } from "@/stores/configStore";
 import { initial2dPreviewResolution, clamp2dPreviewResolution } from "@/utils/previewResolution";
 import { safeStoredJson } from "@/utils/safeLocalStorage";
 import type { PreviewRootResolution } from "@/utils/previewRootResolver";
+import { isCutawayPreset, type CutawayPreset } from "@/utils/previewCutaway";
 import type { PrefabPreviewMeshData } from "@/utils/hytaleBlockAssets/buildPrefabPreviewMesh";
 
 export type PreviewMode = "2d" | "3d" | "voxel" | "world" | "prefab";
@@ -119,6 +120,19 @@ interface PreviewState {
   /** Hide voxel geometry above this world Y (cutaway). */
   cutawayEnabled: boolean;
   cutawayLevel: number;
+  /**
+   * Shape of the cut. "top" is previewable with a GPU clip plane while dragging;
+   * "corner" is re-extraction only (clipIntersection tanks the frame rate).
+   */
+  cutawayPreset: CutawayPreset;
+  /**
+   * Colour solid voxels by the kind of air they enclose (sealed cave / cave mouth /
+   * open surface) instead of by material. Answers "did my cave generate, and did it
+   * punch through?" without hunting through the mesh.
+   */
+  showVoidView: boolean;
+  /** Void counts from the last extraction, for the caves hint. */
+  voidStats: { enclosed: number; breaching: number } | null;
   /** 3D heightfield vs underground volume mesh (reuses voxel pipeline). */
   show3DVolumeView: boolean;
 
@@ -142,6 +156,8 @@ interface PreviewState {
   /** Material names hidden from voxel mesh (legend toggles). */
   hiddenVoxelMaterialNames: string[];
   _voxelSurfaceData: import("@/utils/voxelExtractor").VoxelData | null;
+  /** Fluid config used for the last extraction, so a cutaway re-extract stays faithful. */
+  _voxelFluidConfig: import("@/utils/voxelExtractor").FluidConfig | null;
   _voxelVolumeMaterialIds: Uint8Array | null;
   _voxelVolumeRes: number | null;
   _voxelVolumeYSlices: number | null;
@@ -291,6 +307,8 @@ interface PreviewState {
   setVerticalSectionLoading: (loading: boolean) => void;
   setCutawayEnabled: (enabled: boolean) => void;
   setCutawayLevel: (level: number) => void;
+  setCutawayPreset: (preset: CutawayPreset) => void;
+  setShowVoidView: (enabled: boolean) => void;
   setShow3DVolumeView: (show: boolean) => void;
 
   setVoxelYMin: (y: number) => void;
@@ -408,6 +426,8 @@ const PERSIST_MAP: Record<string, string> = {
   crossSectionProfileMode: "tn-crossSectionProfileMode",
   cutawayEnabled: "tn-cutawayEnabled",
   cutawayLevel: "tn-cutawayLevel",
+  cutawayPreset: "tn-cutawayPreset",
+  showVoidView: "tn-showVoidView",
   show3DVolumeView: "tn-show3DVolumeView",
   voxelYMin: "tn-voxelYMin",
   voxelYMax: "tn-voxelYMax",
@@ -473,6 +493,15 @@ function getStoredFloat(key: string, fallback: number): number {
   return isNaN(n) ? fallback : n;
 }
 
+/**
+ * Validated read: a stale or hand-edited localStorage value must not put the store
+ * into a preset that no longer exists.
+ */
+function getStoredCutawayPreset(key: string, fallback: CutawayPreset): CutawayPreset {
+  const v = getStored(key);
+  return isCutawayPreset(v) ? v : fallback;
+}
+
 function hydratePersistedState() {
   const configDefaults = readStoredPreviewDefaults();
   return {
@@ -503,6 +532,8 @@ function hydratePersistedState() {
     })(),
     cutawayEnabled: getStoredBool("tn-cutawayEnabled", false),
     cutawayLevel: getStoredFloat("tn-cutawayLevel", 60),
+    cutawayPreset: getStoredCutawayPreset("tn-cutawayPreset", "off"),
+    showVoidView: getStoredBool("tn-showVoidView", false),
     show3DVolumeView: getStoredBool("tn-show3DVolumeView", false),
     // Default voxel window should be tall enough to include terrain peaks by default.
     voxelYMin: getStoredFloat("tn-voxelYMin", 0),
@@ -639,6 +670,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     voxelPalette: [],
     hiddenVoxelMaterialNames: [],
     _voxelSurfaceData: null,
+    _voxelFluidConfig: null,
+    voidStats: null,
     _voxelVolumeMaterialIds: null,
     _voxelVolumeRes: null,
     _voxelVolumeYSlices: null,
@@ -728,6 +761,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setVerticalSectionLoading: (isVerticalSectionLoading) => originalSet({ isVerticalSectionLoading }),
     setCutawayEnabled: (cutawayEnabled) => persistedSet({ cutawayEnabled }),
     setCutawayLevel: (cutawayLevel) => persistedSet({ cutawayLevel }),
+    setCutawayPreset: (cutawayPreset: CutawayPreset) => persistedSet({ cutawayPreset }),
+    setShowVoidView: (showVoidView: boolean) => persistedSet({ showVoidView }),
     setShow3DVolumeView: (show3DVolumeView) => persistedSet({ show3DVolumeView }),
     setVoxelDensities: (voxelDensities) => originalSet({ voxelDensities }),
     setVoxelLoading: (isVoxelLoading) => originalSet({ isVoxelLoading }),
@@ -749,6 +784,7 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
               surfaceVoxelCount: null,
               voxelDensityStats: null,
               _voxelSurfaceData: null,
+    _voxelFluidConfig: null,
               _voxelVolumeMaterialIds: null,
               _voxelVolumeRes: null,
               _voxelVolumeYSlices: null,

@@ -12,6 +12,8 @@ export interface BuildDensityEvalOptionsParams {
   nodes: Node[];
   edges: Edge[];
   contentFields?: Record<string, number>;
+  /** SeedBox root. Omitted means an unseeded root, not "skip seeding". */
+  worldSeed?: string;
   projectPath?: string | null;
   /** When false, only use already-cached exports (sync path). */
   loadMissing?: boolean;
@@ -36,7 +38,7 @@ function mergeImportGraph(
 export async function buildDensityEvalOptions(
   params: BuildDensityEvalOptionsParams,
 ): Promise<EvaluationOptions> {
-  const { nodes, edges, contentFields, projectPath, loadMissing = true, biomeSections } = params;
+  const { nodes, edges, contentFields, worldSeed, projectPath, loadMissing = true, biomeSections } = params;
   const merged = mergeImportGraph(nodes, edges, biomeSections);
   const importNames = collectExternalImportedNames(merged.nodes, merged.edges);
 
@@ -55,6 +57,7 @@ export async function buildDensityEvalOptions(
 
   return {
     contentFields,
+    ...(worldSeed ? { worldSeed } : {}),
     ...(externalDensityExports && Object.keys(externalDensityExports).length > 0
       ? { externalDensityExports }
       : {}),

@@ -1,4 +1,4 @@
-import { SOLID_THRESHOLD, type VoxelData } from "./voxelExtractor";
+import { isSolidDensity, isAirDensity, type VoxelData } from "./voxelExtractor";
 import { HASH_PRIME_A, HASH_PRIME_B, HASH_PRIME_C, HASH_PRIME_D } from "@/constants";
 
 /* ── Types ────────────────────────────────────────────────────────── */
@@ -138,7 +138,7 @@ function isSolid(
   n: number, ys: number,
 ): boolean {
   if (x < 0 || x >= n || y < 0 || y >= ys || z < 0 || z >= n) return false;
-  return densities[y * n * n + z * n + x] >= SOLID_THRESHOLD;
+  return isSolidDensity(densities[y * n * n + z * n + x]);
 }
 
 /* ── Vertex AO computation ───────────────────────────────────────── */
@@ -284,7 +284,7 @@ export function buildVoxelMeshes(
     for (let z = 0; z < n; z++) {
       for (let x = 0; x < n; x++) {
         const idx = yOff + z * n + x;
-        if (densities[idx] < SOLID_THRESHOLD) continue;
+        if (isAirDensity(densities[idx])) continue;
         const matId = volumeMaterialIds?.[idx] ?? 0;
         if (hiddenMaterialIndices?.has(matId)) continue;
         matGrid[idx] = matId;

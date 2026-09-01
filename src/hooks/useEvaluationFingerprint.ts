@@ -12,6 +12,7 @@ export function useEvaluationFingerprint(): string {
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
   const contentFields = useEditorStore((s) => s.contentFields);
+  const worldSeed = useEditorStore((s) => s.worldSeed);
   const outputNodeId = useEditorStore((s) => s.outputNodeId);
   const materialConfig = useEditorStore((s) => s.materialConfig);
   const selectedPreviewNodeId = usePreviewStore((s) => s.selectedPreviewNodeId);
@@ -27,10 +28,11 @@ export function useEvaluationFingerprint(): string {
         nodes,
         edges,
         contentFields,
+        worldSeed,
         rootNodeId: rootResolution.nodeId,
         rootSource: rootResolution.source,
         materialConfig,
       }),
-    [nodes, edges, contentFields, materialConfig, rootResolution.nodeId, rootResolution.source],
+    [nodes, edges, contentFields, worldSeed, materialConfig, rootResolution.nodeId, rootResolution.source],
   );
 }

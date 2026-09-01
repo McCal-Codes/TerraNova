@@ -110,7 +110,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           TERRANOVA_HYTALE_CLIENT_ID: ${{ secrets.TERRANOVA_HYTALE_CLIENT_ID }}
         with:
-          includeUpdaterJson: false
+          # Must stay true: this is what generates latest.json. The per-platform
+          # copies are staged as artifacts below and merged by merge-updater,
+          # which uploads the combined manifest last and clobbers whatever the
+          # parallel builds left on the draft release.
+          includeUpdaterJson: true
           updaterJsonPreferNsis: true
           tagName: ${{ inputs.tag }}
           releaseName: 'TerraNova ${{ inputs.tag }}'

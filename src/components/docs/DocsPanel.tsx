@@ -2845,7 +2845,7 @@ export function DocsPanel() {
             type="button"
             onClick={() => { contentRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }}
             title="Scroll to top"
-            className="absolute bottom-4 right-4 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-tn-border bg-tn-panel/90 text-tn-text-muted shadow-md backdrop-blur-sm hover:bg-tn-accent/20 hover:text-tn-text transition-colors"
+            className="absolute bottom-4 right-4 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-tn-border bg-tn-panel text-tn-text-muted shadow-md hover:bg-tn-accent/20 hover:text-tn-text transition-colors"
           >
             <ChevronLeft className="h-4 w-4 rotate-90" />
           </button>
